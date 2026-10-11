@@ -25,7 +25,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             if stop:
                 await stop()
 
-    app = FastAPI(title="photoctl", version="1", lifespan=lifespan, docs_url=None, redoc_url=None)
+    # No public /docs or /openapi.json: the schema is dumped at build time (scripts/dump_openapi.py).
+    app = FastAPI(title="photoctl", version="1", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
     app.state.settings = settings
     app.state.token = get_or_create_token()
     app.state.device = load_device()
@@ -57,6 +58,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     from . import routes
     routes.register(app)
+    if settings.static_dir and Path(settings.static_dir).exists():
+        from fastapi.staticfiles import StaticFiles
+
+        # Built web app (JS/CSS/icons/manifest). Registered last so /api and / win.
+        app.mount("/", StaticFiles(directory=settings.static_dir), name="web")
     return app
 
 

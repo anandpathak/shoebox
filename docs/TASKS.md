@@ -174,8 +174,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 
 ## M6 — Web UI, mobile-first (§8 screens)
 
-- [ ] **T6.1** Scaffold `web/` (Vite + React + TS), served by FastAPI; API client generated from OpenAPI; `DataSource` interface with a `ServerDataSource` implementation (§10.5).
+- [x] **T6.1** Scaffold `web/` (Vite + React + TS), served by FastAPI; API client generated from OpenAPI; `DataSource` interface with a `ServerDataSource` implementation (§10.5). ✅ 2026-10-11
   *Done when:* `photoctl serve` opens the UI at http://127.0.0.1:8765.
+  *Note:* Request types are generated from the OpenAPI schema (scripts/dump_openapi.py + openapi-typescript); response types are hand-written in web/src/api/types.ts because the API returns plain dicts. The schema isn't served at runtime.
 - [ ] **T6.2** Responsive layout designed for phone width first (bottom tab bar on mobile, sidebar on desktop); status bar (online/offline/pending edits).
   *Done when:* Playwright screenshots at iPhone 15 and Pixel 8 sizes look right, with no horizontal scroll.
 - [ ] **T6.3** Library grid: month sections, virtualised infinite scroll, lazy thumbnails, touch-friendly.

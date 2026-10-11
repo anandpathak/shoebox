@@ -57,3 +57,6 @@ infra/crash.log
 node_modules/
 web/dist/
 .hypothesis/
+src/photoctl/web/dist/
+web/test-results/
+web/playwright-report/

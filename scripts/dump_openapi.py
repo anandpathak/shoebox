@@ -1,0 +1,24 @@
+"""Write web/src/api/openapi.json from the FastAPI app (the server doesn't publish it at runtime).
+Then `npm run gen:api` in web/ turns it into TypeScript types."""
+
+import json
+import os
+import sys
+import tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "src"))
+os.environ.setdefault("PHOTOCTL_HOME", tempfile.mkdtemp(prefix="photoctl-openapi-"))
+os.environ.setdefault("PHOTOCTL_TOKEN_STORE", "file")
+
+from fastapi.openapi.utils import get_openapi  # noqa: E402
+
+from photoctl.server.app import create_app  # noqa: E402
+
+app = create_app()
+spec = get_openapi(title=app.title, version=app.version, routes=app.routes)
+out = ROOT / "web" / "src" / "api" / "openapi.json"
+out.parent.mkdir(parents=True, exist_ok=True)
+out.write_text(json.dumps(spec, indent=2) + "\n")
+print(f"wrote {out.relative_to(ROOT)} ({len(spec['paths'])} paths)")
