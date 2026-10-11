@@ -18,8 +18,11 @@ export default defineConfig({
     timeout: 120_000,
   },
   projects: [
-    { name: 'iphone', use: { ...devices['iPhone 15'], ...chrome } },
-    { name: 'pixel', use: { ...devices['Pixel 7'], ...chrome } },
-    { name: 'desktop', use: { ...devices['Desktop Chrome'], ...chrome, viewport: { width: 1280, height: 800 } } },
+    { name: 'iphone', testIgnore: /tailnet\.spec/, use: { ...devices['iPhone 15'], ...chrome } },
+    { name: 'pixel', testIgnore: /tailnet\.spec/, use: { ...devices['Pixel 7'], ...chrome } },
+    { name: 'desktop', testIgnore: /tailnet\.spec/, use: { ...devices['Desktop Chrome'], ...chrome, viewport: { width: 1280, height: 800 } } },
+    // A phone reaching the Mac through `tailscale serve`: identified by the Tailscale login header.
+    { name: 'tailnet-pixel', testMatch: /tailnet\.spec/,
+      use: { ...devices['Pixel 7'], ...chrome, extraHTTPHeaders: { 'Tailscale-User-Login': 'phone-user@example.com' } } },
   ],
 })

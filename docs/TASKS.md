@@ -225,8 +225,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [~] **T8.2** PWA: manifest, icons, service worker (app shell + thumbnail cache), install prompts/help for iOS (Add to Home Screen) and Android (Install app).
   *Done when:* it installs on both phones and opens full-screen from the home-screen icon.
   *Note:* Built 2026-10-11: web manifest, drawn icons (incl. maskable + apple-touch-icon), service worker (offline app shell, thumbnail cache, API never cached), install hint (iOS: Share → Add to Home Screen; Chrome/Android: Install button). Browser tests confirm the manifest, the active worker and an offline reload. **Your step:** install it on the iPhone and the Android phone.
-- [ ] **T8.3** Phone device registration (§9.4): generate a `device_id`, ask for a name, detect the platform → `POST /api/devices/register`.
+- [~] **T8.3** Phone device registration (§9.4): generate a `device_id`, ask for a name, detect the platform → `POST /api/devices/register`.
   *Done when:* both phones appear in the devices list as `ios` / `android`.
+  *Note:* Built 2026-10-11. Browser tests simulate a Pixel reaching the Mac through tailscale serve: it names itself, registers as android, and its uploads are credited to it. A browser on the Mac itself counts as the Mac. **Your step:** open the app on both real phones once.
 - [ ] **T8.4** Trigger an archive on the Mac from a phone (§9.2): start, watch progress, lock the phone, come back and reattach, cancel.
   *Done when:* this works on both phones end to end, and a second phone sees "already running" with live progress.
 - [ ] **T8.5** Upload from a phone (§9.3): photo picker → tus resumable upload → ingest. Test location on/off on iOS, and on Android; show "metadata incomplete" when GPS is missing.

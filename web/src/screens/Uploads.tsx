@@ -3,7 +3,7 @@ import * as tus from 'tus-js-client'
 import { api, ApiError } from '../api/client'
 import { TopBar } from '../components/Shell'
 import { useApp } from '../lib/app'
-import { getDevice } from '../lib/device'
+import { uploaderId } from '../components/RegisterDevice'
 import { ago, bytes } from '../lib/format'
 
 interface RunInfo {
@@ -35,7 +35,7 @@ export function Uploads() {
         <AppleCard mac={health?.device.name ?? 'your Mac'} busy={active?.status === 'running'}
                    onStarted={(r) => { setActive(r); setError(null) }} onError={setError} />
         {active && <LiveRun run={active} onUpdate={setActive} onFinished={() => { refresh(); changed() }} />}
-        <DeviceUploads onDone={() => { refresh(); changed() }} />
+        <DeviceUploads deviceId={uploaderId(health?.via, health?.device.device_id)} onDone={() => { refresh(); changed() }} />
         <History runs={history.filter((r) => r.run_id !== active?.run_id)} onRetry={(r) => setActive(r)} onError={setError} />
       </div>
     </>
@@ -134,12 +134,11 @@ function LiveRun({ run, onUpdate, onFinished }: { run: RunInfo; onUpdate: (r: Ru
 
 interface UploadRow { name: string; size: number; sent: number; status: 'uploading' | 'done' | 'error' | 'paused'; error?: string }
 
-function DeviceUploads({ onDone }: { onDone: () => void }) {
+function DeviceUploads({ deviceId, onDone }: { deviceId: string; onDone: () => void }) {
   const [rows, setRows] = useState<UploadRow[]>([])
   const input = useRef<HTMLInputElement>(null)
   const start = (files: FileList | null) => {
     if (!files?.length) return
-    const dev = getDevice()
     const list = Array.from(files)
     setRows((r) => [...list.map((f) => ({ name: f.name, size: f.size, sent: 0, status: 'uploading' as const })), ...r])
     let left = list.length
@@ -150,7 +149,7 @@ function DeviceUploads({ onDone }: { onDone: () => void }) {
         chunkSize: 8 * 1024 * 1024,
         retryDelays: [0, 1000, 3000, 5000, 10000, 20000],
         removeFingerprintOnSuccess: true,
-        metadata: { filename: file.name, filetype: file.type, device_id: dev.device_id, lastModified: String(file.lastModified) },
+        metadata: { filename: file.name, filetype: file.type, device_id: deviceId, lastModified: String(file.lastModified) },
         onProgress: (sent) => update({ sent }),
         onSuccess: () => { update({ status: 'done', sent: file.size }); if (--left === 0) setTimeout(onDone, 1500) },
         onError: (err) => { update({ status: 'error', error: err.message }); --left },

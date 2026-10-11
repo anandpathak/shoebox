@@ -1,3 +1,4 @@
+import { RegisterDevice } from './components/RegisterDevice'
 import { Shell } from './components/Shell'
 import { AppProvider } from './lib/app'
 import { useRoute } from './lib/router'
@@ -12,6 +13,7 @@ function Screens() {
   const tab = route.name === 'media' ? 'library' : route.name
   return (
     <Shell current={tab}>
+      <RegisterDevice />
       {tab === 'people' ? <People />
         : tab === 'sync' ? <Sync />
         : tab === 'uploads' ? <Uploads />

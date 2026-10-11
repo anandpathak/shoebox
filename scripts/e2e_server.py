@@ -172,7 +172,7 @@ def main() -> None:
 
     dist = ROOT / "src" / "photoctl" / "web" / "dist"
     app = create_app(Settings(library=library, port=args.port, static_dir=dist, sync_interval=0,
-                              bucket=bucket))
+                              bucket=bucket, allowed_logins=["phone-user@example.com"]))
     print(f"e2e server: http://127.0.0.1:{args.port}  home={home}", flush=True)
     uvicorn.run(app, host="127.0.0.1", port=args.port, log_level="warning")
 
