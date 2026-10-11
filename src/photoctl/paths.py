@@ -40,6 +40,12 @@ def sync_lock() -> Path:
     return home() / "sync.lock"
 
 
+def inbox_dir() -> Path:
+    d = home() / "inbox"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
 def cache_dir() -> Path:
     d = home() / "cache"
     d.mkdir(parents=True, exist_ok=True)

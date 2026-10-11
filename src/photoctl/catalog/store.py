@@ -79,7 +79,8 @@ def media_row(record: dict, *, bytes_compressed: int | None = None, thumb_key: s
         "height": file.get("height"),
         "duration_s": exif.get("duration"),
         "taken_at": record.get("taken_at"),
-        "taken_at_source": (record.get("source") or {}).get("type") if record.get("taken_at") else None,
+        "taken_at_source": (record.get("taken_at_source") or (record.get("source") or {}).get("type")
+                            if record.get("taken_at") else None),
         "tz": exif.get("tzname"),
         "lat": lat,
         "lon": lon,
@@ -100,8 +101,9 @@ def source_ref(record: dict) -> str:
 
 
 def upsert_record(conn: sqlite3.Connection, record: dict, device: Any, *,
-                  bytes_compressed: int | None = None) -> str:
-    """Record one archived item as ops (device.register if new, media.upsert, media.source) and apply them."""
+                  bytes_compressed: int | None = None, source_device_id: str | None = None) -> str:
+    """Record one archived item as ops (device.register if new, media.upsert, media.source) and apply them.
+    `source_device_id` credits the item to another device (e.g. the phone that uploaded it)."""
     from .ops import Emitter
 
     items: list[tuple[str, dict]] = []
@@ -113,7 +115,7 @@ def upsert_record(conn: sqlite3.Connection, record: dict, device: Any, *,
     if bytes_compressed is not None:
         body["bytes_compressed"] = bytes_compressed
     items.append(("media.upsert", body))
-    items.append(("media.source", {"photo_id": record["photo_id"], "device_id": device.device_id,
+    items.append(("media.source", {"photo_id": record["photo_id"], "device_id": source_device_id or device.device_id,
                                    "source_ref": source_ref(record)}))
     Emitter(conn, device.device_id).emit_many(items)
     return record["photo_id"]

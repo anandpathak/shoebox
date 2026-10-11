@@ -79,6 +79,7 @@ class Result:
     uuid: str = ""
     error: str | None = None
     record: dict | None = None
+    source_device_id: str | None = None
 
 
 @dataclass
@@ -262,7 +263,8 @@ def process(item, opts: Options) -> Result:
 
         bucket = opts.bucket
         if bucket is None:  # --local-only
-            return Result(ref, status, uuid=item.ref, error=error, record=record, fields=fields)
+            return Result(ref, status, uuid=item.ref, error=error, record=record, fields=fields,
+                          source_device_id=getattr(item, "source_device_id", None))
         s3_meta = {"sha256": sha, "orig-name": item.original_filename or src.name, "source": ref,
                    "taken-at": record["taken_at"] or ""}
         uploaded = 0
@@ -277,7 +279,8 @@ def process(item, opts: Options) -> Result:
             bucket.upload(path, key, content_type=content_type, metadata=s3_meta)
             uploaded += path.stat().st_size
         bucket.upload(meta_path, meta_key, content_type="application/json")
-        return Result(ref, status, uuid=item.ref, uploaded_bytes=uploaded, error=error, record=record, fields=fields)
+        return Result(ref, status, uuid=item.ref, uploaded_bytes=uploaded, error=error, record=record, fields=fields,
+                      source_device_id=getattr(item, "source_device_id", None))
     except Exception as e:
         return Result(ref, "failed", uuid=item.ref, error=f"{type(e).__name__}: {e}")
     finally:
@@ -355,7 +358,8 @@ def run_archive(items: Iterable | None, opts: Options, *, selection: Selection |
                                 if r.source_ref.startswith("applephotos:"):
                                     apple_done.append(r.uuid)
                         if catalog is not None and r.record is not None:
-                            upsert_record(catalog, r.record, device, bytes_compressed=r.fields.get("bytes_compressed"))
+                            upsert_record(catalog, r.record, device, bytes_compressed=r.fields.get("bytes_compressed"),
+                                          source_device_id=r.source_device_id)
                         event("item", source_ref=r.source_ref, status=r.status, photo_id=r.fields.get("photo_id"),
                               error=r.error, uploaded_bytes=r.uploaded_bytes)
                     refill()

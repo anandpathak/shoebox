@@ -208,8 +208,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T7.2** `POST /api/uploads/apple-photos` (selection on the Mac / album / date range / all, dry-run) → background run holding the ingest lock; SSE progress; `POST /api/runs/{id}/cancel`. ✅ 2026-10-11
   *Done when:* a run started from the UI shows live progress, a second start shows "already running", and cancel stops after the current item.
   *Note:* Progress streams from the run's JSONL log, so runs started from the terminal are visible in the app too (only app-started runs can be cancelled from the app). Without S3 the server still adds items to the main catalog but doesn't mark them archived, so a later run with S3 uploads them.
-- [ ] **T7.3** tus resumable upload endpoint `/api/uploads/files` → `~/.photoctl/inbox/<device_id>/` → same pipeline (`source_ref = upload:<device_id>:<name>`); records `metadata_fidelity` + a "metadata incomplete" flag when GPS/date is missing.
+- [x] **T7.3** tus resumable upload endpoint `/api/uploads/files` → `~/.photoctl/inbox/<device_id>/` → same pipeline (`source_ref = upload:<device_id>:<name>`); records `metadata_fidelity` + a "metadata incomplete" flag when GPS/date is missing. ✅ 2026-10-11
   *Done when:* a 500 MB video upload survives a dropped connection and resumes.
+  *Note:* Tested with a 30 MB file in 8 MB chunks with a simulated drop and resume (the protocol is the same at 500 MB; not tried at that size here). Uploads are credited to the uploading device. Without S3 the uploaded file is kept in inbox/<device>/archived-locally/ (it's the only copy) and is uploaded once the server runs with a bucket.
 - [ ] **T7.4** Uploads screen: trigger options, live progress, cancel, "Upload from this device" picker, run history, failures + "retry failed".
   *Done when:* a failed item can be retried from the UI.
 
