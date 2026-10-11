@@ -177,8 +177,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T6.1** Scaffold `web/` (Vite + React + TS), served by FastAPI; API client generated from OpenAPI; `DataSource` interface with a `ServerDataSource` implementation (§10.5). ✅ 2026-10-11
   *Done when:* `photoctl serve` opens the UI at http://127.0.0.1:8765.
   *Note:* Request types are generated from the OpenAPI schema (scripts/dump_openapi.py + openapi-typescript); response types are hand-written in web/src/api/types.ts because the API returns plain dicts. The schema isn't served at runtime.
-- [ ] **T6.2** Responsive layout designed for phone width first (bottom tab bar on mobile, sidebar on desktop); status bar (online/offline/pending edits).
+- [x] **T6.2** Responsive layout designed for phone width first (bottom tab bar on mobile, sidebar on desktop); status bar (online/offline/pending edits). ✅ 2026-10-11
   *Done when:* Playwright screenshots at iPhone 15 and Pixel 8 sizes look right, with no horizontal scroll.
+  *Note:* Playwright runs against a seeded throwaway server (scripts/e2e_server.py) using the installed Chrome at iPhone 15, Pixel 7 and desktop sizes; asserts no horizontal scroll and where the navigation sits.
 - [ ] **T6.3** Library grid: month sections, virtualised infinite scroll, lazy thumbnails, touch-friendly.
   *Done when:* 10k items scroll smoothly on a mid-range Android phone.
 - [ ] **T6.4** Search bar + filter chips (date, person, place, type, favourite, source device).

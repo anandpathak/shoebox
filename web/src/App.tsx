@@ -1,18 +1,23 @@
-import { useEffect, useState } from 'react'
-import { api } from './api/client'
-import type { Health } from './api/types'
+import { Shell, TopBar } from './components/Shell'
+import { AppProvider } from './lib/app'
+import { useRoute } from './lib/router'
+
+function Placeholder({ title }: { title: string }) {
+  return <><TopBar title={title} /><div className="empty">Coming in the next step.</div></>
+}
+
+function Screens() {
+  const route = useRoute()
+  const tab = route.name === 'media' ? 'library' : route.name
+  return (
+    <Shell current={tab}>
+      {tab === 'people' ? <Placeholder title="People" />
+        : tab === 'sync' ? <Placeholder title="Sync & devices" />
+        : <Placeholder title="Library" />}
+    </Shell>
+  )
+}
 
 export default function App() {
-  const [health, setHealth] = useState<Health | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  useEffect(() => {
-    api<Health>('/api/health').then(setHealth).catch((e) => setError(e.message))
-  }, [])
-  return (
-    <main>
-      <h1>Photoframing</h1>
-      {health && <p>Connected to {health.device.name}</p>}
-      {error && <p role="alert">{error}</p>}
-    </main>
-  )
+  return <AppProvider><Screens /></AppProvider>
 }
