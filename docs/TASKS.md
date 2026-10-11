@@ -167,7 +167,7 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
   *Note:* Pull cursor is the server's op arrival sequence plus a catalog epoch (410 tells the client to re-download). device.register for a phone is emitted by the server device on its behalf; the phone's own ops keep the phone's device id.
 - [x] **T5.7** Catalog endpoints: `GET /api/catalogs`, `/api/catalogs/library`, `/api/catalogs/{device_id}?flavour=`, `/api/catalogs/all.zip`, `PUT /api/catalogs/{device_id}`. Support Range requests for resumable downloads. ✅ 2026-10-11
   *Done when:* each download opens in `sqlite3`, and an interrupted download resumes.
-- [ ] **T5.8** Database backup endpoints: `POST /api/db/backup`, `GET /api/db/backups` (age, size, integrity).
+- [x] **T5.8** Database backup endpoints: `POST /api/db/backup`, `GET /api/db/backups` (age, size, integrity). ✅ 2026-10-11
   *Done when:* a backup can be started and listed from the API.
 
 ---
