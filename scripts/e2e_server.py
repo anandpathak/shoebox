@@ -100,6 +100,30 @@ def seed(library: Path, items: int, seed_value: int = 7) -> None:
     conn.close()
 
 
+def fake_photos_library(home: Path, n: int = 8) -> None:
+    """Replace Apple Photos with a few generated photos so 'Archive from Apple Photos' works in tests."""
+    import json
+    from datetime import datetime, timezone
+    from types import SimpleNamespace
+
+    from photoctl import archiver
+
+    folder = home / "fake-photos"
+    items = []
+    for i in range(n):
+        f = folder / f"IMG_{9000 + i}.jpg"
+        if not f.exists():
+            gradient(f, (1200 + i, 900), PALETTES[i % len(PALETTES)])  # unique bytes per photo
+        apple = json.dumps({"labels": ["Garden"], "persons": [], "albums": ["Fake album"], "keywords": [],
+                            "place": {"name": "Bengaluru", "address": {"city": "Bengaluru", "country": "India"}}})
+        items.append(SimpleNamespace(uuid=f"FAKE-{i}", path=str(f), date=datetime(2026, 9, 1 + i, 9, tzinfo=timezone.utc),
+                                     original_filename=f.name, width=1200, height=900, uti_original="public.jpeg",
+                                     ismovie=False, has_raw=False, path_raw=None, live_photo=False, path_live_photo=None,
+                                     intrash=False, hidden=False, json=lambda a=apple: a))
+    archiver.select_photos = lambda sel: items
+    archiver.add_to_album = lambda *a, **k: None
+
+
 def start_mock_s3(home: Path, upload_originals: bool) -> str:
     """Mock S3 on a local port; originals uploaded as tiny Deep Archive objects so restores work."""
     from moto.server import ThreadedMotoServer
@@ -135,6 +159,7 @@ def main() -> None:
     os.environ["PHOTOCTL_HOME"] = str(home)
     os.environ["PHOTOCTL_TOKEN_STORE"] = "file"
     library = home / "library"
+    fake_photos_library(home)  # never read the real Photos library from tests or demos
     fresh = not (home / "catalog.sqlite").exists()
     if fresh:
         seed(library, args.items)

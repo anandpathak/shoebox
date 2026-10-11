@@ -211,8 +211,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T7.3** tus resumable upload endpoint `/api/uploads/files` → `~/.photoctl/inbox/<device_id>/` → same pipeline (`source_ref = upload:<device_id>:<name>`); records `metadata_fidelity` + a "metadata incomplete" flag when GPS/date is missing. ✅ 2026-10-11
   *Done when:* a 500 MB video upload survives a dropped connection and resumes.
   *Note:* Tested with a 30 MB file in 8 MB chunks with a simulated drop and resume (the protocol is the same at 500 MB; not tried at that size here). Uploads are credited to the uploading device. Without S3 the uploaded file is kept in inbox/<device>/archived-locally/ (it's the only copy) and is uploaded once the server runs with a bucket.
-- [ ] **T7.4** Uploads screen: trigger options, live progress, cancel, "Upload from this device" picker, run history, failures + "retry failed".
+- [x] **T7.4** Uploads screen: trigger options, live progress, cancel, "Upload from this device" picker, run history, failures + "retry failed". ✅ 2026-10-11
   *Done when:* a failed item can be retried from the UI.
+  *Note:* The e2e server swaps Apple Photos for generated fake photos, so tests never read the real library. Browser tests also caught two UI bugs, now fixed: the viewer overflowed iPhone width (the Next button ended up off-screen), and the 'Removed' panel reset on reload.
 
 ---
 

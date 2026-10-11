@@ -127,6 +127,13 @@ def delete(upload_id: str):
     return Response(status_code=204, headers=TUS)
 
 
+@router.post("/retry")
+def retry(request: Request):
+    """Try again with uploads whose archive failed (they stay in the inbox until they succeed)."""
+    request.app.state.inbox.kick()
+    return request.app.state.inbox.status()
+
+
 @router.get("")
 def inbox(request: Request):
     """Uploads that are complete but not archived yet, and recent results."""

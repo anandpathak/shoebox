@@ -117,7 +117,8 @@ input[type="search"], input[type="text"], select { width: 100%; min-width: 0; bo
 
 /* Viewer */
 .viewer { position: fixed; inset: 0; z-index: 50; background: var(--bg); display: grid; grid-template-rows: minmax(0, 62vh) auto;
-  overflow-y: auto; }
+  grid-template-columns: minmax(0, 1fr); overflow-y: auto; overflow-x: hidden; }
+.viewer > * { min-width: 0; }
 .viewer-media { position: relative; background: #000; display: grid; place-items: center; touch-action: pan-y; user-select: none; min-height: 0; }
 .viewer-media img, .viewer-media video { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
 .vbtn { position: absolute; z-index: 2; border: 0; background: rgb(0 0 0 / .45); color: #fff; width: 44px; height: 44px;
@@ -159,3 +160,13 @@ input[type="search"], input[type="text"], select { width: 100%; min-width: 0; bo
 .ok { color: var(--ok); } .warn { color: var(--amber); }
 .ok-pill { background: var(--ok-soft); color: var(--ok); }
 .card > p { margin: 0; }
+
+/* Uploads */
+.field { display: grid; gap: 4px; font-size: .85rem; color: var(--muted); flex: 1 1 160px; }
+.field input, .field select { color: var(--ink); }
+.check { display: flex; gap: 8px; align-items: center; font-size: .9rem; }
+.progress { height: 8px; border-radius: 4px; background: var(--sunk); overflow: hidden; }
+.progress span { display: block; height: 100%; background: var(--accent); transition: width .3s; }
+.progress.thin { height: 4px; margin-top: 4px; }
+.upload-row, .history-row { align-items: flex-start !important; }
+details summary { cursor: pointer; color: var(--danger); }

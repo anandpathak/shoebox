@@ -20,7 +20,8 @@ router = APIRouter(prefix="/api", dependencies=[Depends(user)])
 
 
 class AppleRun(BaseModel):
-    mode: str = Field(pattern="^(selected|album|range|all)$")
+    mode: str = Field(pattern="^(selected|album|range|all|uuids)$")
+    uuids: list[str] = Field(default_factory=list, max_length=10_000)
     album: str | None = Field(None, max_length=200)
     date_from: date | None = Field(None, alias="from")
     date_to: date | None = Field(None, alias="to")
@@ -51,12 +52,16 @@ def start_apple_run(body: AppleRun, request: Request):
         raise HTTPException(422, "Pick an album")
     if body.mode == "range" and not (body.date_from or body.date_to):
         raise HTTPException(422, "Give a start or end date")
+    if body.mode == "uuids" and not body.uuids:
+        raise HTTPException(422, "No items to retry")
     sel = Selection(selected=body.mode == "selected", albums=(body.album,) if body.mode == "album" else (),
                     from_date=datetime.combine(body.date_from, datetime.min.time()) if body.date_from else None,
                     to_date=datetime.combine(body.date_to, datetime.min.time()) if body.date_to else None,
-                    all=body.mode == "all", limit=body.limit, include_videos=body.include_videos)
+                    all=body.mode == "all", limit=body.limit, include_videos=body.include_videos,
+                    uuids=tuple(body.uuids) if body.mode == "uuids" else ())
     label = {"selected": "Selected in Photos", "album": f"Album: {body.album}", "all": "Everything not yet archived",
-             "range": f"Taken {body.date_from or '…'} to {body.date_to or '…'}"}[body.mode]
+             "range": f"Taken {body.date_from or '…'} to {body.date_to or '…'}",
+             "uuids": f"Retry {len(body.uuids)} item(s)"}[body.mode]
     try:
         run = request.app.state.runs.start("apple-photos", label + (" (dry run)" if body.dry_run else ""),
                                            options_for(request, dry_run=body.dry_run), selection=sel,
@@ -66,6 +71,18 @@ def start_apple_run(body: AppleRun, request: Request):
     except Exception as e:
         raise HTTPException(422, str(e)) from None
     return run.public()
+
+
+@router.get("/runs/active")
+def active_run(request: Request):
+    """The run in progress on this Mac, if any (started here or from the terminal)."""
+    live = request.app.state.runs.active()
+    if live:
+        return live.public()
+    for h in history(limit=3):
+        if h["status"] == "running":
+            return h
+    return None
 
 
 @router.get("/runs")

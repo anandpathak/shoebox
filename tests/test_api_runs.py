@@ -62,3 +62,12 @@ def test_validation(authed):
     assert client.post("/api/uploads/apple-photos", json={"mode": "range"}).status_code == 422
     assert client.post("/api/uploads/apple-photos", json={"mode": "everything"}).status_code == 422
     assert client.get("/api/runs/NOPE").status_code == 404
+
+
+def test_retry_failed_items_and_active(authed):
+    client, app, monkeypatch = authed
+    assert client.get("/api/runs/active").json() is None
+    r = client.post("/api/uploads/apple-photos", json={"mode": "uuids", "uuids": ["U1", "U2"]})
+    assert r.status_code == 202 and r.json()["label"] == "Retry 2 item(s)"
+    wait_done(client, r.json()["run_id"])
+    assert client.post("/api/uploads/apple-photos", json={"mode": "uuids"}).status_code == 422

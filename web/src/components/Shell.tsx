@@ -5,6 +5,7 @@ import { Icon } from './Icon'
 export const TABS = [
   { name: 'library', label: 'Library', icon: 'library' },
   { name: 'people', label: 'People', icon: 'people' },
+  { name: 'uploads', label: 'Uploads', icon: 'upload' },
   { name: 'sync', label: 'Sync', icon: 'sync' },
 ] as const
 

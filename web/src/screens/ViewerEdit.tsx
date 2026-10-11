@@ -15,7 +15,7 @@ export function Editor({ item, onChanged }: { item: MediaDetail; onChanged: () =
   const [newTag, setNewTag] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [deleted, setDeleted] = useState(false)
-  useEffect(() => { setLocal(item); setTitle(item.title ?? ''); setDesc(item.description ?? ''); setDeleted(false) }, [item])
+  useEffect(() => { setLocal(item); setTitle(item.title ?? ''); setDesc(item.description ?? ''); setDeleted(!!item.deleted) }, [item])
 
   async function run(optimistic: Partial<MediaDetail>, action: () => Promise<unknown>) {
     const before = local

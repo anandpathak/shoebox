@@ -10,6 +10,8 @@ test('open a photo, step through, close', async ({ page }) => {
   await expect(viewer.locator('.viewer-media img')).toBeVisible()
   await expect(viewer.locator('.facts')).toContainText('Taken')
   await expect(viewer.locator('.facts')).toContainText('From')
+  const wide = await viewer.evaluate((el) => el.scrollWidth - el.clientWidth)
+  expect(wide).toBeLessThanOrEqual(0)                       // nothing pushes the viewer wider than the screen
 
   await viewer.getByRole('button', { name: 'Next' }).click()
   await expect(page).not.toHaveURL(new RegExp(`media/${firstId}`))
