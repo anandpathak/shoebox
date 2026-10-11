@@ -91,10 +91,11 @@ def seed(library: Path, items: int, seed_value: int = 7) -> None:
         else:  # reuse a few rendered images so big seeds stay fast
             thumb.parent.mkdir(parents=True, exist_ok=True)
             thumb.write_bytes(thumbs[n % len(PALETTES)].read_bytes())
-        target = library / (keys["poster"] or keys["compressed"])
-        if not target.exists():
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(thumb.read_bytes())
+        for key in filter(None, (keys["poster"], keys["compressed"])):
+            target = library / key
+            if not target.exists():  # stand-in bytes: enough for downloads and layout tests
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(thumb.read_bytes())
     conn.close()
 
 

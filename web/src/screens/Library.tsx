@@ -5,6 +5,7 @@ import { describe, EMPTY, SearchBar, type Filters } from '../components/SearchBa
 import { TopBar } from '../components/Shell'
 import { useApp } from '../lib/app'
 import { go, type Route } from '../lib/router'
+import { rememberList } from '../lib/listCache'
 import { useSearch } from '../lib/useSearch'
 
 function fromQuery(q: URLSearchParams): Filters {
@@ -40,6 +41,7 @@ export function Library({ route }: { route: Route }) {
   }), [filters.q, filters.type, filters.fav, filters.device, filters.person])
   const { items, loading, error, done, more, query } = useSearch(source, params, version)
   const searching = JSON.stringify(filters) !== JSON.stringify(EMPTY)
+  useEffect(() => rememberList(toQuery(filters), items.map((i) => i.photo_id)), [items, filters.q, filters.type, filters.fav, filters.device, filters.person]) // eslint-disable-line react-hooks/exhaustive-deps
   const open = (id: string) => go(`media/${id}${toQuery(filters)}`)
 
   return (

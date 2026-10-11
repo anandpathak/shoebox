@@ -2,6 +2,7 @@ import { Shell, TopBar } from './components/Shell'
 import { AppProvider } from './lib/app'
 import { useRoute } from './lib/router'
 import { Library } from './screens/Library'
+import { Viewer } from './screens/Viewer'
 
 function Placeholder({ title }: { title: string }) {
   return <><TopBar title={title} /><div className="empty">Coming in the next step.</div></>
@@ -15,6 +16,7 @@ function Screens() {
       {tab === 'people' ? <Placeholder title="People" />
         : tab === 'sync' ? <Placeholder title="Sync & devices" />
         : <Library route={route} />}
+      {route.name === 'media' && route.params[0] && <Viewer route={route} />}
     </Shell>
   )
 }
