@@ -169,7 +169,9 @@ def _set_add(table: str, col: str, lower: bool):
 
 def _set_remove(ctx: _Ctx, op: dict) -> None:
     b = op["body"]
-    ctx.conn.executemany("INSERT OR IGNORE INTO tombstones (add_op, removed_by) VALUES (?, ?)",
+    # Several removes can cancel the same add; keep the earliest so the result is order-independent.
+    ctx.conn.executemany("INSERT INTO tombstones (add_op, removed_by) VALUES (?, ?) ON CONFLICT(add_op) "
+                         "DO UPDATE SET removed_by = MIN(removed_by, excluded.removed_by)",
                          [(a, op["op_id"]) for a in b["observed_add_ops"]])
     ctx.touched.add(b["photo_id"])
     if "person_id" in b:

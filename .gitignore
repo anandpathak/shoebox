@@ -56,3 +56,4 @@ infra/crash.log
 # Web (later milestones)
 node_modules/
 web/dist/
+.hypothesis/

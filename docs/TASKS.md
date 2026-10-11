@@ -59,8 +59,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T2.3** `apply_ops(ops)`: idempotent and order-independent, with per-field LWW (`field_hlc`), OR-sets for tags/albums/people, tombstones, person merge resolution, FTS refresh. ✅ 2026-10-11
   *Done when:* unit tests pass for every row of the §5 conflict table.
   *Note:* Imports (Apple title/favorite) carry a lower priority than edits, so a later re-import never overrides a user edit. Ops for photos that haven't arrived yet wait in deferred_ops.
-- [ ] **T2.4** **Property test** (Hypothesis): 2–3 simulated devices (Mac + phones), random ops, random delivery interleavings → identical catalog checksum.
+- [x] **T2.4** **Property test** (Hypothesis): 2–3 simulated devices (Mac + phones), random ops, random delivery interleavings → identical catalog checksum. ✅ 2026-10-11
   *Done when:* 1,000 examples pass in CI.
+  *Note:* Found and fixed a real bug: two removes of the same tag made tombstones.removed_by depend on arrival order. Verified the test catches a planted order-dependence bug. Default 300 examples; PHOTOCTL_PROPERTY_EXAMPLES=1000 for the full run.
 - [ ] **T2.5** Change `archive` (T1.5) to emit `media.upsert` / `media.source` / `device.register` ops instead of direct inserts.
   *Done when:* the catalog after archive is the same as before, and the ops appear in `outbox`.
 - [x] **T2.6** `photoctl catalog checksum`: deterministic hash over sorted rows (used by sync verify). ✅ 2026-10-11
