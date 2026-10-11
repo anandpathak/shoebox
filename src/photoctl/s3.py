@@ -134,11 +134,37 @@ class Bucket:
             out += [p["Prefix"] for p in page.get("CommonPrefixes", [])]
         return out
 
-    def list_keys(self, prefix: str) -> list[str]:
+    def list_keys(self, prefix: str, start_after: str | None = None) -> list[str]:
+        """Keys under prefix in lexical order, optionally only those after `start_after`."""
         out: list[str] = []
-        for page in self.client.get_paginator("list_objects_v2").paginate(Bucket=self.name, Prefix=prefix):
+        kwargs = {"Bucket": self.name, "Prefix": prefix}
+        if start_after:
+            kwargs["StartAfter"] = start_after
+        for page in self.client.get_paginator("list_objects_v2").paginate(**kwargs):
             out += [o["Key"] for o in page.get("Contents", [])]
         return out
+
+    def put_bytes_if(self, key: str, data: bytes, *, if_none_match: bool = False, if_match: str | None = None,
+                     content_type: str = "application/octet-stream") -> str | None:
+        """Conditional write. Returns the new ETag, or None if the precondition failed."""
+        cond = {"IfNoneMatch": "*"} if if_none_match else {"IfMatch": if_match} if if_match else {}
+        try:
+            resp = self.client.put_object(Bucket=self.name, Key=key, Body=data, ContentType=content_type,
+                                          ChecksumAlgorithm="SHA256", ServerSideEncryption="AES256", **cond)
+            return resp["ETag"]
+        except ClientError as e:
+            if _code(e) in ("PreconditionFailed", "ConditionalRequestConflict"):
+                return None
+            raise
+
+    def get_with_etag(self, key: str) -> tuple[bytes, str] | None:
+        try:
+            resp = self.client.get_object(Bucket=self.name, Key=key)
+        except ClientError as e:
+            if _code(e) in ("NoSuchKey", "404", "NotFound"):
+                return None
+            raise
+        return resp["Body"].read(), resp["ETag"]
 
 
 def _ascii(value: str) -> str:

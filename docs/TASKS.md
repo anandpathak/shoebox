@@ -81,10 +81,12 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T3.2** Switch the raw upload to a conditional create (`IfNoneMatch='*'`); on 412 → verify size + sha256 → mark as already archived. ✅ 2026-10-11
   *Done when:* two concurrent archive processes on the same photo produce one upload and both succeed.
   *Note:* Single PUT with If-None-Match up to 64 MB; larger files use multipart with If-None-Match on CompleteMultipartUpload (aborted on 412). A 412 is verified against size + sha256 metadata.
-- [ ] **T3.3** Push: outbox → `sync/ops/<device_id>/<hlc>.jsonl.gz` with `If-None-Match`; delete the outbox rows after success.
+- [x] **T3.3** Push: outbox → `sync/ops/<device_id>/<hlc>.jsonl.gz` with `If-None-Match`; delete the outbox rows after success. ✅ 2026-10-11
   *Done when:* killing the process mid-push and re-running gives no lost and no duplicated batches.
-- [ ] **T3.4** Pull: list each device prefix with `StartAfter=cursor`, sort by HLC, `apply_ops`, advance cursors in the same transaction.
+  *Note:* If a batch key already exists (crash after upload, or restored device), the ops it holds are cleared from the outbox and the rest go in a new batch, so nothing is lost or uploaded twice.
+- [x] **T3.4** Pull: list each device prefix with `StartAfter=cursor`, sort by HLC, `apply_ops`, advance cursors in the same transaction. ✅ 2026-10-11
   *Done when:* device B sees device A's archive after `photoctl sync`.
+  *Note:* Batches are validated first; malformed or spoofed batches (ops from another device_id) are skipped with a warning, not fatal.
 - [ ] **T3.5** Sync lock (`sync.lock` flock) + `photoctl sync [--watch 60]` + automatic sync at the end of archive.
   *Done when:* running `sync` twice concurrently gives one sync and one "already syncing" message.
 - [ ] **T3.6** Device registry `sync/devices/<id>.json` (name, platform, last_seen, app version, checksum); `photoctl devices`.
