@@ -89,7 +89,7 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
   *Note:* Batches are validated first; malformed or spoofed batches (ops from another device_id) are skipped with a warning, not fatal.
 - [x] **T3.5** Sync lock (`sync.lock` flock) + `photoctl sync [--watch 60]` + automatic sync at the end of archive. ✅ 2026-10-11
   *Done when:* running `sync` twice concurrently gives one sync and one "already syncing" message.
-- [ ] **T3.6** Device registry `sync/devices/<id>.json` (name, platform, last_seen, app version, checksum); `photoctl devices`.
+- [x] **T3.6** Device registry `sync/devices/<id>.json` (name, platform, last_seen, app version, checksum); `photoctl devices`. ✅ 2026-10-11
   *Done when:* both devices are listed with their platform and last-seen time.
 - [ ] **T3.7** Snapshot + bootstrap: compaction lease (`sync/locks/compact.json`), VACUUM'd gz snapshot, `HEAD.json` CAS with `If-Match`; a new device bootstraps from the snapshot, then pulls the remaining ops.
   *Done when:* a fresh device gets a full catalog in < 1 min for 10k items, and a simulated expired lease is taken over.

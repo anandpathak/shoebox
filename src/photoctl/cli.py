@@ -473,6 +473,24 @@ def sync(bucket, profile, watch):
         time.sleep(watch)
 
 
+@main.command()
+@click.option("--bucket", envvar="PHOTOCTL_BUCKET", required=True)
+@click.option("--profile", envvar="AWS_PROFILE", default=None)
+def devices(bucket, profile):
+    """Every device that has synced: platform, last seen, catalog size and checksum."""
+    from .device import load_device
+    from .sync import list_registry
+
+    me = load_device().device_id
+    entries = list_registry(_bucket(bucket, profile))
+    if not entries:
+        click.echo("No devices have synced yet. Run `photoctl sync`.")
+    for d in entries:
+        mark = " (this device)" if d["device_id"] == me else ""
+        click.echo(f"{d['name']}{mark} · {d['platform']} · last seen {d['last_seen']} · {d['media']} items · "
+                   f"{d['pending_ops']} unsent · checksum {d['checksum'][:12]}…")
+
+
 # ---------------------------------------------------------------- catalog
 
 @main.group()

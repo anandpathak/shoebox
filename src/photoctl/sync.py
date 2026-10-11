@@ -19,6 +19,7 @@ from .catalog.ops import InvalidOp, op_from_row, validate
 from .hlc import load_clock, save_clock
 
 OPS_PREFIX = "sync/ops/"
+DEVICES_PREFIX = "sync/devices/"
 BATCH_SIZE = 5000
 log = logging.getLogger(__name__)
 
@@ -113,8 +114,40 @@ def pull(conn: sqlite3.Connection, bucket, device_id: str, result: SyncResult | 
     return result
 
 
+def publish_registry(conn: sqlite3.Connection, bucket, device) -> dict:
+    """sync/devices/<id>.json: who this device is, when it last synced and its catalog checksum."""
+    from datetime import datetime, timezone
+
+    from .backup import _photoctl_version
+    from .catalog.checksum import checksum
+
+    entry = {
+        "device_id": device.device_id, "name": device.name, "platform": device.platform,
+        "last_seen": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "photoctl_version": _photoctl_version(),
+        "checksum": checksum(conn),
+        "ops": conn.execute("SELECT COUNT(*) FROM ops").fetchone()[0],
+        "pending_ops": conn.execute("SELECT COUNT(*) FROM outbox").fetchone()[0],
+        "media": conn.execute("SELECT COUNT(*) FROM media WHERE deleted = 0").fetchone()[0],
+    }
+    bucket.put_bytes(f"{DEVICES_PREFIX}{device.device_id}.json", json.dumps(entry, indent=2).encode(),
+                     content_type="application/json")
+    return entry
+
+
+def list_registry(bucket) -> list[dict]:
+    out = []
+    for key in bucket.list_keys(DEVICES_PREFIX):
+        try:
+            out.append(json.loads(bucket.get_bytes(key)))
+        except ValueError:
+            log.warning("ignoring unreadable device entry %s", key)
+    return sorted(out, key=lambda d: d.get("last_seen", ""), reverse=True)
+
+
 def sync_once(conn: sqlite3.Connection, bucket, device) -> SyncResult:
-    """Push this device's outbox, then pull everyone else's ops. Caller holds the SyncLock."""
+    """Push this device's outbox, pull everyone else's ops, refresh our registry entry. Hold the SyncLock."""
     result = push(conn, bucket)
     pull(conn, bucket, device.device_id, result)
+    publish_registry(conn, bucket, device)
     return result
