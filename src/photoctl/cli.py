@@ -418,7 +418,9 @@ def original(photo_id, tier, days, check, dest, bucket, profile):
 @click.option("--bucket", envvar="PHOTOCTL_BUCKET")
 @click.option("--profile", envvar="AWS_PROFILE", default=None)
 @click.option("--print-token", is_flag=True, help="Print the API token (for scripts) and exit.")
-def serve(port, host, library, bucket, profile, print_token):
+@click.option("--tailscale", "use_tailscale", is_flag=True, help="Check Tailscale and print the address for phones.")
+@click.option("--setup-tailscale", is_flag=True, help="Also run `tailscale serve --bg PORT` if it isn't set up yet.")
+def serve(port, host, library, bucket, profile, print_token, use_tailscale, setup_tailscale):
     """Run the web app and API on this Mac."""
     import uvicorn
 
@@ -432,10 +434,38 @@ def serve(port, host, library, bucket, profile, print_token):
     if host not in ("127.0.0.1", "localhost", "::1"):
         raise click.UsageError("photoctl only listens on this Mac. Use `tailscale serve` to reach it from phones.")
     web = Path(__file__).parent / "web" / "dist"
-    app = create_app(Settings.load(library=library, bucket=bucket, profile=profile, port=port,
-                                   static_dir=web if web.exists() else None))
+    settings = Settings.load(library=library, bucket=bucket, profile=profile, port=port,
+                             static_dir=web if web.exists() else None)
+    if use_tailscale or setup_tailscale:
+        _prepare_tailscale(settings, port, setup_tailscale)
+    app = create_app(settings)
     click.echo(f"photoctl is running at http://127.0.0.1:{port}  (Ctrl-C to stop)")
     uvicorn.run(app, host=host, port=port, log_level="warning")
+
+
+def _prepare_tailscale(settings, port: int, setup: bool) -> None:
+    from .tailnet import TailnetError, check, qr
+    from .tailnet import setup as serve_setup
+
+    try:
+        net = check(port)
+        if not net.serving:
+            if not setup:
+                raise TailnetError(f"Tailscale isn't forwarding to photoctl yet. Run `tailscale serve --bg {port}` "
+                                   "(or start photoctl with --setup-tailscale).")
+            serve_setup(port)
+            net = check(port)
+    except TailnetError as e:
+        raise click.ClickException(str(e)) from None
+    if net.hostname not in settings.hostnames:
+        settings.hostnames.append(net.hostname)
+    if not settings.allowed_logins and net.login:
+        settings.allowed_logins = [net.login]
+        click.echo(f"Allowing {net.login} (you). To let family members in, list their Tailscale logins in "
+                   f"{paths.config_file()} under [server] allowed_logins.")
+    click.echo(f"\nOn your phones (with Tailscale on), open {net.url}\n")
+    click.echo(qr(net.url))
+    click.echo("iPhone: Safari → Share → Add to Home Screen.  Android: Chrome → ⋮ → Install app.\n")
 
 
 # ---------------------------------------------------------------- catalog

@@ -82,6 +82,32 @@ uv run photoctl db restore --at 2026-10-01            # point in time
 uv run photoctl db restore --device <id>              # on a new Mac: carry on as that device
 ```
 
+## The app (Mac, iPhone, Android)
+
+```sh
+cd web && npm install && npm run build && cd ..   # once, and after updating
+uv run photoctl serve                              # http://127.0.0.1:8765 on this Mac
+```
+
+### On your phones
+
+1. Install **Tailscale** on the Mac and on each phone, signed in with the same account.
+   In the Tailscale admin console turn on **MagicDNS** and **HTTPS certificates** (DNS page).
+2. Start the app for phones:
+   ```sh
+   uv run photoctl serve --setup-tailscale         # runs `tailscale serve --bg 8765` the first time
+   ```
+   It prints `https://<your-mac>.<tailnet>.ts.net` and a QR code. Scan it with the phone camera.
+3. Install it as an app: **iPhone** Safari → Share → *Add to Home Screen*; **Android** Chrome → ⋮ → *Install app*.
+4. Family members: add their Tailscale logins to `~/.photoctl/config.toml`:
+   ```toml
+   [server]
+   allowed_logins = ["you@example.com", "partner@example.com"]
+   ```
+
+Nothing is exposed to the internet: the address only works for devices in your tailnet, and every
+request carries the Tailscale identity the server checks.
+
 ## "Moving" out of Photos
 
 Photos has no API for deleting photos, so photoctl never deletes. Archived photos go into a **"Archived to S3"** album.

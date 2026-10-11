@@ -219,8 +219,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 
 ## M8 — Phones: iOS + Android web access and triggers (§9)
 
-- [ ] **T8.1** Tailscale on the Mac + iPhone + Android; `tailscale serve --bg 8765`; `photoctl serve --tailscale` checks the setup and prints the phone URL + a QR code. Add a setup guide to the README.
+- [~] **T8.1** Tailscale on the Mac + iPhone + Android; `tailscale serve --bg 8765`; `photoctl serve --tailscale` checks the setup and prints the phone URL + a QR code. Add a setup guide to the README.
   *Done when:* `https://<mac>.<tailnet>.ts.net` opens on both phones with a valid certificate, and is unreachable off the tailnet.
+  *Note:* Built 2026-10-11: `photoctl serve --tailscale` / `--setup-tailscale` checks Tailscale, sets up `tailscale serve`, trusts its MagicDNS name, allows your own login by default, and prints the URL + QR code; README has the phone guide. Tested with a stand-in `tailscale` command (Tailscale isn't installed on this Mac). **Your step:** install Tailscale on the Mac and both phones, run `uv run photoctl serve --setup-tailscale`, open the URL on each phone.
 - [ ] **T8.2** PWA: manifest, icons, service worker (app shell + thumbnail cache), install prompts/help for iOS (Add to Home Screen) and Android (Install app).
   *Done when:* it installs on both phones and opens full-screen from the home-screen icon.
 - [ ] **T8.3** Phone device registration (§9.4): generate a `device_id`, ask for a name, detect the platform → `POST /api/devices/register`.
