@@ -100,7 +100,7 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T3.9** Integration test on a `-test` bucket: two processes (two `device_id`s) doing concurrent archive + edits + sync → same checksum. ✅ 2026-10-11
   *Done when:* it passes 3 runs in a row.
   *Note:* Runs against a moto S3 server (AWS_ENDPOINT_URL) with two real processes; passes 3 runs per test session. Run against a real '-test' bucket by pointing AWS_ENDPOINT_URL away and setting real credentials.
-- [ ] **T3.10** Publish this device's catalog to `sync/catalogs/<device_id>/` (`catalog.sqlite.gz` + `manifest.json`, manifest CAS with `If-Match`) after sync when changed, at most every 10 min (§11.1).
+- [x] **T3.10** Publish this device's catalog to `sync/catalogs/<device_id>/` (`catalog.sqlite.gz` + `manifest.json`, manifest CAS with `If-Match`) after sync when changed, at most every 10 min (§11.1). ✅ 2026-10-11
   *Done when:* the manifest shows the right checksum and count, and an older publish can't overwrite a newer one.
 
 ---

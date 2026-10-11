@@ -253,6 +253,11 @@ def _run_sync(s3, device, quiet: bool = False, force_snapshot: bool = False) -> 
                     snap = publish_snapshot(conn, s3, device)
                     if snap and not quiet:
                         click.echo(f"Published a library snapshot ({snap['media']} items).")
+                from .publish import publish_catalog
+
+                pub = publish_catalog(conn, s3, device)
+                if pub and not quiet:
+                    click.echo(f"Published this device's catalog ({pub['item_count']} items, {_human(pub['bytes'])}).")
             finally:
                 conn.close()
     except AlreadyRunning:
