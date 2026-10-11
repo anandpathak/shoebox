@@ -782,12 +782,16 @@ def db_restore(bucket, profile, device_id, at, with_identity):
         device_id = local.device_id
     if local is None:
         with_identity = True  # a fresh machine carries on as the restored device
+    s3 = _bucket(bucket, profile)
     try:
         with IngestLock():
-            res = restore(_bucket(bucket, profile), device_id, at=at, with_identity=with_identity)
+            res = restore(s3, device_id, at=at, with_identity=with_identity)
     except AlreadyRunning as e:
         raise click.ClickException(f"{e}. Wait for it to finish, then restore.") from None
     click.echo(f"Restored {', '.join(res['restored'])} from {res['created_at']} ({res['backup']})")
+    if "catalog.sqlite" in res["restored"]:
+        click.echo("Catching up on changes made since that backup…")
+        _run_sync(s3, load_device())
 
 
 if __name__ == "__main__":
