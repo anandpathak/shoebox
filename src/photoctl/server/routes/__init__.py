@@ -6,6 +6,7 @@ from fastapi import FastAPI
 
 
 def register(app: FastAPI) -> None:
-    from . import library
+    from . import edit, library
 
     app.include_router(library.router)
+    app.include_router(edit.router)

@@ -155,7 +155,7 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
   *Note:* Token in the macOS Keychain (0600 file fallback). Also: DNS-rebinding Host check, same-origin check on cookie writes, Tailscale headers only trusted from 127.0.0.1, 'serve' refuses non-local interfaces.
 - [x] **T5.2** Read endpoints: search (incl. `device` filter), media detail, thumb, compressed, people. ✅ 2026-10-11
   *Done when:* TestClient tests pass, and thumbnails stream from local disk or redirect to presigned URLs.
-- [ ] **T5.3** Write endpoints: PATCH media, tags, people. Each one emits ops, and nothing writes SQLite directly.
+- [x] **T5.3** Write endpoints: PATCH media, tags, people. Each one emits ops, and nothing writes SQLite directly. ✅ 2026-10-11
   *Done when:* an edit through the API appears in `outbox` and syncs to device B.
 - [ ] **T5.4** Restore endpoints (POST/GET original).
   *Done when:* they return the restore status correctly.
