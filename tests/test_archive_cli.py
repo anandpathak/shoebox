@@ -125,3 +125,17 @@ def test_recover_without_backup_rebuilds_state_from_s3(tmp_path, photos, bucket,
     assert "No database backup" in res.output and "Marked 3 Apple Photos items" in res.output
     dry = CliRunner().invoke(cli.main, ["archive", "--all", "--dry-run", "--out", str(out)])
     assert "3 already archived · 0 to process" in dry.output
+
+
+def test_rebuild_catalog_and_state_from_s3_only(tmp_path, photos, bucket, monkeypatch, photoctl_home):
+    monkeypatch.setattr(cli, "_bucket", lambda name, profile: bucket)
+    out = tmp_path / "lib"
+    CliRunner().invoke(cli.main, ["archive", "--all", "--bucket", "test-archive", "--out", str(out), "--no-backup"])
+    for name in ("catalog.sqlite", "state.sqlite"):
+        (photoctl_home / name).unlink()
+    r1 = CliRunner().invoke(cli.main, ["catalog", "rebuild", "--bucket", "test-archive", "--yes"])
+    r2 = CliRunner().invoke(cli.main, ["state", "rebuild", "--bucket", "test-archive"])
+    assert r1.exit_code == 0 and "3 photos" in r1.output, r1.output
+    assert "Marked 3" in r2.output
+    r3 = CliRunner().invoke(cli.main, ["catalog", "rebuild", "--bucket", "test-archive", "--from-meta", "--yes"])
+    assert "Rebuilt 3 records" in r3.output and "3 photos" in r3.output

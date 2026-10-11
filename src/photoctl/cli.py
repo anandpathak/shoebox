@@ -626,6 +626,42 @@ def catalog_backfill(catalog_path, from_dir, from_s3, bucket, profile, force):
     click.echo(f"Added {n} records.")
 
 
+@catalog.command("rebuild")
+@click.option("--bucket", envvar="PHOTOCTL_BUCKET", required=True)
+@click.option("--profile", envvar="AWS_PROFILE", default=None)
+@click.option("--from-meta", is_flag=True, help="Ignore snapshots and ops; rebuild only from meta/ sidecars.")
+@click.confirmation_option(prompt="Replace the local catalog with one rebuilt from S3? (the current file is kept as .bak)")
+def catalog_rebuild(bucket, profile, from_meta):
+    """Rebuild the catalog from S3: the latest snapshot plus newer ops, or every sidecar in meta/."""
+    import os
+
+    from .catalog import open_catalog
+    from .catalog.store import upsert_record
+    from .device import load_device
+    from .runlock import IngestLock, SyncLock
+
+    s3, dev, path = _bucket(bucket, profile), load_device(), paths.catalog_db()
+    with IngestLock(), SyncLock():
+        for suffix in ("", "-wal", "-shm"):
+            f = Path(str(path) + suffix)
+            if f.exists():
+                os.replace(f, Path(str(f) + ".bak"))
+        if from_meta:
+            conn, n = open_catalog(), 0
+            for key in s3.list_keys("meta/"):
+                if key.endswith(".json"):
+                    upsert_record(conn, json.loads(s3.get_bytes(key)), dev)
+                    n += 1
+            conn.close()
+            click.echo(f"Rebuilt {n} records from meta/ sidecars.")
+    if not from_meta:
+        _run_sync(s3, dev)  # bootstraps from the snapshot (or replays all ops), then catches up
+    from .catalog.store import stats
+
+    s = stats(open_catalog())
+    click.echo(f"Catalog now has {s['photos']} photos and {s['videos']} videos.")
+
+
 @catalog.command("export")
 @_catalog_path_option
 @click.option("--flavour", type=click.Choice(["full", "contributed"]), default="full", show_default=True)
@@ -647,6 +683,25 @@ def catalog_export(catalog_path, flavour, device_id, output):
 def _in_catalog(conn, photo_id: str, dev) -> bool:
     return conn.execute("SELECT 1 FROM media_sources WHERE photo_id = ? AND device_id = ?",
                         (photo_id, dev.device_id)).fetchone() is not None
+
+
+@main.group()
+def state():
+    """This Mac's archive state (~/.photoctl/state.sqlite)."""
+
+
+@state.command("rebuild")
+@click.option("--bucket", envvar="PHOTOCTL_BUCKET", required=True)
+@click.option("--profile", envvar="AWS_PROFILE", default=None)
+def state_rebuild(bucket, profile):
+    """Recreate which Apple Photos items are archived from the sidecars in S3 (no backup needed)."""
+    from .backup import rebuild_state_from_s3
+    from .device import load_device
+    from .runlock import IngestLock
+
+    with IngestLock():
+        n = rebuild_state_from_s3(_bucket(bucket, profile), load_device())
+    click.echo(f"Marked {n} Apple Photos items as archived.")
 
 
 # ---------------------------------------------------------------- thumbnails

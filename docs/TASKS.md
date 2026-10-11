@@ -120,7 +120,7 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T3b.5** `photoctl recover` for a new or wiped Mac: list old devices from `sync/devices/` → restore identity, config and DBs → pull this device's own ops and advance the HLC past them (no op-id reuse) → sync → ready to `archive` again. ✅ 2026-10-11
   *Done when:* on a fresh macOS user account, `recover` followed by `archive --all --dry-run` reports everything as already archived.
   *Note:* Also fixed 'archive --dry-run' to skip items already archived, so a dry run predicts the real run.
-- [ ] **T3b.6** Fallback rebuilds when there's no usable backup: `photoctl catalog rebuild --from-s3` and `photoctl state rebuild --from-s3` (from `meta/` JSON: Apple UUID + sha256 → status).
+- [x] **T3b.6** Fallback rebuilds when there's no usable backup: `photoctl catalog rebuild --from-s3` and `photoctl state rebuild --from-s3` (from `meta/` JSON: Apple UUID + sha256 → status). ✅ 2026-10-11
   *Done when:* both rebuild on a test bucket and match the originals' row counts.
 - [ ] **T3b.7** Runbook `docs/RECOVERY.md`: what to do when the DB is corrupted, the Mac is lost, or you need a point in time; tested end to end once.
   *Done when:* someone following only the runbook recovers a wiped test Mac.
