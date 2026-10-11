@@ -234,16 +234,25 @@ def _add_to_album(uuids: list[str], name: str) -> None:
         album.add([photoscript.Photo(u) for u in uuids[i:i + 200]])
 
 
-def _run_sync(s3, device, quiet: bool = False) -> None:
+def _run_sync(s3, device, quiet: bool = False, force_snapshot: bool = False) -> None:
     from .catalog import open_catalog
     from .runlock import AlreadyRunning, SyncLock
     from .sync import sync_once
 
+    from .snapshot import bootstrap, needs_snapshot, publish_snapshot
+
     try:
         with SyncLock():
+            head = bootstrap(s3)
+            if head:
+                click.echo(f"Started from the library snapshot of {head['created_at']} ({head['media']} items).")
             conn = open_catalog()
             try:
                 r = sync_once(conn, s3, device)
+                if force_snapshot or needs_snapshot(conn, s3):
+                    snap = publish_snapshot(conn, s3, device)
+                    if snap and not quiet:
+                        click.echo(f"Published a library snapshot ({snap['media']} items).")
             finally:
                 conn.close()
     except AlreadyRunning:
@@ -459,7 +468,8 @@ def device(rename):
 @click.option("--bucket", envvar="PHOTOCTL_BUCKET", required=True)
 @click.option("--profile", envvar="AWS_PROFILE", default=None)
 @click.option("--watch", type=int, default=None, metavar="SECONDS", help="Keep syncing every N seconds.")
-def sync(bucket, profile, watch):
+@click.option("--snapshot", "force_snapshot", is_flag=True, help="Also publish a fresh library snapshot.")
+def sync(bucket, profile, watch, force_snapshot):
     """Send this device's changes to S3 and apply everyone else's."""
     import time
 
@@ -467,7 +477,7 @@ def sync(bucket, profile, watch):
 
     s3, dev = _bucket(bucket, profile), load_device()
     while True:
-        _run_sync(s3, dev, quiet=bool(watch))
+        _run_sync(s3, dev, quiet=bool(watch), force_snapshot=force_snapshot)
         if not watch:
             return
         time.sleep(watch)

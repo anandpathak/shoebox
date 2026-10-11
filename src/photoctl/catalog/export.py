@@ -43,8 +43,17 @@ def _keep_only_device(conn: sqlite3.Connection, device_id: str) -> None:
                      "('export_device', ?)", (device_id,))
 
 
+def _strip_ops(conn: sqlite3.Connection) -> None:
+    """Drop the op log (apply is idempotent, so a reader re-applying newer batches is harmless) except
+    ops still waiting for their photo, plus local-only bookkeeping."""
+    with conn:
+        conn.execute("DELETE FROM ops WHERE op_id NOT IN (SELECT op_id FROM deferred_ops)")
+        conn.execute("DELETE FROM outbox")
+        conn.execute("DELETE FROM meta WHERE key NOT IN ('schema_version')")
+
+
 def export_catalog(src: sqlite3.Connection, dest: Path, *, flavour: str = "full", device_id: str | None = None,
-                   gzip_output: bool | None = None) -> Path:
+                   gzip_output: bool | None = None, strip_ops: bool = False) -> Path:
     """Write `full` (everything) or `contributed` (only media sourced from `device_id`) to `dest`.
 
     Output is VACUUM'd and integrity-checked; gzip when `dest` ends in .gz (or gzip_output=True).
@@ -63,6 +72,8 @@ def export_catalog(src: sqlite3.Connection, dest: Path, *, flavour: str = "full"
             conn.execute("PRAGMA journal_mode = DELETE")
             if flavour == "contributed":
                 _keep_only_device(conn, device_id)
+            if strip_ops:
+                _strip_ops(conn)
             conn.execute("VACUUM")
         finally:
             conn.close()

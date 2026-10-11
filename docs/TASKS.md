@@ -91,8 +91,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
   *Done when:* running `sync` twice concurrently gives one sync and one "already syncing" message.
 - [x] **T3.6** Device registry `sync/devices/<id>.json` (name, platform, last_seen, app version, checksum); `photoctl devices`. ✅ 2026-10-11
   *Done when:* both devices are listed with their platform and last-seen time.
-- [ ] **T3.7** Snapshot + bootstrap: compaction lease (`sync/locks/compact.json`), VACUUM'd gz snapshot, `HEAD.json` CAS with `If-Match`; a new device bootstraps from the snapshot, then pulls the remaining ops.
+- [x] **T3.7** Snapshot + bootstrap: compaction lease (`sync/locks/compact.json`), VACUUM'd gz snapshot, `HEAD.json` CAS with `If-Match`; a new device bootstraps from the snapshot, then pulls the remaining ops. ✅ 2026-10-11
   *Done when:* a fresh device gets a full catalog in < 1 min for 10k items, and a simulated expired lease is taken over.
+  *Note:* Measured with 10k items (mocked S3): snapshot 6.1 MB gzipped, published in 2.3 s; fresh device bootstrap + pull 0.3 s, checksums equal. Snapshots drop the op log (re-applying is harmless) except ops still waiting in deferred_ops. 'photoctl sync --snapshot' forces one.
 - [ ] **T3.8** `photoctl sync verify`: compares the local checksum with other devices' published checksums.
   *Done when:* after both devices sync, verify reports "converged".
 - [ ] **T3.9** Integration test on a `-test` bucket: two processes (two `device_id`s) doing concurrent archive + edits + sync → same checksum.
