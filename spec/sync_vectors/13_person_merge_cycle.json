@@ -1,0 +1,60 @@
+{
+  "name": "person_merge_cycle",
+  "description": "Concurrent opposite merges form a cycle; both resolve to the smallest id.",
+  "ops": [
+    {
+      "op_id": "1700000000010-0000-MAC",
+      "hlc": "1700000000010-0000-MAC",
+      "device_id": "MAC",
+      "kind": "person.create",
+      "entity": "person:px",
+      "body": {
+        "person_id": "px",
+        "name": "X"
+      }
+    },
+    {
+      "op_id": "1700000000010-0000-PHONE",
+      "hlc": "1700000000010-0000-PHONE",
+      "device_id": "PHONE",
+      "kind": "person.create",
+      "entity": "person:py",
+      "body": {
+        "person_id": "py",
+        "name": "Y"
+      }
+    },
+    {
+      "op_id": "1700000000020-0000-MAC",
+      "hlc": "1700000000020-0000-MAC",
+      "device_id": "MAC",
+      "kind": "person.merge",
+      "entity": "person:px",
+      "body": {
+        "from": "px",
+        "into": "py"
+      }
+    },
+    {
+      "op_id": "1700000000020-0000-PHONE",
+      "hlc": "1700000000020-0000-PHONE",
+      "device_id": "PHONE",
+      "kind": "person.merge",
+      "entity": "person:py",
+      "body": {
+        "from": "py",
+        "into": "px"
+      }
+    }
+  ],
+  "expect": {
+    "people": {
+      "px": {
+        "resolves_to": "px"
+      },
+      "py": {
+        "resolves_to": "px"
+      }
+    }
+  }
+}

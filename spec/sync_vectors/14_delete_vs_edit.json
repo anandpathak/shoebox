@@ -1,0 +1,97 @@
+{
+  "name": "delete_vs_edit",
+  "description": "Delete and a concurrent edit: still deleted, edit kept, hidden from search.",
+  "ops": [
+    {
+      "op_id": "1700000000010-0000-MAC",
+      "hlc": "1700000000010-0000-MAC",
+      "device_id": "MAC",
+      "kind": "media.upsert",
+      "entity": "media:AAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "body": {
+        "record": {
+          "schema_version": 1,
+          "photo_id": "AAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "media_type": "photo",
+          "keys": {
+            "raw": "raw/2025/2025-08/AAAAAAAAAAAAAAAAAAAAAAAAAA.heic",
+            "compressed": "compressed/2025/2025-08/AAAAAAAAAAAAAAAAAAAAAAAAAA.jpg",
+            "thumb": "thumb/2025/2025-08/AAAAAAAAAAAAAAAAAAAAAAAAAA.jpg",
+            "meta": "meta/2025/2025-08/AAAAAAAAAAAAAAAAAAAAAAAAAA.json"
+          },
+          "file": {
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "orig_name": "IMG_0001.HEIC",
+            "orig_ext": "heic",
+            "bytes_raw": 2000000,
+            "width": 4032,
+            "height": 3024
+          },
+          "taken_at": "2025-08-15T11:52:05+05:30",
+          "source": {
+            "type": "applephotos",
+            "ref": "uuid-1"
+          },
+          "apple": {
+            "title": null,
+            "description": null,
+            "favorite": false,
+            "hidden": false,
+            "keywords": [],
+            "labels": [],
+            "albums": [],
+            "persons": [],
+            "latitude": 14.5,
+            "longitude": 74.3,
+            "exif_info": {
+              "camera_make": "Apple",
+              "camera_model": "iPhone 15",
+              "tzname": "GMT+0530"
+            },
+            "place": {
+              "name": "Gokarna, Karnataka",
+              "address": {
+                "city": "Gokarna",
+                "state_province": "Karnataka",
+                "country": "India"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "op_id": "1700000000020-0000-MAC",
+      "hlc": "1700000000020-0000-MAC",
+      "device_id": "MAC",
+      "kind": "media.delete",
+      "entity": "media:AAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "body": {
+        "photo_id": "AAAAAAAAAAAAAAAAAAAAAAAAAA"
+      }
+    },
+    {
+      "op_id": "1700000000010-0001-PHONE",
+      "hlc": "1700000000010-0001-PHONE",
+      "device_id": "PHONE",
+      "kind": "media.set",
+      "entity": "media:AAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "body": {
+        "photo_id": "AAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "field": "title",
+        "value": "Edited"
+      }
+    }
+  ],
+  "expect": {
+    "media": {
+      "AAAAAAAAAAAAAAAAAAAAAAAAAA": {
+        "deleted": 1,
+        "title": "Edited"
+      }
+    },
+    "fts": {
+      "gokarna": []
+    }
+  }
+}

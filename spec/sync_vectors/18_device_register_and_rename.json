@@ -1,0 +1,40 @@
+{
+  "name": "device_register_and_rename",
+  "description": "Devices are registered and renamed with the same LWW rule.",
+  "ops": [
+    {
+      "op_id": "1700000000010-0000-MAC",
+      "hlc": "1700000000010-0000-MAC",
+      "device_id": "MAC",
+      "kind": "device.register",
+      "entity": "device:MAC",
+      "body": {
+        "device_id": "MAC",
+        "name": "Mac mini",
+        "platform": "macos"
+      }
+    },
+    {
+      "op_id": "1700000000020-0000-MAC",
+      "hlc": "1700000000020-0000-MAC",
+      "device_id": "MAC",
+      "kind": "device.set",
+      "entity": "device:MAC",
+      "body": {
+        "device_id": "MAC",
+        "field": "name",
+        "value": "Studio Mac"
+      }
+    }
+  ],
+  "expect": {
+    "devices": {
+      "MAC": {
+        "name": "Studio Mac",
+        "platform": "macos",
+        "first_seen_hlc": "1700000000010-0000-MAC",
+        "last_seen_hlc": "1700000000020-0000-MAC"
+      }
+    }
+  }
+}
