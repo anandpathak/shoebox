@@ -183,8 +183,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T6.3** Library grid: month sections, virtualised infinite scroll, lazy thumbnails, touch-friendly. ✅ 2026-10-11
   *Done when:* 10k items scroll smoothly on a mid-range Android phone.
   *Note:* Measured in Chrome at Pixel 7 size on this Mac: 10,000 tiles loaded, p95 frame time 16.8 ms while scrolling (e2e/perf.spec.ts with E2E_ITEMS=10000). Not yet checked on a real mid-range Android phone. Uses content-visibility on month sections instead of a virtual list. The e2e run also found and fixed a server bug: request DB connections crossing worker threads.
-- [ ] **T6.4** Search bar + filter chips (date, person, place, type, favourite, source device).
+- [x] **T6.4** Search bar + filter chips (date, person, place, type, favourite, source device). ✅ 2026-10-11
   *Done when:* the results match `photoctl search` for the same query.
+  *Note:* Same /api/search code path as 'photoctl search'; e2e compares tile counts with the API for text, type, favourites, device and person.
 - [ ] **T6.5** Viewer: swipe navigation, image/video player, metadata panel with a map pin and source devices, download compressed, request original.
   *Done when:* everything works for one photo and one video on desktop and in mobile emulation.
 - [ ] **T6.6** Editing: title, description, favourite, tags, hide/delete (tombstone) with optimistic UI.

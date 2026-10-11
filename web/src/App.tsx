@@ -14,7 +14,7 @@ function Screens() {
     <Shell current={tab}>
       {tab === 'people' ? <Placeholder title="People" />
         : tab === 'sync' ? <Placeholder title="Sync & devices" />
-        : <Library />}
+        : <Library route={route} />}
     </Shell>
   )
 }
