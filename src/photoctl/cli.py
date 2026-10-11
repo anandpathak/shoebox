@@ -235,37 +235,25 @@ def _add_to_album(uuids: list[str], name: str) -> None:
 
 
 def _run_sync(s3, device, quiet: bool = False, force_snapshot: bool = False) -> None:
-    from .catalog import open_catalog
-    from .runlock import AlreadyRunning, SyncLock
-    from .sync import sync_once
-
-    from .snapshot import bootstrap, needs_snapshot, publish_snapshot
+    from .runlock import AlreadyRunning
+    from .sync import full_sync
 
     try:
-        with SyncLock():
-            head = bootstrap(s3)
-            if head:
-                click.echo(f"Started from the library snapshot of {head['created_at']} ({head['media']} items).")
-            conn = open_catalog()
-            try:
-                r = sync_once(conn, s3, device)
-                if force_snapshot or needs_snapshot(conn, s3):
-                    snap = publish_snapshot(conn, s3, device)
-                    if snap and not quiet:
-                        click.echo(f"Published a library snapshot ({snap['media']} items).")
-                from .publish import publish_catalog
-
-                pub = publish_catalog(conn, s3, device)
-                if pub and not quiet:
-                    click.echo(f"Published this device's catalog ({pub['item_count']} items, {_human(pub['bytes'])}).")
-            finally:
-                conn.close()
+        r = full_sync(s3, device, force_snapshot=force_snapshot)
     except AlreadyRunning:
         click.echo("A sync is already running; skipped.", err=True)
         return
     except Exception as e:
         click.echo(f"Sync failed ({e}); run `photoctl sync` to retry.", err=True)
         return
+    if r.bootstrapped_from:
+        h = r.bootstrapped_from
+        click.echo(f"Started from the library snapshot of {h['created_at']} ({h['media']} items).")
+    if r.snapshot and not quiet:
+        click.echo(f"Published a library snapshot ({r.snapshot['media']} items).")
+    if r.published and not quiet:
+        click.echo(f"Published this device's catalog ({r.published['item_count']} items, "
+                   f"{_human(r.published['bytes'])}).")
     if not quiet or r.pushed_ops or r.applied_ops:
         click.echo(f"Synced: pushed {r.pushed_ops} ops in {r.pushed_batches} batches, "
                    f"applied {r.applied_ops} new ops from {r.pulled_batches} batches"

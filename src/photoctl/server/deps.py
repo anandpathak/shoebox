@@ -23,14 +23,17 @@ def user(request: Request) -> User:
     return authenticate(request)
 
 
-def bucket(request: Request):
+def app_bucket(app):
     """The archive bucket, or None when the server runs without S3 (local-only)."""
-    app = request.app
     if getattr(app.state, "s3", None) is None and app.state.settings.bucket:
         from ..s3 import Bucket
 
         app.state.s3 = Bucket(app.state.settings.bucket, app.state.settings.profile)
     return getattr(app.state, "s3", None)
+
+
+def bucket(request: Request):
+    return app_bucket(request.app)
 
 
 def require_bucket(request: Request):

@@ -159,8 +159,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
   *Done when:* an edit through the API appears in `outbox` and syncs to device B.
 - [x] **T5.4** Restore endpoints (POST/GET original). ✅ 2026-10-11
   *Done when:* they return the restore status correctly.
-- [ ] **T5.5** Sync endpoints + a background sync task (every 60 s, sharing the T3.5 lock).
+- [x] **T5.5** Sync endpoints + a background sync task (every 60 s, sharing the T3.5 lock). ✅ 2026-10-11
   *Done when:* `/api/sync/status` shows the last push/pull and pending ops.
+  *Note:* Full sync logic moved to sync.full_sync, shared by the CLI and the server.
 - [ ] **T5.6** Op proxy for clients without AWS creds: `POST /api/sync/ops` (writes to `sync/ops/<client device_id>/`, idempotent on op ids) and `GET /api/sync/ops?since=`; `POST /api/devices/register`.
   *Done when:* a script acting as a phone pushes edits that reach device B and pulls ops incrementally.
 - [ ] **T5.7** Catalog endpoints: `GET /api/catalogs`, `/api/catalogs/library`, `/api/catalogs/{device_id}?flavour=`, `/api/catalogs/all.zip`, `PUT /api/catalogs/{device_id}`. Support Range requests for resumable downloads.

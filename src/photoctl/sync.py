@@ -31,6 +31,9 @@ class SyncResult:
     pulled_batches: int = 0
     applied_ops: int = 0
     rejected_batches: list[str] = field(default_factory=list)
+    bootstrapped_from: dict | None = None
+    snapshot: dict | None = None
+    published: dict | None = None
 
 
 def batch_key(device_id: str, first_hlc: str) -> str:
@@ -175,3 +178,26 @@ def verify(conn: sqlite3.Connection, bucket, device) -> dict:
         (report["same"] if entry.get("checksum") == mine else report["different"]).append(entry)
     report["converged"] = not report["different"]
     return report
+
+
+def full_sync(bucket, device, *, force_snapshot: bool = False) -> SyncResult:
+    """Everything a sync does, under the SyncLock: bootstrap an empty catalog from the snapshot, push,
+    pull, refresh the registry, publish a snapshot when due and this device's catalog when changed.
+    Raises runlock.AlreadyRunning if another sync holds the lock."""
+    from .catalog import open_catalog
+    from .publish import publish_catalog
+    from .runlock import SyncLock
+    from .snapshot import bootstrap, needs_snapshot, publish_snapshot
+
+    with SyncLock():
+        head = bootstrap(bucket)
+        conn = open_catalog()
+        try:
+            result = sync_once(conn, bucket, device)
+            result.bootstrapped_from = head
+            if force_snapshot or needs_snapshot(conn, bucket):
+                result.snapshot = publish_snapshot(conn, bucket, device)
+            result.published = publish_catalog(conn, bucket, device)
+        finally:
+            conn.close()
+    return result
