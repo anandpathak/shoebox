@@ -234,6 +234,30 @@ def _add_to_album(uuids: list[str], name: str) -> None:
         album.add([photoscript.Photo(u) for u in uuids[i:i + 200]])
 
 
+def _run_sync(s3, device, quiet: bool = False) -> None:
+    from .catalog import open_catalog
+    from .runlock import AlreadyRunning, SyncLock
+    from .sync import sync_once
+
+    try:
+        with SyncLock():
+            conn = open_catalog()
+            try:
+                r = sync_once(conn, s3, device)
+            finally:
+                conn.close()
+    except AlreadyRunning:
+        click.echo("A sync is already running; skipped.", err=True)
+        return
+    except Exception as e:
+        click.echo(f"Sync failed ({e}); run `photoctl sync` to retry.", err=True)
+        return
+    if not quiet or r.pushed_ops or r.applied_ops:
+        click.echo(f"Synced: pushed {r.pushed_ops} ops in {r.pushed_batches} batches, "
+                   f"applied {r.applied_ops} new ops from {r.pulled_batches} batches"
+                   + (f", skipped {len(r.rejected_batches)} bad batches" if r.rejected_batches else ""))
+
+
 def _run_backup(s3, device) -> None:
     from .backup import backup
 
@@ -362,9 +386,11 @@ def archive(bucket, profile, out, selected, albums, from_date, to_date, uuids, a
                 click.echo(f'Added {len(archived_uuids)} photos to the "{ARCHIVE_ALBUM}" album in Photos.')
             except Exception as e:
                 click.echo(f"Could not update Photos album ({e}); archive itself succeeded.", err=True)
+        if catalog is not None:
+            catalog.close()
+        if s3:
+            _run_sync(s3, device)
         if s3 and do_backup:
-            if catalog is not None:
-                catalog.close()
             state.db.close()
             _run_backup(s3, device)
     finally:
@@ -427,6 +453,24 @@ def device(rename):
         dev.name = rename
         save_device(dev)
     click.echo(json.dumps(dev.__dict__, indent=2))
+
+
+@main.command()
+@click.option("--bucket", envvar="PHOTOCTL_BUCKET", required=True)
+@click.option("--profile", envvar="AWS_PROFILE", default=None)
+@click.option("--watch", type=int, default=None, metavar="SECONDS", help="Keep syncing every N seconds.")
+def sync(bucket, profile, watch):
+    """Send this device's changes to S3 and apply everyone else's."""
+    import time
+
+    from .device import load_device
+
+    s3, dev = _bucket(bucket, profile), load_device()
+    while True:
+        _run_sync(s3, dev, quiet=bool(watch))
+        if not watch:
+            return
+        time.sleep(watch)
 
 
 # ---------------------------------------------------------------- catalog

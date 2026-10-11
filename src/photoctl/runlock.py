@@ -1,4 +1,4 @@
-"""One archive run at a time per device, plus a JSONL progress log per run (LOCAL_APP_PLAN.md §6.1)."""
+"""One archive run (and one sync) at a time per device, plus a JSONL progress log per run (§6.1)."""
 
 from __future__ import annotations
 
@@ -17,21 +17,23 @@ def _now() -> str:
 
 
 class AlreadyRunning(RuntimeError):
-    def __init__(self, holder: dict):
+    def __init__(self, holder: dict, what: str = "an archive run"):
         self.holder = holder
-        super().__init__(f"an archive run is already in progress (pid {holder.get('pid', '?')}, "
+        super().__init__(f"{what} is already in progress (pid {holder.get('pid', '?')}, "
                          f"started {holder.get('started_at', '?')}, run {holder.get('run_id', '?')})")
 
 
-class IngestLock:
+class FileLock:
     """Exclusive, non-blocking flock. The OS releases it if the process dies, so it never goes stale."""
 
-    def __init__(self, path: Path | None = None):
-        self.path = Path(path) if path else paths.ingest_lock()
+    what = "a job"
+
+    def __init__(self, path: Path):
+        self.path = Path(path)
         self._fd: int | None = None
         self.run_id = new_ulid()
 
-    def __enter__(self) -> "IngestLock":
+    def __enter__(self) -> "FileLock":
         fd = os.open(self.path, os.O_RDWR | os.O_CREAT, 0o600)
         try:
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -41,7 +43,7 @@ class IngestLock:
             except (ValueError, OSError):
                 holder = {}
             os.close(fd)
-            raise AlreadyRunning(holder) from None
+            raise AlreadyRunning(holder, self.what) from None
         os.ftruncate(fd, 0)
         os.pwrite(fd, json.dumps({"pid": os.getpid(), "started_at": _now(), "run_id": self.run_id}).encode(), 0)
         self._fd = fd
@@ -53,6 +55,20 @@ class IngestLock:
             fcntl.flock(self._fd, fcntl.LOCK_UN)
             os.close(self._fd)
             self._fd = None
+
+
+class IngestLock(FileLock):
+    what = "an archive run"
+
+    def __init__(self, path: Path | None = None):
+        super().__init__(Path(path) if path else paths.ingest_lock())
+
+
+class SyncLock(FileLock):
+    what = "a sync"
+
+    def __init__(self, path: Path | None = None):
+        super().__init__(Path(path) if path else paths.sync_lock())
 
 
 class RunLog:

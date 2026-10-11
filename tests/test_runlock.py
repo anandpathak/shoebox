@@ -22,3 +22,12 @@ def test_run_log_writes_jsonl(photoctl_home):
     log.close()
     lines = [json.loads(x) for x in (photoctl_home / "runs" / "RUN1.jsonl").read_text().splitlines()]
     assert [x["event"] for x in lines] == ["start", "item"] and lines[0]["todo"] == 3
+
+
+def test_sync_lock_is_separate_from_ingest_lock():
+    from photoctl.runlock import SyncLock
+
+    with IngestLock(), SyncLock():  # both can be held at once
+        with pytest.raises(AlreadyRunning, match="a sync is already in progress"):
+            with SyncLock():
+                pass

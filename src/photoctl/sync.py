@@ -111,3 +111,10 @@ def pull(conn: sqlite3.Connection, bucket, device_id: str, result: SyncResult | 
             clock.observe(op["hlc"])
         save_clock(conn, clock)
     return result
+
+
+def sync_once(conn: sqlite3.Connection, bucket, device) -> SyncResult:
+    """Push this device's outbox, then pull everyone else's ops. Caller holds the SyncLock."""
+    result = push(conn, bucket)
+    pull(conn, bucket, device.device_id, result)
+    return result

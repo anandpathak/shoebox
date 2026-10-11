@@ -32,6 +32,10 @@ def ingest_lock() -> Path:
     return home() / "ingest.lock"
 
 
+def sync_lock() -> Path:
+    return home() / "sync.lock"
+
+
 def runs_dir() -> Path:
     d = home() / "runs"
     d.mkdir(parents=True, exist_ok=True)

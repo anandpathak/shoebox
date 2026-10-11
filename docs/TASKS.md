@@ -87,7 +87,7 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T3.4** Pull: list each device prefix with `StartAfter=cursor`, sort by HLC, `apply_ops`, advance cursors in the same transaction. ✅ 2026-10-11
   *Done when:* device B sees device A's archive after `photoctl sync`.
   *Note:* Batches are validated first; malformed or spoofed batches (ops from another device_id) are skipped with a warning, not fatal.
-- [ ] **T3.5** Sync lock (`sync.lock` flock) + `photoctl sync [--watch 60]` + automatic sync at the end of archive.
+- [x] **T3.5** Sync lock (`sync.lock` flock) + `photoctl sync [--watch 60]` + automatic sync at the end of archive. ✅ 2026-10-11
   *Done when:* running `sync` twice concurrently gives one sync and one "already syncing" message.
 - [ ] **T3.6** Device registry `sync/devices/<id>.json` (name, platform, last_seen, app version, checksum); `photoctl devices`.
   *Done when:* both devices are listed with their platform and last-seen time.
