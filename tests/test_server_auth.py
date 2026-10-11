@@ -26,7 +26,7 @@ def test_cookie_writes_need_same_origin(api):
     client, _, app = api
 
     @app.post("/api/_probe")
-    def probe(u=__import__("fastapi").Depends(__import__("photoctl.server.app", fromlist=["user"]).user)):
+    def probe(u=__import__("fastapi").Depends(__import__("photoctl.server.deps", fromlist=["user"]).user)):
         return {"ok": True}
 
     client.get("/")

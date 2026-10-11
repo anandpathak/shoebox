@@ -2,30 +2,16 @@
 
 from __future__ import annotations
 
-import sqlite3
-from collections.abc import Iterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from ..catalog import open_catalog
 from ..device import load_device
-from .auth import COOKIE, User, authenticate, get_or_create_token, may_set_cookie
+from .auth import COOKIE, User, get_or_create_token, may_set_cookie
 from .config import Settings
-
-
-def db() -> Iterator[sqlite3.Connection]:
-    conn = open_catalog()
-    try:
-        yield conn
-    finally:
-        conn.close()
-
-
-def user(request: Request) -> User:
-    return authenticate(request)
+from .deps import user
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
