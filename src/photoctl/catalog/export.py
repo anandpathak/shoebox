@@ -53,10 +53,11 @@ def _strip_ops(conn: sqlite3.Connection) -> None:
 
 
 def export_catalog(src: sqlite3.Connection, dest: Path, *, flavour: str = "full", device_id: str | None = None,
-                   gzip_output: bool | None = None, strip_ops: bool = False) -> Path:
+                   gzip_output: bool | None = None, strip_ops: bool = False, inspect=None) -> Path:
     """Write `full` (everything) or `contributed` (only media sourced from `device_id`) to `dest`.
 
     Output is VACUUM'd and integrity-checked; gzip when `dest` ends in .gz (or gzip_output=True).
+    `inspect(conn)` is called on the consistent copy before anything is removed from it.
     """
     if flavour not in ("full", "contributed"):
         raise ValueError("flavour must be 'full' or 'contributed'")
@@ -70,6 +71,8 @@ def export_catalog(src: sqlite3.Connection, dest: Path, *, flavour: str = "full"
         conn = sqlite3.connect(work)
         try:
             conn.execute("PRAGMA journal_mode = DELETE")
+            if inspect:
+                inspect(conn)
             if flavour == "contributed":
                 _keep_only_device(conn, device_id)
             if strip_ops:
