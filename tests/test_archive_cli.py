@@ -139,3 +139,21 @@ def test_rebuild_catalog_and_state_from_s3_only(tmp_path, photos, bucket, monkey
     assert "Marked 3" in r2.output
     r3 = CliRunner().invoke(cli.main, ["catalog", "rebuild", "--bucket", "test-archive", "--from-meta", "--yes"])
     assert "Rebuilt 3 records" in r3.output and "3 photos" in r3.output
+
+
+def test_search_command(tmp_path, photos, bucket, monkeypatch):
+    monkeypatch.setattr(cli, "_bucket", lambda name, profile: bucket)
+    out = tmp_path / "lib"
+    CliRunner().invoke(cli.main, ["archive", "--all", "--bucket", "test-archive", "--out", str(out), "--no-backup"])
+    res = CliRunner().invoke(cli.main, ["search", "beach", "--from", "2025-08-01", "--type", "photo", "--out", str(out)])
+    assert res.exit_code == 0, res.output
+    lines = [x for x in res.output.splitlines() if x.startswith("2025-08")]
+    assert len(lines) == 3 and all(str(out) in x for x in lines)
+    data = json.loads(CliRunner().invoke(cli.main, ["search", "gokarna", "--json", "--limit", "2"]).output)
+    assert len(data) == 2 and data[0]["taken_at"] >= data[1]["taken_at"]
+
+    exported = tmp_path / "copy.sqlite"
+    CliRunner().invoke(cli.main, ["catalog", "export", "-o", str(exported)])
+    multi = CliRunner().invoke(cli.main, ["search", "beach", "--catalog", str(exported), "--catalog",
+                                          str(paths.catalog_db()), "--json"])
+    assert len(json.loads(multi.output)) == 3   # same photos in both files: listed once

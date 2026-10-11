@@ -545,6 +545,54 @@ def devices(bucket, profile):
                    f"{d['pending_ops']} unsent · checksum {d['checksum'][:12]}…")
 
 
+@main.command()
+@click.argument("text", required=False)
+@click.option("--person")
+@click.option("--place")
+@click.option("--tag")
+@click.option("--album")
+@click.option("--from", "date_from", help="Taken on/after YYYY-MM-DD.")
+@click.option("--to", "date_to", help="Taken before YYYY-MM-DD.")
+@click.option("--type", "media_type", type=click.Choice(["photo", "video"]))
+@click.option("--fav", "favorite", is_flag=True, default=None, help="Favourites only.")
+@click.option("--device", help="Device id, name or platform (ios, android, macos).")
+@click.option("--hidden", is_flag=True, help="Include hidden items.")
+@click.option("--limit", default=50, show_default=True)
+@click.option("--catalog", "catalogs", multiple=True, type=click.Path(path_type=Path, exists=True),
+              help="Search these catalog files instead (repeatable; results are merged).")
+@click.option("--out", type=click.Path(path_type=Path), default=Path("library"), show_default=True,
+              help="Where local copies live, to show their paths.")
+@click.option("--json", "as_json", is_flag=True, help="Print JSON.")
+def search(text, person, place, tag, album, date_from, date_to, media_type, favorite, device, hidden, limit,
+           catalogs, out, as_json):
+    """Search the library: words, places, people, dates ("beach december 2024"), type and device."""
+    from .catalog import open_catalog
+    from .catalog.query import search as run_search
+    from .catalog.query import search_catalogs
+
+    filters = dict(person=person, place=place, tag=tag, album=album, date_from=date_from, date_to=date_to,
+                   media_type=media_type, favorite=favorite, device=device, include_hidden=hidden)
+    res = (search_catalogs(list(catalogs), text, limit=limit, **filters) if catalogs
+           else run_search(open_catalog(), text, limit=limit, **filters))
+    for item in res["items"]:
+        local = out / (item["compressed_key"] or "")
+        item["local_path"] = str(local) if item["compressed_key"] and local.exists() else None
+    if as_json:
+        click.echo(json.dumps(res["items"], indent=2, ensure_ascii=False, default=str))
+        return
+    if not res["items"]:
+        click.echo("No matches.")
+        return
+    for i in res["items"]:
+        where = ", ".join(filter(None, (i["place_city"] or i["place_name"], i["place_country"])))
+        kind = "video" if i["media_type"] == "video" else "photo"
+        devs = f"{len(i['devices'])} devices" if len(i["devices"]) > 1 else ""
+        click.echo(f"{(i['taken_at'] or '?')[:10]}  {kind:5}  {i['photo_id']}  {(i['title'] or where or '-')[:40]:40}"
+                   f"  {devs:9}  {i['local_path'] or ''}")
+    if res.get("next"):
+        click.echo("… more results: use --limit to see more.")
+
+
 # ---------------------------------------------------------------- catalog
 
 @main.group()

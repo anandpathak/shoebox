@@ -133,9 +133,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T4.1** Shared query files `queries/*.sql` (search, filters, person, place, device/platform, pagination) with named parameters, plus a Python runner. Parameterised SQL only (§10.5). ✅ 2026-10-11
   *Done when:* there are tests for each filter and for combinations of 2 filters.
   *Note:* Text filters (free text, person, place, tag, album) go through one quoted FTS5 expression from build_fts (person names resolve through merges via the FTS people column); dates, type, favourite, device, hidden and keyset pagination are plain SQL. Words like 'december', '2024', 'videos' become filters. Shared vectors: spec/query_vectors.json. Multi-catalog search queries each file and merges (rather than ATTACH), so the same SQL runs unchanged everywhere.
-- [ ] **T4.2** `photoctl search "gokarna" --from 2025-08-01 --type photo [--device iphone]` prints a table with ids and local paths.
+- [x] **T4.2** `photoctl search "gokarna" --from 2025-08-01 --type photo [--device iphone]` prints a table with ids and local paths. ✅ 2026-10-11
   *Done when:* it returns the expected test items.
-- [ ] **T4.3** Multi-catalog search: `photoctl search "beach" --catalog a.sqlite --catalog b.sqlite` (ATTACH + UNION ALL + dedup by `photo_id`, with source-device badges) (§11.3).
+- [x] **T4.3** Multi-catalog search: `photoctl search "beach" --catalog a.sqlite --catalog b.sqlite` (ATTACH + UNION ALL + dedup by `photo_id`, with source-device badges) (§11.3). ✅ 2026-10-11
   *Done when:* a photo present in both files is listed once, with both devices shown.
 - [ ] **T4.4** `photoctl catalog download --device <id|all|library> --flavour full|contributed -o dir/` from `sync/catalogs/`.
   *Done when:* every published catalog downloads and opens.
