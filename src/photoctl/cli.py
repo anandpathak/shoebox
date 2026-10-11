@@ -710,6 +710,36 @@ def catalog_rebuild(bucket, profile, from_meta):
     click.echo(f"Catalog now has {s['photos']} photos and {s['videos']} videos.")
 
 
+@catalog.command("download")
+@click.option("--bucket", envvar="PHOTOCTL_BUCKET", required=True)
+@click.option("--profile", envvar="AWS_PROFILE", default=None)
+@click.option("--device", "which", default="all", show_default=True,
+              help="A device id, `all` (every device's catalog) or `library` (the merged snapshot).")
+@click.option("--flavour", type=click.Choice(["full", "contributed"]), default="full", show_default=True)
+@click.option("-o", "--output", "dest", type=click.Path(path_type=Path), default=Path("catalogs"), show_default=True)
+def catalog_download(bucket, profile, which, flavour, dest):
+    """Download published catalogs (per device or the whole library) as .sqlite files."""
+    from .publish import download_catalog, list_catalogs
+
+    s3 = _bucket(bucket, profile)
+    names = {m["device_id"]: f"{m['name']} ({m['platform']})" for m in list_catalogs(s3)}
+    for path in download_catalog(s3, which, dest, flavour=flavour):
+        label = names.get(path.name.split(".")[0], path.stem)
+        click.echo(f"{path}  {_human(path.stat().st_size):>10}  {label}")
+
+
+@catalog.command("list-published")
+@click.option("--bucket", envvar="PHOTOCTL_BUCKET", required=True)
+@click.option("--profile", envvar="AWS_PROFILE", default=None)
+def catalog_list_published(bucket, profile):
+    """Catalogs that devices have published, newest first."""
+    from .publish import list_catalogs
+
+    for m in list_catalogs(_bucket(bucket, profile)):
+        click.echo(f"{m['device_id']}  {m['name']} · {m['platform']} · {m['item_count']} items "
+                   f"({m['contributed_count']} from this device) · {_human(m['bytes'])} · {m['created_at']}")
+
+
 @catalog.command("export")
 @_catalog_path_option
 @click.option("--flavour", type=click.Choice(["full", "contributed"]), default="full", show_default=True)

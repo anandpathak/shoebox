@@ -137,7 +137,7 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
   *Done when:* it returns the expected test items.
 - [x] **T4.3** Multi-catalog search: `photoctl search "beach" --catalog a.sqlite --catalog b.sqlite` (ATTACH + UNION ALL + dedup by `photo_id`, with source-device badges) (§11.3). ✅ 2026-10-11
   *Done when:* a photo present in both files is listed once, with both devices shown.
-- [ ] **T4.4** `photoctl catalog download --device <id|all|library> --flavour full|contributed -o dir/` from `sync/catalogs/`.
+- [x] **T4.4** `photoctl catalog download --device <id|all|library> --flavour full|contributed -o dir/` from `sync/catalogs/`. ✅ 2026-10-11
   *Done when:* every published catalog downloads and opens.
 - [ ] **T4.5** Fetch helpers: local path if present, otherwise a presigned S3 URL (≤ 15 min); `photoctl get <id> [--compressed|--thumb] -o dir`.
   *Done when:* fetching on a second device (with no local files) downloads from S3.

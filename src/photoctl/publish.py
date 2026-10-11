@@ -79,3 +79,36 @@ def list_catalogs(bucket) -> list[dict]:
         if got:
             out.append(json.loads(got[0]))
     return sorted(out, key=lambda m: m["created_at"], reverse=True)
+
+
+def download_catalog(bucket, which: str, dest_dir: Path, *, flavour: str = "full") -> list[Path]:
+    """Download catalogs as plain .sqlite files. `which` is a device id, 'all', or 'library' (the snapshot)."""
+    import gzip
+    import sqlite3
+
+    from .snapshot import SNAPSHOT_KEY
+
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    if which == "library":
+        targets = [("library", SNAPSHOT_KEY, None)]
+    else:
+        ids = [m["device_id"] for m in list_catalogs(bucket)] if which == "all" else [which]
+        targets = [(d, catalog_key(d), d) for d in ids]
+    out = []
+    for name, key, device_id in targets:
+        got = bucket.get_with_etag(key)
+        if got is None:
+            raise RuntimeError(f"no catalog published at s3://{bucket.name}/{key}")
+        path = dest_dir / f"{name}.sqlite"
+        path.write_bytes(gzip.decompress(got[0]))
+        if flavour == "contributed" and device_id:
+            final = dest_dir / f"{name}.contributed.sqlite"
+            conn = sqlite3.connect(path)
+            try:
+                export_catalog(conn, final, flavour="contributed", device_id=device_id)
+            finally:
+                conn.close()
+            path.unlink()
+            path = final
+        out.append(path)
+    return out
