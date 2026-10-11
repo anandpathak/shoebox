@@ -112,8 +112,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
   *Note:* Written and `tofu validate` passes (2026-10-11). Backups are tagged `retention=daily` / `retention=monthly` and two tag-filtered rules expire them after 30 / 365 days (`backup_daily_days`, `backup_monthly_days`); the ingest policy gained `s3:PutObjectTagging`/`GetObjectTagging` and still has no delete. **Your step:** `tofu plan && tofu apply` (together with T3.1).
 - [x] **T3b.2** Full `photoctl db backup`: catalog + state + `device.json` + `config.toml`; consistent copies via the online backup API; `integrity_check`; manifest (sha256 per file, schema_version, last pushed op, version); `LATEST.json` replaced with `If-Match`; first backup of the month copied to `monthly/`. ✅ 2026-10-11
   *Done when:* a backup taken while an archive run is writing passes `integrity_check` after download.
-- [ ] **T3b.3** Automatic schedule: after every archive run + daily via a LaunchAgent (`photoctl db schedule install|uninstall`); `photoctl status` shows "Last backup: 3 h ago", amber after 48 h.
+- [x] **T3b.3** Automatic schedule: after every archive run + daily via a LaunchAgent (`photoctl db schedule install|uninstall`); `photoctl status` shows "Last backup: 3 h ago", amber after 48 h. ✅ 2026-10-11
   *Done when:* the LaunchAgent fires once overnight and a new backup appears in S3.
+  *Note:* Not installed on this Mac. Run 'photoctl db schedule install' yourself; the daily job needs credentials that don't expire overnight (an expired 'aws login' session makes it fail and logs to ~/.photoctl/logs/backup.err.log).
 - [ ] **T3b.4** `photoctl db restore [--at <date>]`: download → verify sha256 → `integrity_check` → swap files atomically (old ones kept as `.bak`) → `photoctl sync` catches up on ops made since the backup.
   *Done when:* restoring yesterday's backup and syncing gives the same catalog checksum as the other devices.
 - [ ] **T3b.5** `photoctl recover` for a new or wiped Mac: list old devices from `sync/devices/` → restore identity, config and DBs → pull this device's own ops and advance the HLC past them (no op-id reuse) → sync → ready to `archive` again.

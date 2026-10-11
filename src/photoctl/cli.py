@@ -412,6 +412,21 @@ def archive(bucket, profile, out, selected, albums, from_date, to_date, uuids, a
         lock.__exit__(None, None, None)
 
 
+def _backup_age_line(now: datetime | None = None) -> str:
+    from datetime import timezone
+
+    from .backup import last_local_backup
+
+    last = last_local_backup()
+    if not last:
+        return "never backed up — run `photoctl db backup`"
+    age = (now or datetime.now(timezone.utc)) - datetime.fromisoformat(last["created_at"])
+    hours = age.total_seconds() / 3600
+    when = f"{int(hours * 60)} min ago" if hours < 1 else f"{hours:.0f} h ago" if hours < 48 else f"{hours / 24:.0f} days ago"
+    line = f"last backup {when} (s3://{last['bucket']}/{last['prefix']})"
+    return line + " — older than 48 h, run `photoctl db backup`" if hours >= 48 else line
+
+
 @main.command()
 @click.option("--state-db", type=click.Path(path_type=Path), default=None, help="Default: ~/.photoctl/state.sqlite")
 def status(state_db):
@@ -427,6 +442,7 @@ def status(state_db):
     s = stats(open_catalog())
     click.echo(f"Catalog  {s['photos']} photos, {s['videos']} videos, {s['people']} people, {s['tags']} tags, "
                f"{_human(s['bytes_raw'])} of originals")
+    click.echo("Backup   " + _backup_age_line())
 
 
 @main.command()
@@ -692,6 +708,37 @@ def db_backup(bucket, profile):
     for name, entry in res.files.items():
         click.echo(f"  {name:22} {_human(entry['bytes']):>10}  sha256 {entry['sha256'][:12]}…")
     click.echo(f"Backed up to s3://{bucket}/{res.prefix}" + (f" (also kept as {res.monthly})" if res.monthly else ""))
+
+
+@db.group("schedule")
+def db_schedule():
+    """Daily automatic backups (macOS LaunchAgent)."""
+
+
+@db_schedule.command("install")
+@click.option("--bucket", envvar="PHOTOCTL_BUCKET", required=True)
+@click.option("--profile", envvar="AWS_PROFILE", default=None)
+@click.option("--at", "at_time", default="03:30", show_default=True, help="Local time, HH:MM.")
+def db_schedule_install(bucket, profile, at_time):
+    """Back up every day at the given time (and still after every archive run)."""
+    from .schedule import install
+
+    hour, minute = (int(x) for x in at_time.split(":"))
+    path = install(bucket, hour=hour, minute=minute, profile=profile,
+                   load=not bool(__import__("os").environ.get("PHOTOCTL_LAUNCHAGENTS_DIR")))
+    click.echo(f"Daily backup at {at_time} installed: {path}")
+    click.echo("It needs AWS credentials that are still valid at that time (an SSO profile that refreshes, "
+               "or an IAM user with the ingest policy). An expired `aws login` session makes the backup fail; "
+               "check ~/.photoctl/logs/backup.err.log.")
+
+
+@db_schedule.command("uninstall")
+def db_schedule_uninstall():
+    """Stop the daily backup."""
+    from .schedule import uninstall
+
+    removed = uninstall(load=not bool(__import__("os").environ.get("PHOTOCTL_LAUNCHAGENTS_DIR")))
+    click.echo("Daily backup removed." if removed else "No daily backup was installed.")
 
 
 @db.command("list")
