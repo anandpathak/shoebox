@@ -157,3 +157,23 @@ def test_search_command(tmp_path, photos, bucket, monkeypatch):
     multi = CliRunner().invoke(cli.main, ["search", "beach", "--catalog", str(exported), "--catalog",
                                           str(paths.catalog_db()), "--json"])
     assert len(json.loads(multi.output)) == 3   # same photos in both files: listed once
+
+
+def test_get_local_then_from_s3_and_presign(tmp_path, photos, bucket, monkeypatch):
+    from urllib.parse import parse_qs, urlparse
+
+    monkeypatch.setattr(cli, "_bucket", lambda name, profile: bucket)
+    out = tmp_path / "lib"
+    CliRunner().invoke(cli.main, ["archive", "--all", "--bucket", "test-archive", "--out", str(out), "--no-backup"])
+    pid = json.loads(CliRunner().invoke(cli.main, ["search", "--json", "--limit", "1"]).output)[0]["photo_id"]
+
+    local = CliRunner().invoke(cli.main, ["get", pid, "-o", str(tmp_path / "a"), "--out", str(out)])
+    assert local.exit_code == 0 and (tmp_path / "a" / f"{pid}.jpg").exists()
+    # a second device: no local library, fetches from S3
+    remote = CliRunner().invoke(cli.main, ["get", pid, "--kind", "thumb", "-o", str(tmp_path / "b"),
+                                           "--out", str(tmp_path / "none"), "--bucket", "test-archive"])
+    assert remote.exit_code == 0, remote.output and (tmp_path / "b" / f"{pid}.jpg").exists()
+    url = CliRunner().invoke(cli.main, ["get", pid, "--url", "--bucket", "test-archive"]).output.strip()
+    q = parse_qs(urlparse(url).query)
+    assert q["X-Amz-Expires"] == ["900"] and q["X-Amz-Algorithm"] == ["AWS4-HMAC-SHA256"]
+    assert 'filename="' in q["response-content-disposition"][0]

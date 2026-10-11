@@ -64,9 +64,9 @@ def bucket(monkeypatch):
     with mock_aws():
         import boto3
 
-        from photoctl.s3 import Bucket
+        from photoctl.s3 import CLIENT_CONFIG, Bucket
 
-        client = boto3.client("s3", region_name="us-east-1")
+        client = boto3.client("s3", region_name="us-east-1", config=CLIENT_CONFIG)
         client.create_bucket(Bucket="test-archive")
         yield Bucket("test-archive", client=client)
 

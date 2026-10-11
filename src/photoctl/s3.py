@@ -7,11 +7,13 @@ from pathlib import Path
 
 import boto3
 from boto3.s3.transfer import TransferConfig
+from botocore.config import Config
 from botocore.exceptions import ClientError
 
 MULTIPART_THRESHOLD = 64 * 1024 * 1024
 PART_SIZE = 16 * 1024 * 1024
 TRANSFER = TransferConfig(multipart_threshold=MULTIPART_THRESHOLD, multipart_chunksize=PART_SIZE)
+CLIENT_CONFIG = Config(signature_version="s3v4", retries={"max_attempts": 8, "mode": "adaptive"})
 
 
 def _code(e: ClientError) -> str:
@@ -21,7 +23,7 @@ def _code(e: ClientError) -> str:
 class Bucket:
     def __init__(self, name: str, profile: str | None = None, client=None):
         self.name = name
-        self.client = client or boto3.Session(profile_name=profile).client("s3")
+        self.client = client or boto3.Session(profile_name=profile).client("s3", config=CLIENT_CONFIG)
 
     def head(self, key: str) -> dict | None:
         try:

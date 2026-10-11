@@ -593,6 +593,40 @@ def search(text, person, place, tag, album, date_from, date_to, media_type, favo
         click.echo("… more results: use --limit to see more.")
 
 
+@main.command()
+@click.argument("photo_id")
+@click.option("--kind", type=click.Choice(["compressed", "thumb", "poster", "meta"]), default="compressed",
+              show_default=True)
+@click.option("--url", "as_url", is_flag=True, help="Print a 15-minute download link instead of downloading.")
+@click.option("-o", "--output", "dest", type=click.Path(path_type=Path), default=Path("."), show_default=True)
+@click.option("--out", "library", type=click.Path(path_type=Path), default=Path("library"), show_default=True,
+              help="Local library to look in first.")
+@click.option("--bucket", envvar="PHOTOCTL_BUCKET")
+@click.option("--profile", envvar="AWS_PROFILE", default=None)
+def get(photo_id, kind, as_url, dest, library, bucket, profile):
+    """Fetch an item's compressed copy, thumbnail, poster or sidecar (local first, then S3)."""
+    from .catalog import open_catalog
+    from .catalog.query import media_detail
+    from .fetch import fetch, key_for, presign
+
+    item = media_detail(open_catalog(), photo_id)
+    if item is None:
+        raise click.ClickException(f"{photo_id} isn't in the catalog")
+    s3 = _bucket(bucket, profile) if bucket else None
+    if as_url:
+        if s3 is None:
+            raise click.UsageError("--url needs --bucket")
+        key = key_for(item, kind)
+        if not key:
+            raise click.ClickException(f"{photo_id} has no {kind} copy")
+        click.echo(presign(s3, key, filename=Path(key).name))
+        return
+    try:
+        click.echo(fetch(item, kind, dest, library=library, bucket=s3))
+    except LookupError as e:
+        raise click.ClickException(str(e)) from None
+
+
 # ---------------------------------------------------------------- catalog
 
 @main.group()

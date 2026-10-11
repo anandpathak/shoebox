@@ -139,8 +139,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
   *Done when:* a photo present in both files is listed once, with both devices shown.
 - [x] **T4.4** `photoctl catalog download --device <id|all|library> --flavour full|contributed -o dir/` from `sync/catalogs/`. ✅ 2026-10-11
   *Done when:* every published catalog downloads and opens.
-- [ ] **T4.5** Fetch helpers: local path if present, otherwise a presigned S3 URL (≤ 15 min); `photoctl get <id> [--compressed|--thumb] -o dir`.
+- [x] **T4.5** Fetch helpers: local path if present, otherwise a presigned S3 URL (≤ 15 min); `photoctl get <id> [--compressed|--thumb] -o dir`. ✅ 2026-10-11
   *Done when:* fetching on a second device (with no local files) downloads from S3.
+  *Note:* Presigned links use SigV4 and are capped at 900 s.
 - [ ] **T4.6** Original restore: `photoctl restore <id>` → `RestoreObject` (Bulk/Standard tier option); status check; download when ready.
   *Done when:* a restore is requested and the status shows "in progress" (the full 12 h path is checked once manually).
 
