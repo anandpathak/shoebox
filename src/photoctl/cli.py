@@ -627,6 +627,43 @@ def get(photo_id, kind, as_url, dest, library, bucket, profile):
         raise click.ClickException(str(e)) from None
 
 
+@main.command()
+@click.argument("photo_id")
+@click.option("--tier", type=click.Choice(["standard", "bulk"]), default="standard", show_default=True,
+              help="standard: up to 12 h; bulk: up to 48 h and cheaper.")
+@click.option("--days", default=7, show_default=True, help="How long the restored copy stays downloadable.")
+@click.option("--status", "check", is_flag=True, help="Only check how the restore is going.")
+@click.option("--download", "dest", type=click.Path(path_type=Path), help="Download it here once it's ready.")
+@click.option("--bucket", envvar="PHOTOCTL_BUCKET", required=True)
+@click.option("--profile", envvar="AWS_PROFILE", default=None)
+def original(photo_id, tier, days, check, dest, bucket, profile):
+    """Get an original back from Deep Archive: request it, check on it, then download it."""
+    from .catalog import open_catalog
+    from .originals import eta_hours, request, status
+
+    s3, conn = _bucket(bucket, profile), open_catalog()
+    try:
+        info = status(s3, conn, photo_id) if (check or dest) else request(s3, conn, photo_id, tier=tier, days=days)
+    except LookupError as e:
+        raise click.ClickException(str(e)) from None
+    st = info["status"]
+    if dest and st in ("available", "ready"):
+        target = Path(dest) / Path(info["raw_key"]).name
+        s3.download(info["raw_key"], target)
+        click.echo(f"Downloaded {target}")
+    elif st == "in_progress":
+        click.echo(f"Restoring from Deep Archive ({info['tier']} tier): ready within about "
+                   f"{eta_hours(info['tier'].lower())} hours of {info['requested_at']}. Check with --status.")
+    elif st == "ready":
+        click.echo(f"Ready to download until {info['ready_until']}. Use --download DIR.")
+    elif st == "available":
+        click.echo("This original isn't in Deep Archive, so it can be downloaded now. Use --download DIR.")
+    elif st == "expired":
+        click.echo(f"The restored copy expired on {info['ready_until']}. Request it again.")
+    else:
+        click.echo("Not requested yet. Run without --status to request it.")
+
+
 # ---------------------------------------------------------------- catalog
 
 @main.group()

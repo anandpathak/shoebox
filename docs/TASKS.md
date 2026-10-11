@@ -142,8 +142,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T4.5** Fetch helpers: local path if present, otherwise a presigned S3 URL (≤ 15 min); `photoctl get <id> [--compressed|--thumb] -o dir`. ✅ 2026-10-11
   *Done when:* fetching on a second device (with no local files) downloads from S3.
   *Note:* Presigned links use SigV4 and are capped at 900 s.
-- [ ] **T4.6** Original restore: `photoctl restore <id>` → `RestoreObject` (Bulk/Standard tier option); status check; download when ready.
+- [x] **T4.6** Original restore: `photoctl restore <id>` → `RestoreObject` (Bulk/Standard tier option); status check; download when ready. ✅ 2026-10-11
   *Done when:* a restore is requested and the status shows "in progress" (the full 12 h path is checked once manually).
+  *Note:* Command is 'photoctl original <id>' (request / --status / --download DIR) so it isn't confused with 'db restore'. The full 12-hour path still needs one manual check against real Deep Archive.
 
 ---
 
