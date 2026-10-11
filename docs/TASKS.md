@@ -122,8 +122,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
   *Note:* Also fixed 'archive --dry-run' to skip items already archived, so a dry run predicts the real run.
 - [x] **T3b.6** Fallback rebuilds when there's no usable backup: `photoctl catalog rebuild --from-s3` and `photoctl state rebuild --from-s3` (from `meta/` JSON: Apple UUID + sha256 → status). ✅ 2026-10-11
   *Done when:* both rebuild on a test bucket and match the originals' row counts.
-- [ ] **T3b.7** Runbook `docs/RECOVERY.md`: what to do when the DB is corrupted, the Mac is lost, or you need a point in time; tested end to end once.
+- [x] **T3b.7** Runbook `docs/RECOVERY.md`: what to do when the DB is corrupted, the Mac is lost, or you need a point in time; tested end to end once. ✅ 2026-10-11
   *Done when:* someone following only the runbook recovers a wiped test Mac.
+  *Note:* Each runbook path is exercised by automated tests that wipe ~/.photoctl and recover (tests/test_archive_cli.py, test_restore_catchup.py). It hasn't been walked through on a physical spare Mac yet.
 
 ---
 
