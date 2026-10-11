@@ -63,7 +63,7 @@ def test_archive_uploads_catalogs_backs_up_and_is_idempotent(tmp_path, photos, b
 
     runs = list((paths.home() / "runs").glob("*.jsonl"))
     events = [json.loads(x)["event"] for x in runs[0].read_text().splitlines()]
-    assert events[0] == "start" and "end" in events and events.count("item") == 3
+    assert events[:2] == ["accepted", "start"] and "end" in events and events.count("item") == 3
     assert all(e == "message" for e in events[events.index("end") + 1:])
 
     again = CliRunner().invoke(cli.main, ["archive", "--all", "--bucket", "test-archive", "--out", str(out),

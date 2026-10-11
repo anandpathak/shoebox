@@ -121,7 +121,8 @@ def archive(bucket, profile, out, selected, albums, from_date, to_date, uuids, a
     opts = Options(out=out, bucket=_bucket(bucket, profile) if record_state else None, storage_class=storage_class,
                    long_edge=long_edge, quality=quality, video_height=video_height, video_crf=video_crf,
                    download_missing=download_missing, live_video=live_video, workers=workers, mark_album=mark_album,
-                   backup=do_backup, dry_run=dry_run, local_only=local_only, state_db=state_db)
+                   backup=do_backup, dry_run=dry_run, local_only=local_only, state_db=state_db,
+                   catalog_path=Path(out) / "catalog.sqlite" if local_only else None)
     bar = None
 
     def on_event(kind, **d):

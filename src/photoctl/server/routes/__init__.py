@@ -6,7 +6,10 @@ from fastapi import FastAPI
 
 
 def register(app: FastAPI) -> None:
-    from . import backups, catalogs, edit, library, originals, proxy, sync
+    from . import backups, catalogs, edit, library, originals, proxy, runs, sync
+    from ..runs import RunManager
+
+    app.state.runs = RunManager()
 
     app.include_router(library.router)
     app.include_router(edit.router)
@@ -15,4 +18,5 @@ def register(app: FastAPI) -> None:
     app.include_router(proxy.router)
     app.include_router(catalogs.router)
     app.include_router(backups.router)
+    app.include_router(runs.router)
     sync.install_background_sync(app)

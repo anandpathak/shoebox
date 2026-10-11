@@ -24,7 +24,7 @@ def test_events_and_summary(tmp_path):
     s = run_archive(photos(tmp_path, 3), Options(out=tmp_path / "o", local_only=True, mark_album=False),
                     on_event=lambda kind, **d: seen.append(kind))
     assert s.counts == {"done": 3} and s.todo == 3
-    assert seen[0] == "start" and seen.count("item") == 3 and seen[-1] == "end"
+    assert seen[:2] == ["accepted", "start"] and seen.count("item") == 3 and seen[-1] == "end"
 
 
 def test_cancel_stops_after_items_in_progress(tmp_path):

@@ -65,7 +65,8 @@ class Options:
     backup: bool = True
     sync: bool = True
     dry_run: bool = False
-    local_only: bool = False
+    local_only: bool = False                # no S3 and no archive state (nothing counts as archived yet)
+    catalog_path: Path | None = None        # None = the main catalog; the CLI's --local-only uses <out>/catalog.sqlite
     state_db: Path | None = None
 
 
@@ -288,7 +289,7 @@ def run_archive(items: Iterable | None, opts: Options, *, selection: Selection |
                 on_event: Event | None = None, cancel: threading.Event | None = None) -> RunSummary:
     """Archive `items` (or what `selection` picks from Apple Photos) holding the ingest lock.
 
-    on_event(kind, **data) receives: start, item, message, end. Setting `cancel` stops after the
+    on_event(kind, **data) receives: accepted (lock taken), start, item, message, end. Setting `cancel` stops after the
     items already in progress. Raises runlock.AlreadyRunning if another run holds the lock, and
     SelectionError if the selection can't be read.
     """
@@ -308,6 +309,7 @@ def run_archive(items: Iterable | None, opts: Options, *, selection: Selection |
             emit(kind, **data)
 
         summary = RunSummary(run_id=lock.run_id)
+        event("accepted", run_id=lock.run_id, device_id=device.device_id)
         try:
             source = list(items) if items is not None else select_photos(selection or Selection())
             source = [_as_item(x) for x in source]
@@ -325,7 +327,7 @@ def run_archive(items: Iterable | None, opts: Options, *, selection: Selection |
                 return summary
             if opts.bucket is not None and record_state:
                 opts.bucket.client.head_bucket(Bucket=opts.bucket.name)  # fail fast on auth/bucket problems
-            catalog = None if opts.dry_run else open_catalog(Path(opts.out) / "catalog.sqlite" if opts.local_only else None)
+            catalog = None if opts.dry_run else open_catalog(opts.catalog_path)
             apple_done: list[str] = []
             pending = iter(todo)
             with ThreadPoolExecutor(max_workers=opts.workers) as pool:
