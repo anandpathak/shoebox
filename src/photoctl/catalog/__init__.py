@@ -50,3 +50,16 @@ def migrate(conn: sqlite3.Connection) -> int:
             conn.executescript(sql)
             conn.execute("INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?)", (str(version),))
     return schema_version(conn)
+
+
+def epoch(conn: sqlite3.Connection) -> str:
+    """Identifies this catalog file's lifetime; a rebuilt catalog gets a new epoch."""
+    row = conn.execute("SELECT value FROM meta WHERE key = 'epoch'").fetchone()
+    if row:
+        return row[0]
+    from ..device import new_ulid
+
+    value = new_ulid()
+    with conn:
+        conn.execute("INSERT OR IGNORE INTO meta (key, value) VALUES ('epoch', ?)", (value,))
+    return conn.execute("SELECT value FROM meta WHERE key = 'epoch'").fetchone()[0]

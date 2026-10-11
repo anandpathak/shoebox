@@ -162,8 +162,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T5.5** Sync endpoints + a background sync task (every 60 s, sharing the T3.5 lock). ✅ 2026-10-11
   *Done when:* `/api/sync/status` shows the last push/pull and pending ops.
   *Note:* Full sync logic moved to sync.full_sync, shared by the CLI and the server.
-- [ ] **T5.6** Op proxy for clients without AWS creds: `POST /api/sync/ops` (writes to `sync/ops/<client device_id>/`, idempotent on op ids) and `GET /api/sync/ops?since=`; `POST /api/devices/register`.
+- [x] **T5.6** Op proxy for clients without AWS creds: `POST /api/sync/ops` (writes to `sync/ops/<client device_id>/`, idempotent on op ids) and `GET /api/sync/ops?since=`; `POST /api/devices/register`. ✅ 2026-10-11
   *Done when:* a script acting as a phone pushes edits that reach device B and pulls ops incrementally.
+  *Note:* Pull cursor is the server's op arrival sequence plus a catalog epoch (410 tells the client to re-download). device.register for a phone is emitted by the server device on its behalf; the phone's own ops keep the phone's device id.
 - [ ] **T5.7** Catalog endpoints: `GET /api/catalogs`, `/api/catalogs/library`, `/api/catalogs/{device_id}?flavour=`, `/api/catalogs/all.zip`, `PUT /api/catalogs/{device_id}`. Support Range requests for resumable downloads.
   *Done when:* each download opens in `sqlite3`, and an interrupted download resumes.
 - [ ] **T5.8** Database backup endpoints: `POST /api/db/backup`, `GET /api/db/backups` (age, size, integrity).
