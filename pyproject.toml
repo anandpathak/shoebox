@@ -23,6 +23,6 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "hypothesis>=6.169.0",
-    "moto[s3]>=5.2.3",
+    "moto[s3,server]>=5.2.3",
     "pytest>=9.1.1",
 ]
