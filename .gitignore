@@ -1,0 +1,58 @@
+# Python / tooling
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+dist/
+build/
+*.egg-info/
+
+# macOS
+.DS_Store
+
+# Personal photos and generated media — never commit
+library/
+test-output/
+*.heic
+*.HEIC
+*.jpg
+*.JPG
+*.jpeg
+*.png
+*.PNG
+*.mov
+*.MOV
+*.mp4
+*.dng
+*.cr2
+*.nef
+*.arw
+
+# Local databases (contain GPS, names, library contents)
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.db
+
+# Secrets and local config
+.env
+.env.*
+*.pem
+*.key
+config.toml
+device.json
+.aws/
+
+# Terraform / OpenTofu: state holds account id + bucket name
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.*
+infra/*.tfvars
+infra/*.tfplan
+infra/crash.log
+
+# Web (later milestones)
+node_modules/
+web/dist/

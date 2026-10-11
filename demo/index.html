@@ -1,0 +1,1136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Photoframing Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one presenter column (max 1120px) with a sticky section nav; demo sections pair a live mock with the explanation beside it. */
+:root {
+  --bg: #edf1f2;
+  --surface: #fafcfc;
+  --sunk: #e2e8ea;
+  --ink: #15211f;
+  --muted: #566a6e;
+  --line: #cfd9db;
+  --accent: #0b7681;
+  --accent-ink: #ffffff;
+  --accent-soft: #d3eaec;
+  --amber: #a8640c;
+  --amber-soft: #f5e6cd;
+  --ok: #2c7748;
+  --ok-soft: #d9eee0;
+  --warn: #9a4b0e;
+  --frame: #1c2628;
+  --display: "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --r: 10px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1416; --surface: #142022; --sunk: #0a1112; --ink: #e2eaeb; --muted: #93a6aa; --line: #253538;
+    --accent: #48c0c9; --accent-ink: #062224; --accent-soft: #113236; --amber: #e3a24c; --amber-soft: #36270f;
+    --ok: #6dc78f; --ok-soft: #142d1d; --warn: #f0a868; --frame: #000000; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1416; --surface: #142022; --sunk: #0a1112; --ink: #e2eaeb; --muted: #93a6aa; --line: #253538;
+  --accent: #48c0c9; --accent-ink: #062224; --accent-soft: #113236; --amber: #e3a24c; --amber-soft: #36270f;
+  --ok: #6dc78f; --ok-soft: #142d1d; --warn: #f0a868; --frame: #000000; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; animation: none !important; } }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--body); }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 20px; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.15; text-wrap: balance; margin: 0; }
+h2 { font-size: clamp(1.6rem, 3.2vw, 2.2rem); letter-spacing: -0.01em; }
+h3 { font-size: 1.15rem; }
+p { margin: 0; }
+code, .mono { font-family: var(--mono); font-size: 0.86em; }
+a { color: var(--accent); }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.eyebrow { font: 600 0.74rem/1 var(--body); letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.lede { color: var(--muted); max-width: 62ch; }
+
+/* Top bar */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.top .wrap { display: flex; align-items: center; gap: 20px; padding-block: 10px; }
+.brand { font: 700 1.05rem/1 var(--display); white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+.brand i { width: 18px; height: 14px; border: 2px solid var(--ink); border-radius: 3px; position: relative; display: inline-block; }
+.brand i::after { content: ""; position: absolute; inset: 2px; background: var(--accent); border-radius: 1px; }
+.nav { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; min-width: 0; }
+.nav a { color: var(--muted); text-decoration: none; font-size: 0.88rem; padding: 6px 10px; border-radius: 999px; white-space: nowrap; }
+.nav a:hover { color: var(--ink); background: var(--sunk); }
+
+section { padding-block: 64px; border-bottom: 1px solid var(--line); }
+section > .wrap > header { display: grid; gap: 10px; margin-bottom: 28px; }
+
+/* Hero */
+.hero { padding-block: 56px 48px; }
+.hero-grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: 40px; align-items: end; }
+.hero h1 { font-size: clamp(2.2rem, 5.4vw, 3.6rem); letter-spacing: -0.02em; }
+.hero h1 em { font-style: normal; color: var(--accent); }
+.hero .lede { margin-top: 18px; font-size: 1.08rem; }
+.strip { display: grid; gap: 0; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); overflow: hidden; }
+.strip div { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; padding: 14px 16px; border-top: 1px solid var(--line); align-items: baseline; }
+.strip div:first-child { border-top: 0; }
+.strip b { font: 600 1.25rem/1.2 var(--display); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.strip span { color: var(--muted); font-size: 0.9rem; }
+.strip small { grid-column: 1 / -1; color: var(--muted); font-size: 0.78rem; }
+.cta-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+.btn { border: 1px solid var(--line); background: var(--surface); padding: 9px 16px; border-radius: 8px; font-weight: 500; text-decoration: none; color: var(--ink); display: inline-flex; align-items: center; gap: 8px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Status chips */
+.chip { display: inline-flex; align-items: center; gap: 6px; font: 500 0.72rem/1 var(--body); letter-spacing: 0.04em; padding: 5px 8px; border-radius: 999px; white-space: nowrap; }
+.chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.chip.built { background: var(--ok-soft); color: var(--ok); }
+.chip.next { background: var(--accent-soft); color: var(--accent); }
+.chip.planned { background: var(--amber-soft); color: var(--amber); }
+.chip.optional { background: var(--sunk); color: var(--muted); }
+
+/* Features */
+.feat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.feat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; display: grid; gap: 12px; align-content: start; }
+.feat-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.feat ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; color: var(--ink); font-size: 0.93rem; }
+.feat li::marker { color: var(--accent); }
+.feat .ms { font: 0.75rem var(--mono); color: var(--muted); }
+
+/* Pipeline */
+.toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.toggle button { border: 0; background: transparent; padding: 7px 14px; font-size: 0.9rem; }
+.toggle button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.pipe-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 18px; }
+.steps { list-style: none; margin: 0 0 18px; padding: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.steps button { width: 100%; text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 10px; display: grid; gap: 4px; min-height: 78px; align-content: start; }
+.steps .n { font: 500 0.72rem var(--mono); color: var(--muted); }
+.steps .t { font: 600 0.95rem/1.2 var(--display); }
+.steps button[aria-current="step"] { border-color: var(--accent); box-shadow: inset 0 -3px 0 var(--accent); }
+.steps button.done .n { color: var(--ok); }
+.pipe-detail { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; }
+.pipe-detail h3 { margin-bottom: 8px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.pipe-detail p { color: var(--muted); }
+.term { background: var(--sunk); border-radius: 8px; padding: 14px 16px; font: 0.8rem/1.65 var(--mono); overflow-x: auto; white-space: pre; min-width: 0; color: var(--ink); }
+.term .k { color: var(--accent); }
+.term .c { color: var(--muted); }
+.term .g { color: var(--ok); }
+.sizebar { display: grid; gap: 6px; margin-top: 14px; }
+.sizebar div { display: grid; grid-template-columns: 92px 1fr auto; gap: 10px; align-items: center; font-size: 0.82rem; }
+.sizebar span.bar { height: 10px; border-radius: 3px; background: var(--accent); }
+.sizebar span.bar.orig { background: var(--muted); }
+.sizebar b { font: 500 0.82rem var(--mono); font-variant-numeric: tabular-nums; }
+
+/* Phone demo */
+.demo-grid { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 40px; align-items: start; }
+.phone { width: 330px; max-width: 100%; height: 680px; border: 11px solid var(--frame); border-radius: 48px; background: var(--surface); position: relative; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 50px -24px rgb(0 0 0 / 0.45); }
+.phone.android { border-radius: 30px; border-width: 9px; }
+.sbar { height: 44px; flex: none; display: flex; justify-content: space-between; align-items: center; padding: 0 26px; font: 600 0.8rem var(--body); position: relative; }
+.sbar .cut { position: absolute; left: 50%; top: 9px; transform: translateX(-50%); width: 96px; height: 26px; border-radius: 20px; background: var(--frame); }
+.phone.android .sbar { height: 34px; padding: 0 18px; font-weight: 500; }
+.phone.android .sbar .cut { width: 13px; height: 13px; top: 10px; border-radius: 50%; }
+.app-head { padding: 6px 14px 8px; display: grid; gap: 8px; flex: none; }
+.conn { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--muted); }
+.conn i { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+.conn.off i { background: var(--amber); }
+.search { display: flex; align-items: center; gap: 8px; background: var(--sunk); border-radius: 10px; padding: 8px 10px; }
+.phone.android .search { border-radius: 24px; }
+.search input { border: 0; background: transparent; outline: none; font: inherit; font-size: 0.86rem; width: 100%; color: var(--ink); min-width: 0; }
+.search svg { flex: none; }
+.fchips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.fchips button { border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 4px 10px; font-size: 0.74rem; white-space: nowrap; }
+.fchips button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.app-body { flex: 1; overflow-y: auto; padding: 0 14px 14px; position: relative; }
+.month { font: 600 0.78rem var(--display); margin: 12px 0 6px; color: var(--muted); }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; }
+.tile { aspect-ratio: 1; border: 0; padding: 0; border-radius: 4px; position: relative; overflow: hidden; }
+.tile .dur { position: absolute; right: 4px; bottom: 4px; font: 600 0.62rem var(--mono); color: #fff; background: rgb(0 0 0 / 0.45); padding: 1px 4px; border-radius: 3px; }
+.tile .src { position: absolute; left: 4px; top: 4px; display: flex; gap: 2px; }
+.tile .src span { font: 700 0.55rem/1 var(--body); color: #fff; background: rgb(0 0 0 / 0.42); padding: 2px 3px; border-radius: 3px; }
+.empty { color: var(--muted); font-size: 0.85rem; padding: 30px 6px; text-align: center; }
+.tabbar { flex: none; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); padding: 6px 4px 16px; background: var(--surface); }
+.phone.android .tabbar { padding-bottom: 10px; }
+.tabbar button { border: 0; background: transparent; display: grid; justify-items: center; gap: 2px; font-size: 0.64rem; color: var(--muted); padding: 4px 0; }
+.tabbar button svg { width: 20px; height: 20px; }
+.tabbar button[aria-selected="true"] { color: var(--accent); }
+.phone.android .tabbar button[aria-selected="true"] svg { background: var(--accent-soft); border-radius: 12px; padding: 2px 10px; width: 44px; box-sizing: content-box; height: 18px; }
+.gesture { position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); width: 110px; height: 4px; border-radius: 3px; background: var(--ink); opacity: 0.6; }
+.phone.android .gesture { width: 80px; height: 3px; }
+.viewer { position: absolute; inset: 0; background: var(--surface); z-index: 5; display: flex; flex-direction: column; overflow-y: auto; }
+.viewer .ph { aspect-ratio: 4 / 3; flex: none; position: relative; }
+.viewer .back { position: absolute; left: 10px; top: 10px; border: 0; background: rgb(0 0 0 / 0.45); color: #fff; border-radius: 999px; padding: 4px 10px; font-size: 0.75rem; }
+.viewer .meta { padding: 12px 14px 18px; display: grid; gap: 10px; }
+.viewer dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 0.78rem; }
+.viewer dt { color: var(--muted); }
+.viewer dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.viewer .acts { display: grid; gap: 6px; }
+.viewer .acts button, .pcard button.full { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px; font-size: 0.8rem; }
+.viewer .acts button.pri, .pcard button.pri { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.pcard { border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 8px; margin-top: 12px; font-size: 0.8rem; }
+.pcard h4 { margin: 0; font: 600 0.9rem var(--display); }
+.pcard p { color: var(--muted); font-size: 0.75rem; }
+.pcard label { display: flex; align-items: center; gap: 8px; }
+.pcard select { font: inherit; font-size: 0.8rem; padding: 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); width: 100%; }
+.pcard button { border-radius: 8px; padding: 8px; font-size: 0.8rem; border: 1px solid var(--line); background: var(--surface); }
+.prog { height: 6px; border-radius: 3px; background: var(--sunk); overflow: hidden; }
+.prog span { display: block; height: 100%; background: var(--accent); width: 0; transition: width 0.3s; }
+.small { font-size: 0.72rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.warnline { font-size: 0.72rem; color: var(--warn); }
+.catrow { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+.catrow:first-of-type { border-top: 0; }
+.catrow b { font-size: 0.8rem; font-weight: 600; }
+.catrow span { font-size: 0.7rem; color: var(--muted); grid-column: 1; }
+.sw { appearance: none; width: 36px; height: 21px; border-radius: 999px; background: var(--line); position: relative; cursor: pointer; grid-row: 1 / span 2; grid-column: 2; margin: 0; }
+.sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 17px; height: 17px; border-radius: 50%; background: #fff; transition: transform 0.2s; }
+.sw:checked { background: var(--accent); }
+.sw:checked::after { transform: translateX(15px); }
+.explain { display: grid; gap: 18px; }
+.explain .note { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px 20px; display: grid; gap: 8px; }
+.explain .note h3 { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.explain .note p, .explain .note li { color: var(--muted); font-size: 0.93rem; }
+.explain ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.sample { font-size: 0.78rem; color: var(--muted); }
+
+/* Sync simulator */
+.sim-top { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 18px; }
+.devices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.dev { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: grid; gap: 12px; align-content: start; }
+.dev-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dev-head h3 { font-size: 1.05rem; }
+.dev .state { background: var(--sunk); border-radius: 8px; padding: 12px; display: grid; gap: 6px; font-size: 0.88rem; }
+.dev .state .ttl { font: 600 1rem var(--display); }
+.tags { display: flex; gap: 6px; flex-wrap: wrap; min-height: 24px; }
+.tags span { background: var(--accent-soft); color: var(--accent); font-size: 0.75rem; padding: 3px 8px; border-radius: 999px; }
+.dev .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.dev input[type="text"] { flex: 1; min-width: 0; font: inherit; font-size: 0.88rem; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.dev .row button { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 10px; font-size: 0.84rem; }
+.online { display: inline-flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--muted); }
+.verdict { margin-top: 16px; padding: 12px 16px; border-radius: 8px; font-weight: 500; }
+.verdict.yes { background: var(--ok-soft); color: var(--ok); }
+.verdict.no { background: var(--amber-soft); color: var(--amber); }
+.oplog { margin-top: 16px; overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+th, td { text-align: left; padding: 8px 12px; border-top: 1px solid var(--line); vertical-align: top; }
+thead th { border-top: 0; font: 600 0.72rem var(--body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); background: var(--sunk); }
+td.mono, td code { font-family: var(--mono); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+.sim-explain { margin-top: 14px; color: var(--muted); font-size: 0.92rem; max-width: 80ch; }
+
+/* Architecture */
+.arch { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px; }
+.arch svg { display: block; min-width: 820px; width: 100%; height: auto; }
+.arch .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+.arch .boxa { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+.arch .inner { fill: var(--sunk); stroke: none; }
+.arch .t1 { fill: var(--ink); font: 600 15px var(--display); }
+.arch .t2 { fill: var(--ink); font: 500 12.5px var(--body); }
+.arch .t3 { fill: var(--muted); font: 400 11.5px var(--body); }
+.arch .tm { fill: var(--ink); font: 500 12px var(--mono); }
+.arch .lbl { fill: var(--accent); font: 500 11.5px var(--body); }
+.arch .wire { stroke: var(--accent); stroke-width: 1.8; fill: none; }
+.arch .wire.dash { stroke-dasharray: 6 5; }
+.arch .wire.mute { stroke: var(--muted); }
+.arch .arrowhead { fill: var(--accent); }
+.arch .arrowhead.mute { fill: var(--muted); }
+.cols3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 20px; }
+.cols2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 20px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px 20px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.card p, .card li { color: var(--muted); font-size: 0.92rem; }
+.card ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); margin-top: 20px; }
+
+/* Roadmap */
+.road { display: grid; gap: 0; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--surface); }
+.road div { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 14px; padding: 12px 18px; border-top: 1px solid var(--line); align-items: center; }
+.road div:first-child { border-top: 0; }
+.road .m { font: 500 0.85rem var(--mono); color: var(--muted); }
+.road b { font-weight: 600; }
+.road span.d { color: var(--muted); font-size: 0.88rem; display: block; }
+.decisions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
+.decisions .card b { font-family: var(--display); }
+footer { padding-block: 40px 60px; color: var(--muted); font-size: 0.88rem; }
+footer .wrap { display: grid; gap: 8px; }
+
+@media (max-width: 960px) {
+  .hero-grid, .demo-grid, .pipe-detail { grid-template-columns: 1fr; }
+  .demo-grid .phone { margin: 0 auto; }
+  .steps { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .feat-grid, .cols3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .wrap { padding-inline: 16px; }
+  section { padding-block: 44px; }
+  .feat-grid, .cols3, .cols2, .devices, .decisions { grid-template-columns: 1fr; }
+  .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .phone { height: 620px; }
+  .road div { grid-template-columns: 44px minmax(0, 1fr); }
+  .road div .chip { grid-column: 2; justify-self: start; }
+  .brand span { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="wrap">
+    <div class="brand"><i aria-hidden="true"></i>Photoframing <span class="chip next" style="margin-left:4px">Demo</span></div>
+    <nav class="nav" aria-label="Sections">
+      <a href="#features">Features</a>
+      <a href="#flow">Archive flow</a>
+      <a href="#app">Phone app</a>
+      <a href="#sync">Sync &amp; conflicts</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#roadmap">Roadmap</a>
+    </nav>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <p class="eyebrow">Family photo archive · project walkthrough</p>
+      <h1 style="margin-top:14px">Every original safe in S3.<br><em>Every photo searchable</em> from your Mac, iPhone and Android.</h1>
+      <p class="lede">Photoframing moves originals out of Apple Photos into cheap cold storage. It keeps a small copy of each photo with all its metadata, builds a SQLite catalog, and gives you one website to search it from any device, even offline.</p>
+      <div class="cta-row">
+        <a class="btn primary" href="#flow">Walk through the archive flow</a>
+        <a class="btn" href="#app">Try the phone app</a>
+      </div>
+    </div>
+    <div class="strip" aria-label="Results from test runs">
+      <div><b>1.9 MB → 437 KB</b><span>HEIC photo, 4032px → 1600px JPEG</span><small>EXIF, GPS, capture time and camera kept</small></div>
+      <div><b>28 MB → 2.1 MB</b><span>18 s iPhone video → 720p MP4</span><small>Creation date, location and camera kept</small></div>
+      <div><b>≈ $1 / month</b><span>storage at rest for 50k photos</span><small>Originals in S3 Glacier Deep Archive at about $1 per TB per month</small></div>
+      <div><b>0 AWS keys</b><span>on phones</span><small>Phones go through your Mac over a private Tailscale link</small></div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">What it does</p>
+      <h2>Features</h2>
+      <p class="lede">Grouped by what you get. The status shows what already runs today and which milestone in <code>docs/TASKS.md</code> delivers the rest.</p>
+    </header>
+    <div class="feat-grid">
+      <article class="feat">
+        <div class="feat-head"><h3>Archive from Apple Photos</h3><span class="chip built">Built</span></div>
+        <ul>
+          <li>Pick what to archive: what's selected in Photos, an album, a date range, or everything</li>
+          <li>Originals go to S3 Deep Archive, checked by SHA-256</li>
+          <li>Works with photos, RAW pairs, Live Photo videos and videos</li>
+          <li>Re-runs skip anything already archived</li>
+          <li>Archived items go to an "Archived to S3" album in Photos for review</li>
+        </ul>
+        <span class="ms">M0 · photoctl archive</span>
+      </article>
+      <article class="feat">
+        <div class="feat-head"><h3>Small copies, full metadata</h3><span class="chip built">Built</span></div>
+        <ul>
+          <li>1600px JPEG per photo via macOS <code>sips</code>, with EXIF and GPS kept</li>
+          <li>720p MP4 plus a poster frame per video via ffmpeg</li>
+          <li>JSON sidecar with Apple people, albums, keywords, place and labels</li>
+          <li>The same ID links original, copy and sidecar</li>
+          <li><code>--local-only</code> mode to test compression without uploading</li>
+        </ul>
+        <span class="ms">M0 · derive.py</span>
+      </article>
+      <article class="feat">
+        <div class="feat-head"><h3>Safe, cheap storage</h3><span class="chip built">Built</span></div>
+        <ul>
+          <li>Private bucket, encrypted, versioned, HTTPS only</li>
+          <li>Lifecycle rules move copies to cheaper storage after 30 days</li>
+          <li>Upload-only IAM policy with no delete permission</li>
+          <li>Terraform in <code>infra/</code>, with a guard against deleting the bucket</li>
+        </ul>
+        <span class="ms">M0 · infra/</span>
+      </article>
+      <article class="feat">
+        <div class="feat-head"><h3>SQLite catalog</h3><span class="chip next">Next</span></div>
+        <ul>
+          <li>Built automatically during every archive run</li>
+          <li>Dates, places, cameras, people, tags and albums, with full-text search</li>
+          <li>320px thumbnails for fast grids</li>
+          <li>Can be rebuilt from S3 at any time</li>
+        </ul>
+        <span class="ms">M1 · catalog.sqlite</span>
+      </article>
+      <article class="feat">
+        <div class="feat-head"><h3>Multi-device sync</h3><span class="chip next">Next</span></div>
+        <ul>
+          <li>Devices share changes through S3, not whole database files</li>
+          <li>Edits made at the same time on two devices merge the same way everywhere</li>
+          <li>Locks via S3 conditional writes; no extra database server</li>
+          <li><code>sync verify</code> proves every device has the same library</li>
+        </ul>
+        <span class="ms">M2–M3 · op log</span>
+      </article>
+      <article class="feat">
+        <div class="feat-head"><h3>Search, view, download</h3><span class="chip next">Next</span></div>
+        <ul>
+          <li>Search by words, date, place, person, type and source device</li>
+          <li>Download compressed copies instantly</li>
+          <li>Request an original back from Deep Archive (about 12 hours)</li>
+          <li>The same search from the CLI and the app</li>
+        </ul>
+        <span class="ms">M4–M6 · API + web UI</span>
+      </article>
+      <article class="feat">
+        <div class="feat-head"><h3>iPhone &amp; Android web app</h3><span class="chip planned">Planned</span></div>
+        <ul>
+          <li>The same website in Safari and Chrome, installable to the home screen</li>
+          <li>Start an archive run on the Mac from your phone and watch progress</li>
+          <li>Upload photos from the phone; uploads resume after a dropped connection</li>
+          <li>Private access through Tailscale, never open to the internet</li>
+        </ul>
+        <span class="ms">M7–M8 · PWA</span>
+      </article>
+      <article class="feat">
+        <div class="feat-head"><h3>On-device search</h3><span class="chip planned">Planned</span></div>
+        <ul>
+          <li>Download the catalog to the phone and search with no network</li>
+          <li>SQLite runs inside the browser (WebAssembly)</li>
+          <li>Offline edits sync when you're back online</li>
+          <li>Thumbnail packs by year or album</li>
+        </ul>
+        <span class="ms">M9 · sqlite-wasm</span>
+      </article>
+      <article class="feat">
+        <div class="feat-head"><h3>Per-device catalogs</h3><span class="chip planned">Planned</span></div>
+        <ul>
+          <li>Every device publishes its own SQLite file</li>
+          <li>Download one, several or all of them from any device</li>
+          <li>Search iPhone and Android photos together on one phone</li>
+          <li>Duplicates show once, with a badge for each device</li>
+        </ul>
+        <span class="ms">M10 · catalogs</span>
+      </article>
+      <article class="feat">
+        <div class="feat-head"><h3>Database backup &amp; recovery</h3><span class="chip next">Next</span></div>
+        <ul>
+          <li>The Mac's SQLite databases back up to S3 after every run and daily</li>
+          <li>Kept 30 days, plus one per month for a year</li>
+          <li><code>photoctl recover</code> sets up a new Mac as the same device</li>
+          <li>Catches up on changes made since the backup by syncing</li>
+        </ul>
+        <span class="ms">T0.7 + M3b · backups/</span>
+      </article>
+      <article class="feat">
+        <div class="feat-head"><h3>Phone auto-backup</h3><span class="chip planned">Planned</span></div>
+        <ul>
+          <li>iPhone and Android back up new photos and videos whenever they sync</li>
+          <li>Hashes on the phone, so nothing already archived uploads twice</li>
+          <li>Runs in the background on Wi-Fi and while charging</li>
+          <li>Full GPS and originals via PhotoKit and MediaStore</li>
+        </ul>
+        <span class="ms">M12 · native app</span>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- FLOW -->
+<section id="flow">
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">How one item travels</p>
+      <h2>The archive flow, step by step</h2>
+      <p class="lede">The figures below come from real test runs on this Mac (11 Oct 2026): one HEIC photo and one iPhone video from the Photos library. Steps 1–5 run today; steps 6–7 are next.</p>
+    </header>
+    <div class="pipe-controls">
+      <div class="toggle" role="group" aria-label="Media type">
+        <button type="button" id="m-photo" aria-pressed="true">Photo · IMG_5368.HEIC</button>
+        <button type="button" id="m-video" aria-pressed="false">Video · IMG_1520.MOV</button>
+      </div>
+      <button class="btn" type="button" id="p-prev">Back</button>
+      <button class="btn primary" type="button" id="p-next">Next step</button>
+      <button class="btn" type="button" id="p-play">Play all</button>
+    </div>
+    <ol class="steps" id="steps"></ol>
+    <div class="pipe-detail" id="pdetail" aria-live="polite"></div>
+  </div>
+</section>
+
+<!-- APP -->
+<section id="app">
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">The app on a phone</p>
+      <h2>One website on iPhone and Android</h2>
+      <p class="lede">An interactive mockup of the planned app. Switch platform, search, open a photo, start an archive run on the Mac, or go offline and pick which device catalogs to search. <span class="sample">The library below is example data.</span></p>
+    </header>
+    <div class="demo-grid">
+      <div>
+        <div class="toggle" role="group" aria-label="Platform" style="margin-bottom:14px">
+          <button type="button" id="pl-ios" aria-pressed="true">iPhone · Safari</button>
+          <button type="button" id="pl-android" aria-pressed="false">Android · Chrome</button>
+        </div>
+        <div class="phone" id="phone">
+          <div class="sbar"><span id="clock">9:41</span><span class="cut"></span><span id="sbar-r">5G ▮▮▮</span></div>
+          <div id="screen" style="flex:1;display:flex;flex-direction:column;min-height:0"></div>
+          <nav class="tabbar" role="tablist" aria-label="App sections">
+            <button role="tab" data-tab="library" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Library</button>
+            <button role="tab" data-tab="upload" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V4m0 0-5 5m5-5 5 5M4 20h16"/></svg>Uploads</button>
+            <button role="tab" data-tab="catalogs" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5.5" rx="7.5" ry="2.5"/><path d="M4.5 5.5v13c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5v-13M4.5 12c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5"/></svg>Catalogs</button>
+            <button role="tab" data-tab="sync" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 12a8 8 0 0 1-14 5.3M4 12a8 8 0 0 1 14-5.3M18 3v4h-4M6 21v-4h4"/></svg>Sync</button>
+          </nav>
+          <div class="gesture"></div>
+        </div>
+      </div>
+      <div class="explain" id="explain"></div>
+    </div>
+  </div>
+</section>
+
+<!-- SYNC -->
+<section id="sync">
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">Two devices, one library</p>
+      <h2>Sync &amp; conflict resolution, live</h2>
+      <p class="lede">Each device records changes as small operations stamped with a clock (HLC). Syncing exchanges operations through S3, and every device applies them in the same order. Edit the same photo on both phones while they're offline, then sync.</p>
+    </header>
+    <div class="sim-top">
+      <button class="btn" type="button" id="sc1">Scenario: both rename the photo offline</button>
+      <button class="btn" type="button" id="sc2">Scenario: one adds a tag, the other removes it</button>
+      <button class="btn primary" type="button" id="syncall">Sync both</button>
+      <button class="btn" type="button" id="simreset">Reset</button>
+    </div>
+    <div class="devices" id="devices"></div>
+    <div id="verdict" class="verdict" aria-live="polite"></div>
+    <p class="sim-explain" id="simexplain"></p>
+    <div class="oplog">
+      <table>
+        <thead><tr><th>HLC (sort key)</th><th>Device</th><th>Operation</th><th>In S3</th></tr></thead>
+        <tbody id="oplog"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section id="architecture">
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">How it fits together</p>
+      <h2>Architecture</h2>
+      <p class="lede">The Mac does the heavy work and holds the AWS credentials. S3 is the source of truth. Phones reach the Mac over Tailscale, or work offline from a downloaded catalog.</p>
+    </header>
+    <div class="arch">
+      <svg viewBox="0 0 980 600" role="img" aria-label="Architecture: Apple Photos feeds the Mac; the Mac uploads to S3 and syncs; phones connect to the Mac over Tailscale and keep an offline catalog.">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" class="arrowhead"/></marker>
+          <marker id="ahm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" class="arrowhead mute"/></marker>
+        </defs>
+        <!-- Apple Photos -->
+        <rect class="box" x="20" y="20" width="220" height="70" rx="10"/>
+        <text class="t1" x="36" y="48">Apple Photos library</text>
+        <text class="t3" x="36" y="70">read with osxphotos · Full Disk Access</text>
+        <path class="wire mute" d="M130 90 V140" marker-end="url(#ahm)"/>
+        <!-- Mac -->
+        <rect class="boxa" x="20" y="140" width="420" height="330" rx="12"/>
+        <text class="t1" x="38" y="168">Mac · owner's machine</text>
+        <rect class="inner" x="38" y="182" width="384" height="62" rx="8"/>
+        <text class="tm" x="52" y="205">photoctl archive</text>
+        <text class="t3" x="52" y="226">hash → compress (sips / ffmpeg) → sidecar → upload</text>
+        <rect class="inner" x="38" y="254" width="186" height="74" rx="8"/>
+        <text class="tm" x="52" y="277">catalog.sqlite</text>
+        <text class="t3" x="52" y="297">WAL · full-text search</text>
+        <text class="t3" x="52" y="314">op log · outbox</text>
+        <rect class="inner" x="236" y="254" width="186" height="74" rx="8"/>
+        <text class="tm" x="250" y="277">state.sqlite</text>
+        <text class="t3" x="250" y="297">this Mac's upload</text>
+        <text class="t3" x="250" y="314">status (not synced)</text>
+        <rect class="inner" x="38" y="338" width="384" height="116" rx="8"/>
+        <text class="tm" x="52" y="361">photoctl serve · 127.0.0.1:8765</text>
+        <text class="t3" x="52" y="382">FastAPI + web UI · search, view, edit, trigger runs</text>
+        <text class="t3" x="52" y="400">sync loop every 60 s · presigned URLs (≤ 15 min)</text>
+        <text class="t3" x="52" y="418">ingest.lock / sync.lock: one run at a time</text>
+        <text class="t3" x="52" y="436">publishes this device's catalog</text>
+        <!-- S3 -->
+        <rect class="box" x="560" y="20" width="400" height="330" rx="12"/>
+        <text class="t1" x="578" y="48">S3 bucket · private · versioned</text>
+        <g id="s3rows"></g>
+        <!-- Phones -->
+        <rect class="box" x="560" y="390" width="400" height="190" rx="12"/>
+        <text class="t1" x="578" y="418">Phones · installed web app (PWA)</text>
+        <rect class="inner" x="578" y="432" width="176" height="132" rx="8"/>
+        <text class="t2" x="592" y="455">iPhone · Safari</text>
+        <rect class="inner" x="766" y="432" width="176" height="132" rx="8"/>
+        <text class="t2" x="780" y="455">Android · Chrome</text>
+        <text class="t3" x="592" y="478">online: search, view,</text>
+        <text class="t3" x="592" y="495">trigger, upload</text>
+        <text class="t3" x="592" y="518">offline: sqlite-wasm</text>
+        <text class="t3" x="592" y="535">catalog in OPFS,</text>
+        <text class="t3" x="592" y="552">edits in an outbox</text>
+        <text class="t3" x="780" y="478">online: search, view,</text>
+        <text class="t3" x="780" y="495">trigger, upload</text>
+        <text class="t3" x="780" y="518">offline: sqlite-wasm</text>
+        <text class="t3" x="780" y="535">catalog in OPFS,</text>
+        <text class="t3" x="780" y="552">edits in an outbox</text>
+        <!-- wires -->
+        <path class="wire" d="M440 205 H560" marker-end="url(#ah)"/>
+        <text class="lbl" x="452" y="196">originals, copies,</text>
+        <text class="lbl" x="452" y="225">sidecars (PUT)</text>
+        <path class="wire" d="M440 290 H560" marker-start="url(#ah)" marker-end="url(#ah)"/>
+        <text class="lbl" x="452" y="281">push / pull ops,</text>
+        <text class="lbl" x="452" y="310">catalogs, leases</text>
+        <path class="wire dash" d="M440 420 C 500 420, 500 480, 560 480" marker-start="url(#ah)" marker-end="url(#ah)"/>
+        <text class="lbl" x="448" y="508">HTTPS over Tailscale</text>
+        <text class="t3" x="448" y="526">phones hold no AWS keys</text>
+        <text class="t3" x="30" y="500">Second Mac (optional): same CLI and server,</text>
+        <text class="t3" x="30" y="518">its own catalog.sqlite, syncs through the same bucket.</text>
+      </svg>
+    </div>
+
+    <div class="cols3">
+      <div class="card">
+        <h3>Mac</h3>
+        <ul>
+          <li>Reads Apple Photos, compresses, uploads</li>
+          <li>Holds AWS credentials (SSO or <code>aws login</code>)</li>
+          <li>Runs the API, web UI and sync loop</li>
+          <li>Local locks stop two archive runs at once</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>S3 (source of truth)</h3>
+        <ul>
+          <li>Originals and copies share one content-based ID</li>
+          <li>Changes are append-only operation files, one folder per device</li>
+          <li>Conditional writes (<code>If-None-Match</code>, <code>If-Match</code>) act as locks</li>
+          <li>Database backups under <code>backups/</code>; any device can be recovered from here</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Phones</h3>
+        <ul>
+          <li>Same UI in Safari and Chrome, installable</li>
+          <li>SQLite in the browser for offline search</li>
+          <li>Push and pull changes through the Mac's API</li>
+          <li>Native app backs up the camera roll on every sync</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Situation</th><th>Rule</th><th>Result</th></tr></thead>
+        <tbody>
+          <tr><td>Same photo archived on two devices</td><td>Same bytes give the same ID; S3 create-if-absent on the original</td><td>Uploaded once, one catalog entry, both sources recorded</td></tr>
+          <tr><td>Two edits to the same field</td><td>Last writer wins per field, ordered by HLC</td><td>Every device shows the same value</td></tr>
+          <tr><td>Edits to different fields</td><td>Tracked per field, not per row</td><td>Both edits kept</td></tr>
+          <tr><td>Tag added on one device, removed on another</td><td>A remove cancels only the adds it had seen</td><td>The newer add survives</td></tr>
+          <tr><td>Deleted on one device, edited on another</td><td>The delete holds until an explicit restore</td><td>Hidden, never lost</td></tr>
+          <tr><td>Two devices try to build a snapshot</td><td>Lease file created with <code>If-None-Match</code>, renewed every 60 s</td><td>Exactly one builds it</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="cols2">
+      <div class="card">
+        <h3>Cost at 50k photos (≈ 250 GB originals)</h3>
+        <table>
+          <tbody>
+            <tr><td>Originals, Deep Archive</td><td class="mono">$0.29</td></tr>
+            <tr><td>Compressed copies, Standard-IA (15 GB)</td><td class="mono">$0.19</td></tr>
+            <tr><td>Thumbs, sidecars, sync files, DB backups</td><td class="mono">$0.06</td></tr>
+            <tr><td>Requests and sync</td><td class="mono">~$0.05</td></tr>
+            <tr><td><b>Total at rest</b></td><td class="mono"><b>≈ $1 / month</b></td></tr>
+          </tbody>
+        </table>
+        <p>Restoring originals from Deep Archive is the only cost that can surprise you, so the app always says so before starting one. From <code>TECH_REQUIREMENTS.md</code> §6.</p>
+      </div>
+      <div class="card">
+        <h3>Tech stack</h3>
+        <ul>
+          <li><b>CLI:</b> Python 3.12, uv, click, osxphotos, boto3</li>
+          <li><b>Media:</b> macOS sips (photos), ffmpeg (videos)</li>
+          <li><b>Data:</b> SQLite WAL + FTS5; sqlite-wasm on phones</li>
+          <li><b>API:</b> FastAPI, tus resumable uploads, SSE progress</li>
+          <li><b>UI:</b> React + Vite + TypeScript, installable PWA</li>
+          <li><b>Infra:</b> S3 + IAM via Terraform / OpenTofu</li>
+          <li><b>Access:</b> Tailscale (private HTTPS)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROADMAP -->
+<section id="roadmap">
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">Before we start</p>
+      <h2>Roadmap and open decisions</h2>
+      <p class="lede">Each milestone is a checklist in <code>docs/TASKS.md</code>, and every task has a "done when" check. We tick them off as we go.</p>
+    </header>
+    <div class="road" id="road"></div>
+    <div class="decisions">
+      <div class="card"><b>D1 · UI stack</b><p>React + Vite + TypeScript. Recommended, and needed for on-device search.</p></div>
+      <div class="card"><b>D2 · Remote access</b><p>Tailscale. Recommended: free, private, real HTTPS on iOS and Android.</p></div>
+      <div class="card"><b>D3 · Phone upload fidelity</b><p>Accept browser limits for now and flag missing GPS. A native app later gives full metadata.</p></div>
+      <div class="card"><b>D4 · Offline images</b><p>Thumbnails by default, with opt-in "Save offline" for compressed copies.</p></div>
+      <div class="card"><b>D5 · When changes sync</b><p>At the end of each run, and every 60 seconds for edits.</p></div>
+      <div class="card"><b>D6 · Deleting</b><p>"Remove from library" only hides an item. Purging originals stays an admin-only command.</p></div>
+      <div class="card"><b>D7 · DB backup schedule</b><p>After every archive run and daily. Keep 30 daily and 12 monthly backups.</p></div>
+      <div class="card"><b>D8 · Phone backup defaults</b><p>Wi-Fi only, videos only while charging, screenshots skipped.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>Photoframing · project files: <code>src/photoctl/</code> (CLI), <code>infra/</code> (Terraform), <code>docs/PRD.md</code>, <code>docs/TECH_REQUIREMENTS.md</code>, <code>docs/LOCAL_APP_PLAN.md</code>, <code>docs/TASKS.md</code>.</p>
+    <p>Try it today: select a photo in Photos, then run <code>uv run photoctl archive --selected --local-only --out test-output</code>.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  const $ = (s, r = document) => r.querySelector(s);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  /* ---------- S3 rows in the architecture diagram ---------- */
+  const s3rows = [
+    ["raw/", "originals · Deep Archive"],
+    ["compressed/", "1600px JPEG · 720p MP4 · IA at 30 d"],
+    ["thumb/  meta/", "320px thumbs · JSON sidecars"],
+    ["sync/ops/<device>/", "append-only change batches"],
+    ["sync/snapshots/  HEAD.json", "fast bootstrap · compare-and-swap"],
+    ["sync/catalogs/<device>/", "downloadable SQLite per device"],
+    ["sync/locks/", "leases via conditional writes"],
+    ["backups/<device>/", "SQLite DB backups · 30 d + monthly"],
+  ];
+  const ns = "http://www.w3.org/2000/svg";
+  const g = $("#s3rows");
+  s3rows.forEach(([k, d], i) => {
+    const y = 62 + i * 35;
+    const r = document.createElementNS(ns, "rect");
+    Object.entries({ x: 578, y, width: 364, height: 31, rx: 6, class: "inner" }).forEach(([a, v]) => r.setAttribute(a, v));
+    const t1 = document.createElementNS(ns, "text");
+    Object.entries({ x: 590, y: y + 20, class: "tm" }).forEach(([a, v]) => t1.setAttribute(a, v));
+    t1.textContent = k;
+    const t2 = document.createElementNS(ns, "text");
+    Object.entries({ x: 930, y: y + 20, class: "t3", "text-anchor": "end" }).forEach(([a, v]) => t2.setAttribute(a, v));
+    t2.textContent = d;
+    g.append(r, t1, t2);
+  });
+
+  /* ---------- Archive flow ---------- */
+  const flows = {
+    photo: [
+      { t: "Pick", s: "built", h: "Pick what to archive",
+        p: "Select photos in Photos.app, or name an album, a date range or the whole library. The CLI reads the Photos database directly with osxphotos.",
+        term: '<span class="c">$</span> uv run photoctl archive <span class="k">--selected</span>\n<span class="c">1 items matched (1 photos, 0 videos) · 0 already archived · 1 to process</span>\n\n<span class="c">source</span>   applephotos:37CF…DE13\n<span class="c">file</span>     IMG_5368.HEIC · 4032×3024 · 1.9 MB\n<span class="c">taken</span>    2025-08-15 11:52:05 +05:30\n<span class="c">place</span>    Gokarna, Karnataka, India' },
+      { t: "Hash", s: "built", h: "Give it a permanent ID",
+        p: "The ID comes from the file's contents (SHA-256), so the same photo gets the same ID on any device. Duplicates merge automatically.",
+        term: '<span class="c">sha256</span>    → base32 → first 26 chars\n<span class="c">photo_id</span>  <span class="k">XMWNZRKFSGXTWYPDPCNRBSSBM4</span>\n<span class="c">folder</span>    2025/2025-08   <span class="c">(from the capture date)</span>' },
+      { t: "Compress", s: "built", h: "Make the small copy",
+        p: "macOS sips resizes the photo to 1600px and saves a JPEG. The EXIF data travels with it, so later steps never need the original.",
+        term: '<span class="c">$</span> sips -Z 1600 -s format jpeg -s formatOptions 80 …\n<span class="c">size</span>         4032×3024 → <span class="g">1600×1200</span>\n<span class="c">camera</span>       Apple iPhone 15 <span class="g">✓ kept</span>\n<span class="c">taken</span>        2025:08:15 11:52:05 +05:30 <span class="g">✓ kept</span>\n<span class="c">gps</span>          14.5°N 74.3°E (rounded for the demo) <span class="g">✓ kept</span>\n<span class="c">orientation</span>  6 (rotate 90°) <span class="g">✓ kept</span>',
+        sizes: [["Original", 1994782, "1.9 MB", true], ["Compressed", 447488, "437 KB"]] },
+      { t: "Sidecar", s: "built", h: "Save what isn't in the file",
+        p: "Apple keeps people, albums, keywords and place names in its own database. They're written to a JSON sidecar next to the copy.",
+        term: '<span class="c">meta/2025/2025-08/XMWNZRKFSGXTWYPDPCNRBSSBM4.json</span>\n{\n  "photo_id": "XMWNZRKFSGXTWYPDPCNRBSSBM4",\n  "media_type": "photo",\n  "taken_at": "2025-08-15T11:52:05.500000+05:30",\n  "apple": {\n    "place": { "name": "Gokarna, Karnataka",\n               "country_code": "IN" },\n    "persons": [], "albums": [], "keywords": []\n  }\n}' },
+      { t: "Upload", s: "built", h: "Move the original to S3",
+        p: "The original goes to Deep Archive with a SHA-256 checksum that S3 verifies. The copy and sidecar go to standard storage so they stay instantly readable.",
+        term: '<span class="k">raw/</span>2025/2025-08/XMWN…BM4.heic         <span class="c">DEEP_ARCHIVE</span>\n<span class="k">compressed/</span>2025/2025-08/XMWN…BM4.jpg   <span class="c">STANDARD → IA</span>\n<span class="k">meta/</span>2025/2025-08/XMWN…BM4.json       <span class="c">STANDARD</span>\n\n<span class="g">✓ verified</span>  size + sha256 · added to "Archived to S3" album' },
+      { t: "Catalog", s: "next", h: "Add it to the SQLite catalog",
+        p: "The archive run records a media.upsert operation. Applying it adds a row to the catalog and to the full-text index, so a search for “gokarna” finds it.",
+        term: '<span class="c">op</span>   media.upsert  <span class="c">hlc</span> 1791710525500-0000-mac01\n<span class="c">row</span>  media(photo_id=XMWN…BM4, taken_at=2025-08-15,\n     place_city=Gokarna, camera_model=iPhone 15, …)\n\n<span class="c">sqlite></span> SELECT photo_id FROM media_fts\n        WHERE media_fts MATCH <span class="k">\'gokarna\'</span>;\n<span class="g">XMWNZRKFSGXTWYPDPCNRBSSBM4</span>' },
+      { t: "Sync", s: "next", h: "Every device sees it",
+        p: "The Mac pushes its new operations to S3. The iPhone and Android phone pull them through the Mac's API and apply the same rules, so the photo shows up in every library.",
+        term: '<span class="c">push</span>  sync/ops/mac01/1791710525500-0000.jsonl.gz  <span class="g">If-None-Match ✓</span>\n<span class="c">pull</span>  iphone  ← 1 op   <span class="g">applied</span>\n<span class="c">pull</span>  pixel   ← 1 op   <span class="g">applied</span>\n<span class="c">verify</span> mac01 = iphone = pixel  <span class="g">converged</span>' },
+    ],
+    video: [
+      { t: "Pick", s: "built", h: "Pick what to archive",
+        p: "Videos are archived alongside photos. Use --no-videos to skip them.",
+        term: '<span class="c">$</span> uv run photoctl archive <span class="k">--selected</span>\n<span class="c">1 items matched (0 photos, 1 videos) · 1 to process</span>\n\n<span class="c">source</span>   applephotos:72CE…86D0\n<span class="c">file</span>     IMG_1520.MOV · HEVC 1920×1080 · 18 s · 28 MB\n<span class="c">taken</span>    2025-01-17 10:31:58 +05:30' },
+      { t: "Hash", s: "built", h: "Give it a permanent ID",
+        p: "Same rule as photos: the ID comes from the file's bytes.",
+        term: '<span class="c">photo_id</span>  <span class="k">YOJO2KPLBCRHQEOJOWB56CQJB6</span>\n<span class="c">folder</span>    2025/2025-01' },
+      { t: "Compress", s: "built", h: "Make the small copy and a poster",
+        p: "ffmpeg makes a 720p H.264 MP4 and copies all of Apple's QuickTime tags. A 1600px poster frame is saved for image processing later.",
+        term: '<span class="c">$</span> ffmpeg … -vf scale=720 -crf 28 -map_metadata 0 …\n<span class="c">video</span>     1920×1080 HEVC → <span class="g">720×1280 H.264</span>, 18 s\n<span class="c">created</span>   2025-01-17T10:31:58+0530 <span class="g">✓ kept</span>\n<span class="c">location</span>  +28.5+077.1 (rounded for the demo) <span class="g">✓ kept</span>\n<span class="c">camera</span>    Apple iPhone 15 <span class="g">✓ kept</span>\n<span class="c">poster</span>    900×1600 JPEG at 1 s · 138 KB',
+        sizes: [["Original", 29167449, "28 MB", true], ["MP4", 2243584, "2.1 MB"], ["Poster", 141123, "138 KB"]] },
+      { t: "Sidecar", s: "built", h: "Save what isn't in the file",
+        p: "The same JSON sidecar, marked as a video, with keys for the MP4 and the poster.",
+        term: '{\n  "photo_id": "YOJO2KPLBCRHQEOJOWB56CQJB6",\n  "media_type": "video",\n  "keys": {\n    "raw": "raw/2025/2025-01/YOJO…JB6.mov",\n    "compressed": "compressed/2025/2025-01/YOJO…JB6.mp4",\n    "poster": "compressed/2025/2025-01/YOJO…JB6.jpg"\n  }\n}' },
+      { t: "Upload", s: "built", h: "Move the original to S3",
+        p: "Same storage rules as photos. Large files upload in 16 MB parts.",
+        term: '<span class="k">raw/</span>…/YOJO…JB6.mov          <span class="c">29.2 MB  DEEP_ARCHIVE</span>\n<span class="k">compressed/</span>…/YOJO…JB6.mp4   <span class="c">2.2 MB   video/mp4</span>\n<span class="k">compressed/</span>…/YOJO…JB6.jpg   <span class="c">141 KB   image/jpeg</span>\n<span class="k">meta/</span>…/YOJO…JB6.json        <span class="c">7.7 KB</span>' },
+      { t: "Catalog", s: "next", h: "Add it to the SQLite catalog",
+        p: "One row with media_type = video, its duration and its poster key, so the grid can show a thumbnail and a play badge.",
+        term: '<span class="c">row</span>  media(photo_id=YOJO…JB6, media_type=video,\n     duration_s=18.07, poster_key=compressed/…/YOJO…JB6.jpg)' },
+      { t: "Sync", s: "next", h: "Every device sees it",
+        p: "Phones stream the 720p MP4 through a presigned link that expires within 15 minutes.",
+        term: '<span class="c">GET</span> /api/media/YOJO…JB6/compressed\n<span class="c">→ 302</span> presigned S3 URL, expires in 15 min' },
+    ],
+  };
+  let mode = "photo", step = 0, playing = null;
+  function renderFlow() {
+    const f = flows[mode];
+    $("#steps").innerHTML = f.map((s, i) =>
+      `<li><button type="button" data-i="${i}" class="${i < step ? "done" : ""}" ${i === step ? 'aria-current="step"' : ""}>
+        <span class="n">${String(i + 1).padStart(2, "0")} · ${s.s === "built" ? "runs today" : "next"}</span><span class="t">${s.t}</span></button></li>`).join("");
+    const s = f[step];
+    const max = s.sizes ? Math.max(...s.sizes.map((x) => x[1])) : 0;
+    const sizes = s.sizes ? `<div class="sizebar">${s.sizes.map(([n, b, l, o]) =>
+      `<div><span>${n}</span><span class="bar ${o ? "orig" : ""}" style="width:${Math.max(1.5, (b / max) * 100)}%"></span><b>${l}</b></div>`).join("")}</div>` : "";
+    $("#pdetail").innerHTML = `<div><h3>${esc(s.h)} <span class="chip ${s.s}">${s.s === "built" ? "Built" : "Next · M1–M3"}</span></h3><p>${esc(s.p)}</p>${sizes}</div><div class="term">${s.term}</div>`;
+    $("#p-prev").disabled = step === 0;
+    $("#p-next").disabled = step === f.length - 1;
+  }
+  $("#steps").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { stopPlay(); step = +b.dataset.i; renderFlow(); } });
+  $("#p-next").onclick = () => { stopPlay(); step = Math.min(step + 1, flows[mode].length - 1); renderFlow(); };
+  $("#p-prev").onclick = () => { stopPlay(); step = Math.max(step - 1, 0); renderFlow(); };
+  function stopPlay() { if (playing) { clearInterval(playing); playing = null; $("#p-play").textContent = "Play all"; } }
+  $("#p-play").onclick = () => {
+    if (playing) return stopPlay();
+    step = 0; renderFlow(); $("#p-play").textContent = "Pause";
+    playing = setInterval(() => { if (step >= flows[mode].length - 1) return stopPlay(); step++; renderFlow(); }, 2200);
+  };
+  function setMode(m) { stopPlay(); mode = m; step = 0; $("#m-photo").setAttribute("aria-pressed", m === "photo"); $("#m-video").setAttribute("aria-pressed", m === "video"); renderFlow(); }
+  $("#m-photo").onclick = () => setMode("photo");
+  $("#m-video").onclick = () => setMode("video");
+  renderFlow();
+
+  /* ---------- Phone demo (example data) ---------- */
+  const DEV = { mac: { n: "My MacBook", s: "Mac", p: "macOS" }, iphone: { n: "My iPhone", s: "iPhone", p: "iOS" }, pixel: { n: "Pixel 8", s: "Pixel", p: "Android" } };
+  const lib = [
+    { id: "XMWNZRKFSGXTWYPDPCNRBSSBM4", t: "Sunset at Kudle beach", d: "2025-08-15", pl: "Gokarna, Karnataka", tags: ["beach", "sea", "sunset"], src: ["mac"], g: ["#f6b56a", "#c8553d", "#3a2c4e"], cam: "iPhone 15", sz: "437 KB" },
+    { id: "YOJO2KPLBCRHQEOJOWB56CQJB6", t: "Evening walk", d: "2025-01-17", pl: "Gurugram, Haryana", tags: ["street", "evening"], src: ["mac"], g: ["#5a6f8f", "#2b3550", "#141a2a"], v: "0:18", cam: "iPhone 15", sz: "2.1 MB" },
+    { id: "K2QF7LMZ4XHN3TBP6RWCA5VDYE", t: "Yahvi's birthday cake", d: "2024-12-25", pl: "Bengaluru, Karnataka", tags: ["birthday", "cake", "family"], people: ["Yahvi"], src: ["iphone"], g: ["#f7d9a8", "#e58a8a", "#9b4d6b"], cam: "iPhone 15", sz: "402 KB" },
+    { id: "P7HD3NWQ2ZK5MRC4TFXLB6YGAE", t: "Boat on Lake Pichola", d: "2024-11-02", pl: "Udaipur, Rajasthan", tags: ["lake", "boat", "water"], src: ["pixel", "mac"], g: ["#9fd3e6", "#3f88a8", "#1d3d55"], cam: "Pixel 8", sz: "388 KB" },
+    { id: "M4TB8QXZ2HWN6RKP3DFCL5VYJA", t: "Diwali diyas on the balcony", d: "2024-10-31", pl: "New Delhi", tags: ["diwali", "lights", "festival"], src: ["iphone"], g: ["#ffcf6b", "#d0661f", "#2a1308"], cam: "iPhone 15", sz: "355 KB" },
+    { id: "R3NC6WLQ8TZH2MXK5BPFD7AYVG", t: "Monsoon from the window", d: "2024-07-20", pl: "Mumbai, Maharashtra", tags: ["rain", "monsoon", "window"], src: ["pixel"], g: ["#a7b8bf", "#52707b", "#22343b"], v: "0:42", cam: "Pixel 8", sz: "5.8 MB" },
+    { id: "T6LH2QPZ9XWC4NKB7MRFD3AYEV", t: "Tea gardens", d: "2024-06-09", pl: "Munnar, Kerala", tags: ["hills", "tea", "green"], src: ["pixel"], g: ["#cfe59a", "#5f9a4a", "#1f4027"], cam: "Pixel 8", sz: "421 KB" },
+    { id: "W8QB3MZK6TNH2XRC5PLFD4AYJE", t: "First day of school", d: "2024-06-03", pl: "Bengaluru, Karnataka", tags: ["school", "family"], people: ["Yahvi"], src: ["iphone"], g: ["#f2e4b4", "#7ba3c9", "#2f4b6e"], cam: "iPhone 15", sz: "396 KB" },
+    { id: "B5ZK2HQW8NTC6MXR3PLFD7AYGV", t: "Yahvi at the beach", d: "2023-12-28", pl: "Palolem, Goa", tags: ["beach", "sea", "family"], people: ["Yahvi"], src: ["iphone", "pixel"], g: ["#ffe1a8", "#4bb3c8", "#16607a"], cam: "iPhone 14", sz: "412 KB" },
+    { id: "C9NH4QTZ2WKM6XRB3PLFD5AYJE", t: "Marine Drive at night", d: "2023-03-04", pl: "Mumbai, Maharashtra", tags: ["city", "night", "sea"], src: ["iphone"], g: ["#f0c060", "#3a3f78", "#0d0f24"], cam: "iPhone 14", sz: "377 KB" },
+    { id: "D2QZ7HNW4TKC8MXR5PLFB3AYGV", t: "Snow in Gulmarg", d: "2023-01-14", pl: "Gulmarg, Kashmir", tags: ["snow", "mountains", "winter"], src: ["mac"], g: ["#ffffff", "#b7cde0", "#5b7590"], cam: "Canon EOS R6", sz: "445 KB" },
+    { id: "F4HN8QWZ2TKC6MXR3PLB7DAYJE", t: "Hampi boulders", d: "2022-12-10", pl: "Hampi, Karnataka", tags: ["ruins", "heritage", "rocks"], src: ["mac"], g: ["#f3c58b", "#b06a3a", "#4b2a1a"], cam: "Canon EOS R6", sz: "430 KB" },
+  ];
+  const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const app = { platform: "ios", tab: "library", q: "", type: "all", offline: false, cats: { library: true, mac: false, iphone: false, pixel: false }, open: null,
+    run: null, runSecond: false, uploads: null };
+  const fmtDate = (d) => { const [y, m, dd] = d.split("-"); return `${+dd} ${MONTHS[+m - 1].slice(0, 3)} ${y}`; };
+  function visibleItems() {
+    let items = lib;
+    if (app.offline) {
+      if (!app.cats.library) {
+        const on = Object.keys(DEV).filter((k) => app.cats[k]);
+        items = items.filter((it) => it.src.some((s) => on.includes(s)));
+      }
+    }
+    if (app.type !== "all") items = items.filter((it) => (app.type === "video") === !!it.v);
+    const q = app.q.trim().toLowerCase();
+    if (q) {
+      const words = q.split(/\s+/);
+      items = items.filter((it) => {
+        const [y, m] = it.d.split("-");
+        const hay = [it.t, it.pl, ...(it.tags || []), ...(it.people || []), y, MONTHS[+m - 1], it.v ? "video" : "photo", ...it.src.map((s) => DEV[s].s + " " + DEV[s].p)].join(" ").toLowerCase();
+        return words.every((w) => hay.includes(w));
+      });
+    }
+    return items;
+  }
+  const grad = (g) => `background:linear-gradient(155deg,${g[0]},${g[1]} 55%,${g[2]})`;
+  const connLine = () => app.offline
+    ? `<div class="conn off"><i></i>Offline · on-device catalog from 10:05</div>`
+    : `<div class="conn"><i></i>Online via My MacBook · tailnet</div>`;
+
+  function renderLibrary() {
+    const items = visibleItems();
+    const groups = [];
+    items.forEach((it) => { const k = it.d.slice(0, 4); let gp = groups.find((x) => x.k === k); if (!gp) groups.push(gp = { k, items: [] }); gp.items.push(it); });
+    const body = groups.length ? groups.map((gp) => {
+      return `<p class="month">${gp.k} · ${gp.items.length} item${gp.items.length === 1 ? "" : "s"}</p><div class="grid3">${gp.items.map((it) =>
+        `<button class="tile" data-id="${it.id}" style="${grad(it.g)}" aria-label="${esc(it.t)}">
+          ${app.offline || it.src.length > 1 ? `<span class="src">${it.src.map((s) => `<span>${DEV[s].s}</span>`).join("")}</span>` : ""}
+          ${it.v ? `<span class="dur">▶ ${it.v}</span>` : ""}</button>`).join("")}</div>`;
+    }).join("") : `<p class="empty">No matches. Try “beach”, “Yahvi”, “2024”, “video” or “Pixel”.</p>`;
+    return `<div class="app-head">${connLine()}
+      <label class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Search beach, Yahvi, December…" value="${esc(app.q)}" aria-label="Search photos"></label>
+      <div class="fchips">${[["all", "All"], ["photo", "Photos"], ["video", "Videos"]].map(([k, l]) => `<button type="button" data-type="${k}" aria-pressed="${app.type === k}">${l}</button>`).join("")}
+        ${["beach", "Yahvi", "2024", "Pixel"].map((s) => `<button type="button" data-q="${s}" aria-pressed="false">${s}</button>`).join("")}</div>
+      <p class="small">${items.length} of ${lib.length} items${app.offline ? " · searched on this phone" : ""}</p></div>
+      <div class="app-body">${body}</div>`;
+  }
+  function renderViewer(it) {
+    return `<div class="viewer"><div class="ph" style="${grad(it.g)}"><button class="back" type="button" id="vback">‹ Library</button>${it.v ? `<span class="dur" style="position:absolute;right:10px;bottom:10px;font:600 .7rem var(--mono);color:#fff;background:rgb(0 0 0/.45);padding:2px 6px;border-radius:4px">▶ ${it.v}</span>` : ""}</div>
+      <div class="meta"><h4 style="margin:0;font:600 1rem var(--display)">${esc(it.t)}</h4>
+      <dl><dt>Taken</dt><dd>${fmtDate(it.d)}</dd><dt>Place</dt><dd>${esc(it.pl)}</dd><dt>Camera</dt><dd>${esc(it.cam)}</dd>
+      ${it.people ? `<dt>People</dt><dd>${it.people.join(", ")}</dd>` : ""}<dt>Tags</dt><dd>${it.tags.join(", ")}</dd>
+      <dt>From</dt><dd>${it.src.map((s) => DEV[s].n).join(" · ")}</dd>
+      <dt>ID</dt><dd class="mono" style="font-size:.7rem">${it.id}</dd></dl>
+      <div class="acts"><button class="pri" type="button" data-act="dl">Download ${it.v ? "MP4" : "JPEG"} (${it.sz})</button>
+      <button type="button" data-act="orig">Request original (ready in about 12 h)</button></div>
+      <p class="small" id="vmsg"></p></div></div>`;
+  }
+  function renderUpload() {
+    const r = app.run;
+    const pct = r ? Math.round((r.done / r.total) * 100) : 0;
+    const runCard = `<div class="pcard"><h4>Archive from Apple Photos on My MacBook</h4>
+      <p>Runs on the Mac with the same code as the CLI. Only one run at a time.</p>
+      <select id="sel" aria-label="What to archive" ${r && !r.finished ? "disabled" : ""}>
+        <option>Album: Goa 2024</option><option>Taken in 2024</option><option>What's selected on the Mac</option><option>Everything not yet archived</option></select>
+      <label><input type="checkbox" id="dry"> Dry run (count only, upload nothing)</label>
+      ${r ? `<div class="prog"><span style="width:${pct}%"></span></div>
+        <p class="small">${r.finished ? (r.cancelled ? "Cancelled after" : "Finished:") : "Running:"} ${r.done} of ${r.total} done · ${r.failed} failed · ${(r.done * 4.6).toFixed(0)} MB uploaded</p>` : ""}
+      ${r && !r.finished ? `<button type="button" class="full" id="cancel">Cancel after the current item</button>`
+        : `<button type="button" class="pri" id="start">Start archive</button>`}
+      ${r && !r.finished ? `<button type="button" class="full" id="second">Open Uploads on another phone</button>` : ""}
+      ${app.runSecond && r && !r.finished ? `<p class="small" style="color:var(--accent)">Other phone: “Already running on My MacBook (started 10:42)”. It shows the same live progress instead of starting a second run.</p>` : ""}</div>`;
+    const u = app.uploads;
+    const plat = app.platform === "ios";
+    const upCard = `<div class="pcard"><h4>Upload from this phone</h4>
+      <p>Opens the ${plat ? "iOS" : "Android"} photo picker. Large files upload in 8 MB chunks and resume after a dropped connection.</p>
+      ${u ? u.map((f) => `<div><p class="small" style="color:var(--ink)">${f.n} · ${f.size}</p><div class="prog"><span style="width:${f.p}%"></span></div>
+        ${f.warn && f.p >= 100 ? `<p class="warnline">${plat ? "Location removed by the photo picker. Turn on Options → Location next time." : "GPS removed by the Android photo picker."} Marked “metadata incomplete”.</p>` : ""}</div>`).join("")
+        : `<button type="button" class="pri" id="pick">Choose photos and videos</button>`}</div>`;
+    return `<div class="app-head">${connLine()}<h4 style="margin:4px 0 0;font:600 1.1rem var(--display)">Uploads</h4></div><div class="app-body">${runCard}${upCard}</div>`;
+  }
+  function renderCatalogs() {
+    const rows = [["library", "Library (all devices, merged)", "12 items · 1.2 MB · updated 2 min ago"],
+      ["mac", "My MacBook · macOS", "4 items from this Mac · 2 min ago"],
+      ["iphone", "My iPhone · iOS", "5 items from this phone · 1 h ago"],
+      ["pixel", "Pixel 8 · Android", "4 items from this phone · 3 h ago"]];
+    return `<div class="app-head">${connLine()}<h4 style="margin:4px 0 0;font:600 1.1rem var(--display)">Catalogs</h4></div><div class="app-body">
+      <div class="pcard"><div class="catrow"><b>Use on this device</b><span>Search from the SQLite file stored on this phone</span><input class="sw" type="checkbox" id="offline" ${app.offline ? "checked" : ""} aria-label="Use on this device"></div>
+        ${plat2()}</div>
+      <div class="pcard"><h4>Device catalogs</h4><p>Each device publishes its own SQLite file. Turn on the ones to search together.</p>
+        ${rows.map(([k, n, d]) => `<div class="catrow"><b>${n}</b><span>${d}</span><input class="sw" type="checkbox" data-cat="${k}" ${app.cats[k] ? "checked" : ""} ${app.offline ? "" : "disabled"} aria-label="${esc(n)}"></div>`).join("")}
+        <button type="button" class="full" id="dlall">Download all catalogs (.zip)</button><p class="small" id="dlmsg"></p></div></div>`;
+  }
+  function plat2() {
+    return app.platform === "ios"
+      ? `<p class="small">On iPhone, install to the Home Screen first. Safari can clear stored data from sites that aren't installed after 7 days without use.</p>`
+      : `<p class="small">On Android, installed apps keep their data. Storage used: 46 MB of 1.8 GB available.</p>`;
+  }
+  function renderSyncTab() {
+    return `<div class="app-head">${connLine()}<h4 style="margin:4px 0 0;font:600 1.1rem var(--display)">Sync &amp; devices</h4></div><div class="app-body">
+      <div class="pcard"><h4>${app.offline ? "2 edits waiting" : "Up to date"}</h4><p>${app.offline ? "They'll be sent when the Mac is reachable." : "Last pull 10:41 · last push 10:41 · 0 pending edits"}</p>
+      <button type="button" class="pri" id="syncnow" ${app.offline ? "disabled" : ""}>Sync now</button><p class="small" id="syncmsg"></p></div>
+      <div class="pcard"><h4>Camera roll backup</h4><p>Backed up 1,284 of 1,290 · 6 waiting for Wi-Fi</p><div class="prog"><span style="width:99.5%"></span></div>
+      <p class="small">Runs on every sync and overnight while charging. Photos already archived from the Mac are skipped.</p></div>
+      <div class="pcard"><h4>Mac databases</h4><p>Last backup to S3: 3 h ago · catalog 24 MB · state 3 MB</p><p class="small" style="color:var(--ok)">30 daily + 12 monthly backups kept</p></div>
+      <div class="pcard"><h4>Devices</h4>${Object.entries(DEV).map(([k, d]) => `<div class="catrow"><b>${d.n}</b><span>${d.p} · ${k === "mac" ? "seen just now" : k === "iphone" ? "this device" : "seen 3 h ago"}</span></div>`).join("")}
+      <p class="small" style="color:var(--ok)">All devices converged · checksum 9f3c…a71e</p></div></div>`;
+  }
+  const explain = {
+    library: ["Library", "built-next", "Search runs against the catalog. Online, the Mac's server answers. Offline, the same SQL runs on the phone in SQLite WebAssembly, so the results match.",
+      ["Try “beach”, “Yahvi”, “December 2024”, “video” or “Pixel”", "Tap a tile to open the viewer with its metadata, download and restore", "Tiles found on more than one device show a badge for each"]],
+    upload: ["Uploads", "", "From a phone you can start an archive run on the Mac, or upload straight from the phone's camera roll.",
+      ["Start a run, then open Uploads on another phone: it attaches to the same run instead of starting a second", "Cancel stops after the current item; the next run resumes", "Browser uploads can lose GPS, and the app flags that so nothing is silently incomplete"]],
+    catalogs: ["Catalogs", "", "Turn on “Use on this device” to search offline. Then pick device catalogs: for example only iPhone and Pixel to search phone photos from both platforms together.",
+      ["Turn on offline mode, switch off “Library”, and turn on iPhone + Pixel", "“Yahvi at the beach” exists on both phones and shows once with two badges", "Download all catalogs to keep a copy of every device's SQLite"]],
+    sync: ["Sync & devices", "", "Shows whether this device is up to date, camera-roll backup progress, the Mac's last database backup, and every known device.",
+      ["Each sync also backs up new camera-roll photos (native app, M12)", "The Mac's SQLite databases are backed up to S3 after every run and daily (M3b)", "Go offline in Catalogs to see edits queue up", "The checksum proves every device has the same library"]],
+  };
+  function renderExplain() {
+    const [h, , p, li] = explain[app.tab];
+    $("#explain").innerHTML = `<div class="note"><h3>${h} <span class="chip planned">Mockup · M6–M10</span></h3><p>${p}</p><ul>${li.map((x) => `<li>${x}</li>`).join("")}</ul></div>
+      <div class="note"><h3>${app.platform === "ios" ? "On iPhone" : "On Android"}</h3>
+      <p>${app.platform === "ios"
+        ? "Open https://my-macbook.tailnet.ts.net in Safari, then Share → Add to Home Screen. The app opens full screen with its own icon and keeps its offline catalog."
+        : "Open https://my-macbook.tailnet.ts.net in Chrome, then Install app. Same website, same features, Material-style navigation."}</p></div>
+      <div class="note"><h3>What's behind it</h3><ul><li>Search · <code>GET /api/search</code> or <code>queries/search.sql</code> on the phone</li><li>Trigger · <code>POST /api/uploads/apple-photos</code> + live progress (SSE)</li><li>Phone upload · tus resumable <code>/api/uploads/files</code></li><li>Catalogs · <code>GET /api/catalogs/{device}</code></li></ul></div>`;
+  }
+  function renderPhone() {
+    const ph = $("#phone");
+    ph.classList.toggle("android", app.platform === "android");
+    $("#clock").textContent = app.platform === "ios" ? "9:41" : "10:42";
+    $("#sbar-r").textContent = app.offline ? "✈ Airplane" : app.platform === "ios" ? "5G ▮▮▮" : "▼◢ 82%";
+    const scr = $("#screen");
+    const keepFocus = document.activeElement && document.activeElement.id === "q";
+    let html = app.tab === "library" ? renderLibrary() : app.tab === "upload" ? renderUpload() : app.tab === "catalogs" ? renderCatalogs() : renderSyncTab();
+    if (app.tab === "library" && app.open) html += renderViewer(lib.find((x) => x.id === app.open));
+    scr.innerHTML = `<div style="flex:1;display:flex;flex-direction:column;min-height:0;position:relative">${html}</div>`;
+    document.querySelectorAll(".tabbar button").forEach((b) => b.setAttribute("aria-selected", b.dataset.tab === app.tab));
+    if (keepFocus) { const q = $("#q"); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }
+    renderExplain();
+  }
+  $(".tabbar").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; app.tab = b.dataset.tab; app.open = null; renderPhone(); });
+  $("#pl-ios").onclick = () => { app.platform = "ios"; $("#pl-ios").setAttribute("aria-pressed", true); $("#pl-android").setAttribute("aria-pressed", false); renderPhone(); };
+  $("#pl-android").onclick = () => { app.platform = "android"; $("#pl-android").setAttribute("aria-pressed", true); $("#pl-ios").setAttribute("aria-pressed", false); renderPhone(); };
+  $("#screen").addEventListener("input", (e) => { if (e.target.id === "q") { app.q = e.target.value; renderPhone(); } });
+  $("#screen").addEventListener("change", (e) => {
+    if (e.target.id === "offline") { app.offline = e.target.checked; if (!app.offline) app.cats = { library: true, mac: false, iphone: false, pixel: false }; renderPhone(); }
+    if (e.target.dataset.cat) { app.cats[e.target.dataset.cat] = e.target.checked; renderPhone(); }
+  });
+  $("#screen").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.classList.contains("tile")) { app.open = b.dataset.id; renderPhone(); return; }
+    if (b.id === "vback") { app.open = null; renderPhone(); return; }
+    if (b.dataset.type) { app.type = b.dataset.type; renderPhone(); return; }
+    if (b.dataset.q) { app.q = b.dataset.q; renderPhone(); return; }
+    if (b.dataset.act === "dl") { $("#vmsg").textContent = app.offline ? "Offline: compressed copies need the Mac, unless saved for offline." : "Downloading through a presigned link (expires in 15 min)."; return; }
+    if (b.dataset.act === "orig") { $("#vmsg").textContent = app.offline ? "Needs the Mac. The request will be sent when you're back online." : "Restore requested from Deep Archive. You'll get a notification when it's ready, in about 12 hours."; return; }
+    if (b.id === "start") {
+      if ($("#dry").checked) {
+        app.run = null; renderPhone();
+        $(".pcard p").textContent = "Dry run: 48 items would be archived (2.1 GB). Nothing was uploaded.";
+        return;
+      }
+      app.run = { total: 48, done: 0, failed: 0, finished: false };
+      app.runSecond = false; renderPhone();
+      const tick = setInterval(() => {
+        const r = app.run; if (!r || r.finished) return clearInterval(tick);
+        r.done = Math.min(r.total, r.done + 3); if (r.done === 27) r.failed = 1;
+        if (r.done >= r.total) r.finished = true;
+        if (app.tab === "upload") renderPhone();
+      }, 450);
+      return;
+    }
+    if (b.id === "cancel") { app.run.finished = true; app.run.cancelled = true; renderPhone(); return; }
+    if (b.id === "second") { app.runSecond = true; renderPhone(); return; }
+    if (b.id === "pick") {
+      app.uploads = [{ n: "IMG_2041.HEIC", size: "3.1 MB", p: 0, step: 50 }, { n: "IMG_2042.HEIC", size: "2.8 MB", p: 0, step: 40, warn: true }, { n: "VID_0412.MOV", size: "142 MB", p: 0, step: 6 }];
+      renderPhone();
+      const tick = setInterval(() => {
+        let all = true;
+        app.uploads.forEach((f) => { f.p = Math.min(100, f.p + f.step); if (f.p < 100) all = false; });
+        if (app.tab === "upload") renderPhone();
+        if (all) clearInterval(tick);
+      }, 400);
+      return;
+    }
+    if (b.id === "dlall") { $("#dlmsg").textContent = "Downloaded 3 device catalogs + library (1.9 MB) into this phone's storage."; return; }
+    if (b.id === "syncnow") { $("#syncmsg").textContent = "Pushed 0 · pulled 3 ops from Pixel 8 · converged."; return; }
+  });
+  renderPhone();
+
+  /* ---------- Sync simulator ---------- */
+  const SIM_DEVS = { iphone: "My iPhone", pixel: "Pixel 8" };
+  let sim;
+  function simReset(preset) {
+    sim = { T: 1791710400000, ops: [], server: new Set(), dev: {} };
+    for (const k of Object.keys(SIM_DEVS)) sim.dev[k] = { seen: new Set(), online: true, last: [0, 0], titleDraft: "" };
+    if (preset !== "empty") {
+      addOp("iphone", { kind: "title", value: "Sunset at Kudle beach" });
+      addOp("iphone", { kind: "tagAdd", value: "beach" });
+      syncAll();
+    }
+  }
+  function hlc(dev) {
+    sim.T += 1000 + Math.floor(Math.random() * 400);
+    const d = sim.dev[dev];
+    d.last = sim.T > d.last[0] ? [sim.T, 0] : [d.last[0], d.last[1] + 1];
+    return `${String(d.last[0]).padStart(13, "0")}-${String(d.last[1]).padStart(4, "0")}-${dev}`;
+  }
+  function addOp(dev, op) {
+    const id = hlc(dev);
+    const full = { id, dev, ...op };
+    if (op.kind === "tagRemove") full.observed = sim.ops.filter((o) => sim.dev[dev].seen.has(o.id) && o.kind === "tagAdd" && o.value === op.value).map((o) => o.id);
+    sim.ops.push(full);
+    sim.dev[dev].seen.add(id);
+  }
+  function stateOf(dev) {
+    const seen = sim.ops.filter((o) => sim.dev[dev].seen.has(o.id)).sort((a, b) => (a.id < b.id ? -1 : 1));
+    let title = "", titleBy = "";
+    const adds = new Map(), removed = new Set();
+    for (const o of seen) {
+      if (o.kind === "title") { title = o.value; titleBy = o.dev; }
+      if (o.kind === "tagAdd") adds.set(o.id, o.value);
+      if (o.kind === "tagRemove") o.observed.forEach((x) => removed.add(x));
+    }
+    const tags = [...new Set([...adds].filter(([id]) => !removed.has(id)).map(([, v]) => v))].sort();
+    return { title, titleBy, tags };
+  }
+  function syncDev(dev) {
+    const d = sim.dev[dev]; if (!d.online) return;
+    d.seen.forEach((id) => sim.server.add(id));
+    sim.server.forEach((id) => d.seen.add(id));
+    const maxW = Math.max(...[...d.seen].map((id) => +id.slice(0, 13)), d.last[0]);
+    if (maxW > d.last[0]) d.last = [maxW, 0];
+  }
+  function syncAll() { Object.keys(sim.dev).forEach(syncDev); Object.keys(sim.dev).forEach(syncDev); }
+  const opText = (o) => o.kind === "title" ? `media.set title = “${esc(o.value)}”` : o.kind === "tagAdd" ? `tag.add “${esc(o.value)}”` : `tag.remove “${esc(o.value)}” (cancels ${o.observed.length} add${o.observed.length === 1 ? "" : "s"} it had seen)`;
+  function renderSim(explainText) {
+    $("#devices").innerHTML = Object.entries(SIM_DEVS).map(([k, name]) => {
+      const d = sim.dev[k], st = stateOf(k);
+      const pending = [...d.seen].filter((id) => !sim.server.has(id)).length;
+      return `<div class="dev"><div class="dev-head"><h3>${name}</h3>
+        <label class="online"><input class="sw" type="checkbox" data-online="${k}" ${d.online ? "checked" : ""} aria-label="${name} online"> ${d.online ? "Online" : "Offline"}</label></div>
+        <div class="state"><span class="small">This device sees</span><span class="ttl">${esc(st.title) || "(no title)"}</span><div class="tags">${st.tags.map((t) => `<span>${esc(t)}</span>`).join("")}</div>
+        <span class="small">${d.seen.size} ops known · ${pending} waiting to sync</span></div>
+        <div class="row"><input type="text" id="tt-${k}" placeholder="New title" value="${esc(d.titleDraft)}" aria-label="New title on ${name}"><button type="button" data-title="${k}">Set title</button></div>
+        <div class="row"><button type="button" data-add="${k}" data-tag="beach">+ beach</button><button type="button" data-rm="${k}" data-tag="beach">− beach</button><button type="button" data-add="${k}" data-tag="sunset">+ sunset</button><button type="button" data-sync="${k}" ${d.online ? "" : "disabled"}>Sync this device</button></div></div>`;
+    }).join("");
+    const a = stateOf("iphone"), b = stateOf("pixel");
+    const same = JSON.stringify([a.title, a.tags]) === JSON.stringify([b.title, b.tags]);
+    const allSynced = Object.values(sim.dev).every((d) => d.seen.size === sim.ops.length);
+    const v = $("#verdict");
+    v.className = "verdict " + (same && allSynced ? "yes" : "no");
+    v.textContent = same && allSynced ? `Converged: both devices show “${a.title}” with tags [${a.tags.join(", ")}].` : "Not converged yet: the devices have different operations. Sync both to merge.";
+    if (explainText !== undefined) $("#simexplain").textContent = explainText;
+    $("#oplog").innerHTML = [...sim.ops].sort((x, y) => (x.id < y.id ? -1 : 1)).map((o) =>
+      `<tr><td class="mono">${o.id}</td><td>${SIM_DEVS[o.dev]}</td><td>${opText(o)}</td><td>${sim.server.has(o.id) ? "✓" : "waiting"}</td></tr>`).join("");
+  }
+  $("#devices").addEventListener("input", (e) => { if (e.target.id && e.target.id.startsWith("tt-")) sim.dev[e.target.id.slice(3)].titleDraft = e.target.value; });
+  $("#devices").addEventListener("change", (e) => { const k = e.target.dataset.online; if (k) { sim.dev[k].online = e.target.checked; if (e.target.checked) syncDev(k); renderSim(); } });
+  $("#devices").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.title) { const k = b.dataset.title, v = sim.dev[k].titleDraft.trim(); if (!v) return; addOp(k, { kind: "title", value: v }); sim.dev[k].titleDraft = ""; syncDev(k); renderSim(); }
+    else if (b.dataset.add) { addOp(b.dataset.add, { kind: "tagAdd", value: b.dataset.tag }); syncDev(b.dataset.add); renderSim(); }
+    else if (b.dataset.rm) { addOp(b.dataset.rm, { kind: "tagRemove", value: b.dataset.tag }); syncDev(b.dataset.rm); renderSim(); }
+    else if (b.dataset.sync) { syncDev(b.dataset.sync); renderSim(); }
+  });
+  $("#syncall").onclick = () => { Object.values(sim.dev).forEach((d) => (d.online = true)); syncAll(); renderSim(); };
+  $("#simreset").onclick = () => { simReset(); renderSim("Both phones start with the same photo: title “Sunset at Kudle beach”, tag “beach”. Make edits on either side, turn a phone offline, then sync."); };
+  $("#sc1").onclick = () => {
+    simReset();
+    Object.values(sim.dev).forEach((d) => (d.online = false));
+    addOp("iphone", { kind: "title", value: "Kudle beach, Gokarna" });
+    addOp("pixel", { kind: "title", value: "Gokarna sunset 2025" });
+    renderSim("Both phones were offline and renamed the same photo. Each one sees its own title. Press “Sync both”: the edit with the later HLC wins on both devices, so they agree without asking you.");
+  };
+  $("#sc2").onclick = () => {
+    simReset();
+    Object.values(sim.dev).forEach((d) => (d.online = false));
+    addOp("pixel", { kind: "tagRemove", value: "beach" });
+    addOp("iphone", { kind: "tagAdd", value: "beach" });
+    renderSim("Offline, the Pixel removed “beach” while the iPhone added “beach” again. The Pixel's remove only cancels the add it had seen. After “Sync both”, the iPhone's new add survives, so the tag stays on both.");
+  };
+  simReset();
+  renderSim("Both phones start with the same photo: title “Sunset at Kudle beach”, tag “beach”. Make edits on either side, turn a phone offline, then sync. Or try a scenario above.");
+
+  /* ---------- Roadmap ---------- */
+  const road = [
+    ["M0", "Archive CLI", "Apple Photos → compress → S3, videos, Terraform bucket", "built"],
+    ["M1", "Catalog DB", "SQLite written during archive, thumbnails, full-text search", "next"],
+    ["M2", "Change log", "Clock-stamped operations, conflict rules, property tests", "next"],
+    ["M3", "S3 sync", "Push/pull, conditional-write locks, snapshots, verify", "next"],
+    ["M3b", "DB backup & recovery", "SQLite backups to S3, restore, recover a new Mac", "next"],
+    ["M4", "Query & fetch", "Shared SQL queries, multi-catalog search, restore originals", "next"],
+    ["M5", "API server", "FastAPI, Tailscale auth, op proxy for phones, catalog downloads", "next"],
+    ["M6", "Web UI", "Phone-first library, viewer, edits, people, sync screen", "planned"],
+    ["M7", "Uploads & triggers", "Start runs from the app, resumable uploads", "planned"],
+    ["M8", "iPhone & Android", "Tailscale access, installable web app, trigger and upload from phones", "planned"],
+    ["M9", "On-device mode", "SQLite in the browser, offline search and edits, thumbnail packs", "planned"],
+    ["M10", "Per-device catalogs", "Publish, download and search iOS + Android catalogs together", "planned"],
+    ["M11", "Multi-device test", "Mac + iPhone + Android end to end, recovery drill", "planned"],
+    ["M12", "Phone auto-backup", "Native iOS + Android app backs up the camera roll on every sync", "planned"],
+    ["M13", "Always-on", "Hosted API so phones can search and back up with the Mac off", "optional"],
+    ["M14", "Native extras", "Share target, native SQLite, push notifications", "optional"],
+  ];
+  const label = { built: "Built", next: "Next", planned: "Planned", optional: "Optional" };
+  $("#road").innerHTML = road.map(([m, t, d, s]) => `<div><span class="m">${m}</span><span><b>${t}</b><span class="d">${d}</span></span><span class="chip ${s}">${label[s]}</span></div>`).join("");
+})();
+</script>
+</body>
+</html>
