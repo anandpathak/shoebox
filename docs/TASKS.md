@@ -56,8 +56,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T2.2** Op model + JSON schema for every `kind` in §4 (including `device.register`); `op_id` generation; ops are written to `ops` + `outbox`. ✅ 2026-10-11
   *Done when:* schema validation rejects malformed ops. The schema is in `spec/ops.schema.json` so the TypeScript side can reuse it.
   *Note:* op_id is the op's HLC value (it already embeds the device id and never repeats). Canonical schema lives in the package; spec/ops.schema.json is a symlink.
-- [ ] **T2.3** `apply_ops(ops)`: idempotent and order-independent, with per-field LWW (`field_hlc`), OR-sets for tags/albums/people, tombstones, person merge resolution, FTS refresh.
+- [x] **T2.3** `apply_ops(ops)`: idempotent and order-independent, with per-field LWW (`field_hlc`), OR-sets for tags/albums/people, tombstones, person merge resolution, FTS refresh. ✅ 2026-10-11
   *Done when:* unit tests pass for every row of the §5 conflict table.
+  *Note:* Imports (Apple title/favorite) carry a lower priority than edits, so a later re-import never overrides a user edit. Ops for photos that haven't arrived yet wait in deferred_ops.
 - [ ] **T2.4** **Property test** (Hypothesis): 2–3 simulated devices (Mac + phones), random ops, random delivery interleavings → identical catalog checksum.
   *Done when:* 1,000 examples pass in CI.
 - [ ] **T2.5** Change `archive` (T1.5) to emit `media.upsert` / `media.source` / `device.register` ops instead of direct inserts.

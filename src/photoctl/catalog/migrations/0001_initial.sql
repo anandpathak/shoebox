@@ -1,5 +1,5 @@
--- Catalog schema v1 (LOCAL_APP_PLAN.md §3). Applied by catalog.migrate(); never edit in place —
--- add a new migration instead.
+-- Catalog schema v1 (LOCAL_APP_PLAN.md §3). Applied by catalog.migrate(); never edit a released
+-- migration — add a new numbered file instead.
 
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 

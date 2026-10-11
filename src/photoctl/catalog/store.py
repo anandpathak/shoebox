@@ -167,10 +167,11 @@ def refresh_fts(conn: sqlite3.Connection, photo_id: str) -> None:
     live = "add_op NOT IN (SELECT add_op FROM tombstones)"
     tags = [r[0] for r in conn.execute(f"SELECT DISTINCT tag FROM media_tags WHERE photo_id = ? AND {live}", (photo_id,))]
     albums = [r[0] for r in conn.execute(f"SELECT DISTINCT album FROM media_albums WHERE photo_id = ? AND {live}", (photo_id,))]
-    people = [r[0] for r in conn.execute(
-        f"SELECT DISTINCT p.name FROM media_people mp JOIN people p ON p.person_id = COALESCE("
-        f"(SELECT merged_into FROM people WHERE person_id = mp.person_id), mp.person_id) "
-        f"WHERE mp.photo_id = ? AND mp.{live} AND p.name IS NOT NULL", (photo_id,))]
+    survivors = {resolve_person(conn, r[0]) for r in conn.execute(
+        f"SELECT DISTINCT person_id FROM media_people WHERE photo_id = ? AND {live}", (photo_id,))}
+    people = sorted(filter(None, (
+        (conn.execute("SELECT name FROM people WHERE person_id = ?", (p,)).fetchone() or [None])[0]
+        for p in survivors)))
     place = " ".join(filter(None, (m["place_name"], m["place_locality"], m["place_city"], m["place_region"],
                                    m["place_country"])))
     conn.execute(
@@ -179,6 +180,18 @@ def refresh_fts(conn: sqlite3.Connection, photo_id: str) -> None:
         (photo_id, m["title"] or "", m["description"] or "", " ".join(tags), " ".join(people), place,
          m["orig_name"] or "", " ".join(albums)),
     )
+
+
+def resolve_person(conn: sqlite3.Connection, person: str, limit: int = 20) -> str:
+    """Follow merged_into links to the surviving person (a cycle resolves to its smallest id)."""
+    seen: list[str] = []
+    while person not in seen and len(seen) < limit:
+        seen.append(person)
+        row = conn.execute("SELECT merged_into FROM people WHERE person_id = ?", (person,)).fetchone()
+        if not row or not row[0]:
+            return person
+        person = row[0]
+    return min(seen)
 
 
 def stats(conn: sqlite3.Connection) -> dict:

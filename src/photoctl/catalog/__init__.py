@@ -8,11 +8,14 @@ from pathlib import Path
 
 from .. import paths
 
-SCHEMA_VERSION = 1
-
 
 def _migrations() -> dict[int, str]:
-    return {1: resources.files(__package__).joinpath("schema.sql").read_text()}
+    """migrations/NNNN_name.sql, applied in order. Never edit a released migration; add a new one."""
+    folder = resources.files(__package__).joinpath("migrations")
+    return {int(f.name[:4]): f.read_text() for f in folder.iterdir() if f.name.endswith(".sql")}
+
+
+SCHEMA_VERSION = max(_migrations())
 
 
 def open_catalog(path: Path | None = None) -> sqlite3.Connection:
