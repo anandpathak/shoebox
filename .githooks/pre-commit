@@ -31,4 +31,15 @@ if [ -n "$hits" ]; then
   fail=1
 fi
 
+# 4. Personal email addresses (common providers + this machine's git email).
+me=$(git config user.email | sed 's/[.[\*^$+?(){}|]/\\&/g')
+email_re='[A-Za-z0-9._%+-]+@(gmail|googlemail|yahoo|outlook|hotmail|live|icloud|me|proton|protonmail)\.[a-z.]+'
+[ -n "$me" ] && email_re="$email_re|$me"
+mails=$(git diff --cached -U0 --diff-filter=ACMR -- . ':(exclude).githooks/pre-commit' | grep -E '^\+' | grep -E -o "$email_re" | sort -u)
+if [ -n "$mails" ]; then
+  echo "pre-commit: personal email address in staged changes:" >&2
+  printf '  %s\n' $mails >&2
+  fail=1
+fi
+
 [ "$fail" -eq 0 ] || { echo "Commit blocked. Remove the items above (or unstage them) and try again." >&2; exit 1; }
