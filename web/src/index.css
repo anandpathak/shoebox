@@ -137,3 +137,12 @@ input[type="search"], input[type="text"], select { width: 100%; min-width: 0; bo
   .viewer { grid-template-rows: none; grid-template-columns: minmax(0, 1fr) 360px; overflow: hidden; }
   .viewer-info { overflow-y: auto; border-left: 1px solid var(--line); }
 }
+.title-input { font: 600 1.25rem var(--display) !important; border-color: transparent !important; background: transparent !important; padding-left: 0 !important; }
+.title-input:hover, .title-input:focus { border-color: var(--line) !important; padding-left: 10px !important; }
+.desc-input { width: 100%; border: 1px solid transparent; background: transparent; border-radius: 10px; padding: 6px 0; resize: vertical; color: var(--ink); }
+.desc-input:hover, .desc-input:focus { border-color: var(--line); padding: 6px 10px; }
+.tag { display: inline-flex; align-items: center; gap: 4px; }
+.tag button { border: 0; background: none; color: inherit; padding: 0 2px; font-size: 1rem; line-height: 1; }
+.tag.person { background: var(--sunk); color: var(--ink); }
+.tag-input { width: 120px !important; min-height: 30px !important; padding: 4px 10px !important; border-radius: 999px !important; font-size: .82rem; }
+.btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }

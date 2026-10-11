@@ -189,8 +189,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T6.5** Viewer: swipe navigation, image/video player, metadata panel with a map pin and source devices, download compressed, request original. ✅ 2026-10-11
   *Done when:* everything works for one photo and one video on desktop and in mobile emulation.
   *Note:* Map is an OpenStreetMap link (no embedded map: works offline and loads nothing third-party).
-- [ ] **T6.6** Editing: title, description, favourite, tags, hide/delete (tombstone) with optimistic UI.
+- [x] **T6.6** Editing: title, description, favourite, tags, hide/delete (tombstone) with optimistic UI. ✅ 2026-10-11
   *Done when:* an edit made on device A shows on device B after sync.
+  *Note:* Cross-device propagation of API edits is covered by tests/test_api_edit.py::test_api_edit_reaches_another_device; the UI e2e covers optimistic edits, persistence and remove/undo.
 - [ ] **T6.7** People screen: list, rename, merge.
   *Done when:* renaming updates every photo of that person.
 - [ ] **T6.8** Sync & devices screen, including the last database backup and a "Back up databases now" button.
