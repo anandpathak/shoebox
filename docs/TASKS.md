@@ -51,7 +51,7 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 
 ## M2 — Op log, HLC, deterministic apply (§4, §5)
 
-- [ ] **T2.1** HLC module: `now()`, `observe(remote_hlc)`, string format `wall-counter-device`; persisted in `meta.hlc_last`.
+- [x] **T2.1** HLC module: `now()`, `observe(remote_hlc)`, string format `wall-counter-device`; persisted in `meta.hlc_last`. ✅ 2026-10-11
   *Done when:* unit tests show it is monotonic under backward clock jumps and that ties are broken by `device_id`.
 - [ ] **T2.2** Op model + JSON schema for every `kind` in §4 (including `device.register`); `op_id` generation; ops are written to `ops` + `outbox`.
   *Done when:* schema validation rejects malformed ops. The schema is in `spec/ops.schema.json` so the TypeScript side can reuse it.
