@@ -97,3 +97,18 @@ def video_poster(src: Path, dest: Path, long_edge: int = 1600, at_seconds: float
         except RuntimeError:
             if seek == 0:
                 raise
+
+
+def make_thumb(src: Path, dest: Path, long_edge: int = 320, quality: int = 72) -> int:
+    """320px JPEG for grids, made from the compressed copy or video poster. EXIF is dropped
+    (thumbs are for display only) after baking in the orientation. Returns the byte size."""
+    from PIL import Image, ImageOps
+
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    tmp = dest.with_suffix(".tmp.jpg")
+    with Image.open(src) as im:
+        im = ImageOps.exif_transpose(im)
+        im.thumbnail((long_edge, long_edge), Image.Resampling.LANCZOS)
+        im.convert("RGB").save(tmp, "JPEG", quality=quality, optimize=True, progressive=True)
+    tmp.replace(dest)
+    return dest.stat().st_size

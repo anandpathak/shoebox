@@ -6,7 +6,7 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
-DEFAULT_DB = Path.home() / ".photoctl" / "state.sqlite"
+from . import paths
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS items (
@@ -27,9 +27,10 @@ CREATE INDEX IF NOT EXISTS items_sha ON items(sha256);
 
 
 class State:
-    def __init__(self, path: Path = DEFAULT_DB):
+    def __init__(self, path: Path | None = None):
+        path = Path(path) if path else paths.state_db()
         path.parent.mkdir(parents=True, exist_ok=True)
-        self.db = sqlite3.connect(path)
+        self.db = sqlite3.connect(path, timeout=10)
         self.db.row_factory = sqlite3.Row
         self.db.executescript(SCHEMA)
 

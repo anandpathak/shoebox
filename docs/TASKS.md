@@ -21,30 +21,30 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T0.5** Video support: 720p MP4 (ffmpeg, metadata kept) + poster frame ✅ 2026-10-11
 - [ ] **T0.6** First real run: `archive --selected` on ~20 photos + 2 videos → S3. Delete them from the "Archived to S3" album in Photos only after `verify` passes.
   *Done when:* `photoctl verify --sample 20` shows 0 bad, and the objects are visible in the S3 console.
-- [ ] **T0.7** Back up the Mac's `state.sqlite` to S3 now: `photoctl db backup` (SQLite online backup API → `integrity_check` → gzip → `backups/<hostname>/<timestamp>/state.sqlite.gz` + manifest with sha256) and `photoctl db restore`. Run it automatically at the end of every `archive`. (The folder name moves to `device_id` in T1.2.)
+- [x] **T0.7** Back up the Mac's databases to S3 now: `photoctl db backup` (SQLite online backup API → `integrity_check` → gzip → `backups/<device_id>/<timestamp>/` with `state.sqlite.gz`, `catalog.sqlite.gz`, `device.json` + manifest with sha256), `photoctl db list`, `photoctl db restore [--at] [--device]`. Runs automatically at the end of every `archive`. ✅ 2026-10-11
   *Done when:* deleting `~/.photoctl/state.sqlite`, then `photoctl db restore`, then re-running the same `archive`, uploads 0 bytes.
 
 ---
 
 ## M1 — Catalog DB built during archive (§3)
 
-- [ ] **T1.1** Add `photoctl/catalog/` with `schema.sql` (including the `devices` table), a migration runner (`meta.schema_version`), WAL + `busy_timeout`, and `open_catalog()`.
+- [x] **T1.1** Add `photoctl/catalog/` with `schema.sql` (including the `devices` table), a migration runner (`meta.schema_version`), WAL + `busy_timeout`, and `open_catalog()`. ✅ 2026-10-11
   *Done when:* `photoctl catalog init` creates `~/.photoctl/catalog.sqlite` with every table from §3; re-running is a no-op.
-- [ ] **T1.2** Device identity: generate a `device_id` (ULID) + name + platform on first run and store it in `~/.photoctl/device.json` + `meta`.
+- [x] **T1.2** Device identity: generate a `device_id` (ULID) + name + platform on first run and store it in `~/.photoctl/device.json` + `meta`. ✅ 2026-10-11
   *Done when:* the id is stable across runs and shown by `photoctl status`.
-- [ ] **T1.3** Thumbnails: 320px `thumb/<part>/<id>.jpg` for photos and video posters, saved locally and uploaded to S3 Standard. Backfill command for items already archived.
+- [x] **T1.3** Thumbnails: 320px `thumb/<part>/<id>.jpg` for photos and video posters, saved locally and uploaded to S3 Standard. Backfill command for items already archived. ✅ 2026-10-11
   *Done when:* every archived item has a thumb of roughly ≤ 40 KB.
-- [ ] **T1.4** Map the sidecar to catalog rows: `media`, `media_sources`, `media_tags` (Apple keywords + labels), `media_albums`, `people` + `media_people`, place fields, camera, duration.
+- [x] **T1.4** Map the sidecar to catalog rows: `media`, `media_sources`, `media_tags` (Apple keywords + labels), `media_albums`, `people` + `media_people`, place fields, camera, duration. ✅ 2026-10-11
   *Done when:* a unit test turns a fixture sidecar into the expected rows.
-- [ ] **T1.5** `archive` writes to the catalog after each verified upload (a direct insert until T2.5), including in `--local-only` mode.
+- [x] **T1.5** `archive` writes to the catalog after each verified upload (a direct insert until T2.5). In `--local-only` mode it writes to `<out>/catalog.sqlite` so test runs never pollute the real catalog. ✅ 2026-10-11
   *Done when:* archiving 5 items gives 5 `media` rows with correct keys, dates, GPS and place.
-- [ ] **T1.6** FTS: keep `media_fts` in sync on every insert or update.
+- [x] **T1.6** FTS: keep `media_fts` in sync on every insert or update. ✅ 2026-10-11
   *Done when:* `SELECT … FROM media_fts WHERE media_fts MATCH 'gokarna'` finds the test photo.
-- [ ] **T1.7** Ingest lock (`~/.photoctl/ingest.lock`, `flock`) + run log `~/.photoctl/runs/<run_id>.jsonl` (progress events).
+- [x] **T1.7** Ingest lock (`~/.photoctl/ingest.lock`, `flock`) + run log `~/.photoctl/runs/<run_id>.jsonl` (progress events). ✅ 2026-10-11
   *Done when:* starting a second `archive` while one is running exits immediately with "already running (pid, start time)".
-- [ ] **T1.8** `photoctl catalog backfill` builds the catalog from existing `library/meta/**/*.json` (or `--from-s3 meta/`).
+- [x] **T1.8** `photoctl catalog backfill` builds the catalog from existing `library/meta/**/*.json` (or `--from-s3 meta/`). ✅ 2026-10-11
   *Done when:* deleting `catalog.sqlite` and running backfill restores an identical row count.
-- [ ] **T1.9** `photoctl catalog export --flavour full|contributed [--device <id>] -o file.sqlite.gz`: a consistent snapshot via the SQLite backup API, then VACUUM (§11.2).
+- [x] **T1.9** `photoctl catalog export --flavour full|contributed [--device <id>] -o file.sqlite.gz`: a consistent snapshot via the SQLite backup API, then VACUUM (§11.2). ✅ 2026-10-11
   *Done when:* the exported file opens in `sqlite3`, and the `contributed` export contains only media sourced from that device.
 
 ---
@@ -316,3 +316,4 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - 2026-10-11 — Plan created. M0 done apart from the first real S3 run (T0.6).
 - 2026-10-11 — Added iOS/Android web access + run triggers (M8), on-device SQLite mode (M9), and downloadable per-device catalogs with cross-device search (M10). Renumbered later milestones.
 - 2026-10-11 — Added database backup to S3 + recovery (T0.7, M3b) and automatic backup from iPhone/Android (M12, now required). Always-on moved to M13, native extras to M14.
+- 2026-10-11 — Git repo initialised with a leak guard (`.githooks/pre-commit`). Built T0.7 (DB backup/restore) and all of M1 (catalog, device id, thumbnails, FTS, ingest lock + run log, backfill, export). 22 tests passing (`uv run pytest`). Waiting on T0.6 (first real S3 run).

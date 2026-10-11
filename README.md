@@ -44,11 +44,43 @@ uv run photoctl archive --album "Goa 2024"
 uv run photoctl archive --from 2024-01-01 --to 2025-01-01
 uv run photoctl archive --all --download-missing      # whole library, fetch iCloud-only originals
 
-uv run photoctl status                                # counts from ~/.photoctl/state.sqlite
+uv run photoctl status                                # this device, archive counts, catalog size
 uv run photoctl verify --sample 100                   # spot-check S3 against recorded sha256
 ```
 
 Re-running is safe: photos already archived are skipped, and originals already in S3 aren't re-uploaded.
+Only one archive run can happen at a time on a device; each run writes a progress log to `~/.photoctl/runs/`.
+
+### Catalog (searchable SQLite)
+
+Every archive run also adds items to `~/.photoctl/catalog.sqlite` (dates, places, cameras, Apple people, albums,
+keywords and labels, with full-text search) and makes a 320px thumbnail under `thumb/`.
+With `--local-only`, the catalog goes to `<out>/catalog.sqlite` so test runs never touch the real one.
+
+```sh
+uv run photoctl catalog stats
+uv run photoctl catalog backfill                      # rebuild from ./library/meta sidecars
+uv run photoctl catalog backfill --from-s3            # …or from s3://$PHOTOCTL_BUCKET/meta/
+uv run photoctl catalog export -o library.sqlite.gz   # consistent copy of everything
+uv run photoctl catalog export --flavour contributed -o this-mac.sqlite.gz   # only this device's items
+uv run photoctl thumbs backfill --bucket "$PHOTOCTL_BUCKET"                  # thumbs for older items
+uv run photoctl device                                # this device's id and name
+```
+
+### Database backups
+
+At the end of every archive run, `state.sqlite`, `catalog.sqlite`, `device.json` and `config.toml` are backed up to
+`s3://$PHOTOCTL_BUCKET/backups/<device_id>/<timestamp>/`. Each database is copied consistently and integrity-checked
+before upload. The first backup of each month is also kept under `monthly/`.
+
+```sh
+uv run photoctl db backup                             # back up now
+uv run photoctl db list                               # this device's backups, newest first
+uv run photoctl db list --device all                  # every device that has backups
+uv run photoctl db restore                            # latest backup; current files kept as .bak
+uv run photoctl db restore --at 2026-10-01            # point in time
+uv run photoctl db restore --device <id>              # on a new Mac: carry on as that device
+```
 
 ## "Moving" out of Photos
 
