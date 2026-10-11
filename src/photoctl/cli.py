@@ -453,6 +453,16 @@ def catalog_stats(catalog_path):
     click.echo(json.dumps(stats(open_catalog(catalog_path)), indent=2))
 
 
+@catalog.command("checksum")
+@_catalog_path_option
+def catalog_checksum(catalog_path):
+    """Fingerprint of the synced state; equal on every device once they have converged."""
+    from .catalog import open_catalog
+    from .catalog.checksum import checksum
+
+    click.echo(checksum(open_catalog(catalog_path)))
+
+
 @catalog.command("backfill")
 @_catalog_path_option
 @click.option("--from-dir", type=click.Path(path_type=Path, exists=True), default=None,

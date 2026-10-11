@@ -63,7 +63,7 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
   *Done when:* 1,000 examples pass in CI.
 - [ ] **T2.5** Change `archive` (T1.5) to emit `media.upsert` / `media.source` / `device.register` ops instead of direct inserts.
   *Done when:* the catalog after archive is the same as before, and the ops appear in `outbox`.
-- [ ] **T2.6** `photoctl catalog checksum`: deterministic hash over sorted rows (used by sync verify).
+- [x] **T2.6** `photoctl catalog checksum`: deterministic hash over sorted rows (used by sync verify). ✅ 2026-10-11
   *Done when:* the same ops give the same checksum on two DB files.
 - [ ] **T2.7** Conformance vectors `spec/sync_vectors/*.json` (ops → expected rows), shared with the TypeScript `apply_ops` (T9.4).
   *Done when:* there are ≥ 15 vectors covering every §5 rule, run in pytest.
