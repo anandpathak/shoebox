@@ -344,7 +344,7 @@ def archive(bucket, profile, out, selected, albums, from_date, to_date, uuids, a
         state = State(state_db)
         photos = _select_photos(library, uuids, selected, albums, from_date, to_date, include_hidden, videos,
                                 all_photos, None)
-        todo = [p for p in photos if not (record_state and state.is_done(f"applephotos:{p.uuid}"))]
+        todo = [p for p in photos if local_only or not state.is_done(f"applephotos:{p.uuid}")]
         skipped = len(photos) - len(todo)
         if limit:
             todo = todo[:limit]
@@ -739,6 +739,56 @@ def db_schedule_uninstall():
 
     removed = uninstall(load=not bool(__import__("os").environ.get("PHOTOCTL_LAUNCHAGENTS_DIR")))
     click.echo("Daily backup removed." if removed else "No daily backup was installed.")
+
+
+@main.command()
+@click.option("--bucket", envvar="PHOTOCTL_BUCKET", required=True)
+@click.option("--profile", envvar="AWS_PROFILE", default=None)
+@click.option("--device", "device_id", help="Device to carry on as (default: choose from a list).")
+@click.option("--yes", is_flag=True, help="Don't ask for confirmation.")
+def recover(bucket, profile, device_id, yes):
+    """Set up this Mac as a device that was lost or wiped: identity, databases, then catch up."""
+    from .backup import list_backups, list_devices, restore
+    from .device import Device, load_device, save_device
+    from .runlock import IngestLock
+    from .sync import list_registry
+
+    local = load_device(create=False)
+    if local is not None and not yes:
+        click.confirm(f"This Mac is already set up as {local.name} ({local.device_id}). Replace it?", abort=True)
+    s3 = _bucket(bucket, profile)
+    registry = {d["device_id"]: d for d in list_registry(s3)}
+    candidates = sorted(set(registry) | set(list_devices(s3)))
+    if not candidates:
+        raise click.ClickException("No devices have synced or been backed up to this bucket yet.")
+    if not device_id:
+        for i, d in enumerate(candidates, 1):
+            info = registry.get(d, {})
+            backups = list_backups(s3, d)
+            click.echo(f"  {i}. {info.get('name', '?')} · {info.get('platform', '?')} · last seen "
+                       f"{info.get('last_seen', '?')} · last backup {backups[0]['created_at'] if backups else 'none'}")
+        device_id = candidates[click.prompt("Which device is this Mac replacing?", type=click.IntRange(1, len(candidates))) - 1]
+    with IngestLock():
+        if list_backups(s3, device_id):
+            res = restore(s3, device_id, with_identity=True)
+            click.echo(f"Restored {', '.join(res['restored'])} from the backup of {res['created_at']}.")
+        else:
+            info = registry.get(device_id) or {}
+            save_device(Device(device_id, info.get("name", "Recovered Mac"), info.get("platform", "macos"),
+                               info.get("last_seen", "")))
+            for f in (paths.catalog_db(), paths.state_db()):
+                f.unlink(missing_ok=True)
+            click.echo("No database backup for that device: starting from the library snapshot instead.")
+    dev = load_device()
+    _run_sync(s3, dev)
+    if not paths.state_db().exists() or not State().counts():
+        click.echo("Rebuilding the archive state from S3…")
+        from .backup import rebuild_state_from_s3
+
+        n = rebuild_state_from_s3(s3, dev)
+        click.echo(f"Marked {n} Apple Photos items as archived.")
+    click.echo(f"This Mac is now {dev.name} ({dev.device_id}). Run `photoctl archive` as usual; "
+               "items already in S3 are skipped.")
 
 
 @db.command("list")

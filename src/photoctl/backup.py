@@ -230,3 +230,43 @@ def restore(bucket, device_id: str, *, at: datetime | None = None, with_identity
             os.replace(dest.with_suffix(dest.suffix + ".tmp"), dest)
             restored[dest.name] = chosen["created_at"]
     return {"backup": chosen["prefix"], "created_at": chosen["created_at"], "restored": restored}
+
+
+def rebuild_state_from_s3(bucket, device: Device, state_path: Path | None = None) -> int:
+    """Recreate state.sqlite from the sidecars in meta/: each one names its Apple Photos UUID and sha256.
+    Only items this device archived from Apple Photos are restored (other devices' UUIDs mean nothing here)."""
+    from .state import State
+
+    state = State(state_path)
+    mine = _device_source_refs(device)
+    n = 0
+    for key in bucket.list_keys("meta/"):
+        if not key.endswith(".json"):
+            continue
+        rec = json.loads(bucket.get_bytes(key))
+        src = rec.get("source") or {}
+        ref = f"{src.get('type')}:{src.get('ref')}"
+        if src.get("type") != "applephotos" or (mine is not None and ref not in mine):
+            continue
+        keys, file = rec.get("keys") or {}, rec.get("file") or {}
+        state.upsert(ref, photo_id=rec["photo_id"], sha256=file.get("sha256"), raw_key=keys.get("raw"),
+                     compressed_key=keys.get("compressed"), meta_key=keys.get("meta"), bytes_raw=file.get("bytes_raw"),
+                     status="done" if keys.get("compressed") else "no_derivative", error=None)
+        n += 1
+    return n
+
+
+def _device_source_refs(device: Device) -> set[str] | None:
+    """Source refs the catalog attributes to this device, or None if the catalog doesn't know yet."""
+    path = paths.catalog_db()
+    if not path.exists():
+        return None
+    conn = sqlite3.connect(path)
+    try:
+        refs = {r[0] for r in conn.execute("SELECT source_ref FROM media_sources WHERE device_id = ?",
+                                            (device.device_id,))}
+    except sqlite3.OperationalError:
+        return None
+    finally:
+        conn.close()
+    return refs or None

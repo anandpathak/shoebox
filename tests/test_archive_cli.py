@@ -94,3 +94,34 @@ def test_catalog_rebuilds_from_sidecars_after_loss(tmp_path, photos, bucket, mon
     remote = CliRunner().invoke(cli.main, ["catalog", "backfill", "--from-s3", "--bucket", "test-archive"])
     assert remote.exit_code == 0, remote.output
     assert sqlite3.connect(paths.catalog_db()).execute("SELECT COUNT(*) FROM media").fetchone()[0] == 3
+
+
+def test_recover_on_a_fresh_mac_knows_everything_is_archived(tmp_path, photos, bucket, monkeypatch, photoctl_home):
+    import shutil as sh
+
+    monkeypatch.setattr(cli, "_bucket", lambda name, profile: bucket)
+    out = tmp_path / "lib"
+    res = CliRunner().invoke(cli.main, ["archive", "--all", "--bucket", "test-archive", "--out", str(out)])
+    assert res.exit_code == 0, res.output
+    old_id = json.loads((photoctl_home / "device.json").read_text())["device_id"]
+
+    sh.rmtree(photoctl_home)                     # the Mac is wiped
+    res = CliRunner().invoke(cli.main, ["recover", "--bucket", "test-archive"], input="1\n")
+    assert res.exit_code == 0, res.output
+    assert json.loads((photoctl_home / "device.json").read_text())["device_id"] == old_id
+    dry = CliRunner().invoke(cli.main, ["archive", "--all", "--dry-run", "--out", str(out)])
+    assert "3 already archived · 0 to process" in dry.output
+
+
+def test_recover_without_backup_rebuilds_state_from_s3(tmp_path, photos, bucket, monkeypatch, photoctl_home):
+    import shutil as sh
+
+    monkeypatch.setattr(cli, "_bucket", lambda name, profile: bucket)
+    out = tmp_path / "lib"
+    CliRunner().invoke(cli.main, ["archive", "--all", "--bucket", "test-archive", "--out", str(out), "--no-backup"])
+    sh.rmtree(photoctl_home)
+    res = CliRunner().invoke(cli.main, ["recover", "--bucket", "test-archive", "--yes"], input="1\n")
+    assert res.exit_code == 0, res.output
+    assert "No database backup" in res.output and "Marked 3 Apple Photos items" in res.output
+    dry = CliRunner().invoke(cli.main, ["archive", "--all", "--dry-run", "--out", str(out)])
+    assert "3 already archived · 0 to process" in dry.output
