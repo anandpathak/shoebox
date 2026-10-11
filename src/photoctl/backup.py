@@ -81,6 +81,8 @@ def backup(bucket, device: Device, *, now: datetime | None = None) -> BackupResu
                 ok, msg = integrity_ok(raw)
                 if not ok:
                     raise RuntimeError(f"{src.name} failed integrity_check before backup: {msg}")
+                if name.startswith("catalog"):
+                    manifest["catalog"] = _catalog_info(raw, device.device_id)
                 out = Path(tmp) / name
                 with open(raw, "rb") as f_in, gzip.open(out, "wb", compresslevel=6) as f_out:
                     shutil.copyfileobj(f_in, f_out)
@@ -96,10 +98,56 @@ def backup(bucket, device: Device, *, now: datetime | None = None) -> BackupResu
         raise RuntimeError("nothing to back up yet (no state.sqlite, catalog.sqlite or device.json)")
     bucket.put_bytes(prefix + "manifest.json", json.dumps(manifest, indent=2).encode(), content_type="application/json",
                      tagging=DAILY)
-    bucket.put_bytes(root + "LATEST.json", json.dumps({"prefix": prefix, **{k: manifest[k] for k in
-                     ("created_at", "photoctl_version")}}).encode(), content_type="application/json")
+    _update_latest(bucket, root, {"prefix": prefix, "created_at": manifest["created_at"],
+                                  "photoctl_version": manifest["photoctl_version"]})
     monthly = _copy_monthly(bucket, root, prefix, manifest, now)
+    _remember_local(manifest["created_at"], prefix, bucket.name)
     return BackupResult(prefix=prefix, files=manifest["files"], monthly=monthly)
+
+
+def _catalog_info(db: Path, device_id: str) -> dict:
+    """Facts a restore needs: schema version, checksum and the last op this device had pushed."""
+    from .catalog.checksum import checksum
+
+    conn = sqlite3.connect(db)
+    try:
+        version = conn.execute("SELECT value FROM meta WHERE key = 'schema_version'").fetchone()
+        last_pushed = conn.execute(
+            "SELECT MAX(hlc) FROM ops WHERE device_id = ? AND op_id NOT IN (SELECT op_id FROM outbox)",
+            (device_id,)).fetchone()[0]
+        unpushed = conn.execute("SELECT COUNT(*) FROM outbox").fetchone()[0]
+        return {"schema_version": int(version[0]) if version else 0, "checksum": checksum(conn),
+                "last_pushed_op": last_pushed, "unpushed_ops": unpushed}
+    finally:
+        conn.close()
+
+
+def _update_latest(bucket, root: str, latest: dict) -> None:
+    """Point LATEST.json at this backup unless a newer one already took its place (compare-and-swap)."""
+    key = root + "LATEST.json"
+    body = json.dumps(latest).encode()
+    for _ in range(3):
+        current = bucket.get_with_etag(key)
+        if current is None:
+            if bucket.put_bytes_if(key, body, if_none_match=True, content_type="application/json"):
+                return
+        elif json.loads(current[0]).get("created_at", "") > latest["created_at"]:
+            return
+        elif bucket.put_bytes_if(key, body, if_match=current[1], content_type="application/json"):
+            return
+
+
+def _remember_local(created_at: str, prefix: str, bucket_name: str) -> None:
+    paths.last_backup_file().write_text(json.dumps({"created_at": created_at, "prefix": prefix,
+                                                    "bucket": bucket_name}))
+
+
+def last_local_backup() -> dict | None:
+    f = paths.last_backup_file()
+    try:
+        return json.loads(f.read_text()) if f.exists() else None
+    except ValueError:
+        return None
 
 
 def _copy_monthly(bucket, root: str, prefix: str, manifest: dict, now: datetime) -> str | None:

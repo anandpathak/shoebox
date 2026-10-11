@@ -28,6 +28,10 @@ def config_file() -> Path:
     return home() / "config.toml"
 
 
+def last_backup_file() -> Path:
+    return home() / "last_backup.json"
+
+
 def ingest_lock() -> Path:
     return home() / "ingest.lock"
 

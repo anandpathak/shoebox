@@ -69,3 +69,50 @@ def test_backups_are_tagged_for_lifecycle(bucket, sidecar, device):
     assert tags(res.files["state.sqlite.gz"]["key"]) == {"retention": "daily"}
     assert tags(res.prefix + "manifest.json") == {"retention": "daily"}
     assert tags(res.monthly + "state.sqlite.gz") == {"retention": "monthly"}
+
+
+def test_backup_while_another_thread_writes(bucket, sidecar, device, tmp_path):
+    import gzip
+    import threading
+
+    from opkit import record
+    from photoctl.catalog.export import integrity_ok
+
+    _seed(sidecar, device)
+    stop = threading.Event()
+
+    def writer():
+        conn = open_catalog()
+        n = 100
+        while not stop.is_set():
+            upsert_record(conn, record(sidecar, n), device)
+            n += 1
+        conn.close()
+
+    t = threading.Thread(target=writer)
+    t.start()
+    try:
+        results = [backup(bucket, device, now=datetime(2026, 10, 11, 9, i, tzinfo=timezone.utc)) for i in range(3)]
+    finally:
+        stop.set()
+        t.join()
+    for res in results:
+        db = tmp_path / "check.sqlite"
+        db.write_bytes(gzip.decompress(bucket.get_bytes(res.files["catalog.sqlite.gz"]["key"])))
+        assert integrity_ok(db)[0]
+
+
+def test_manifest_and_latest_pointer(bucket, sidecar, device):
+    import json
+
+    from photoctl.backup import last_local_backup
+
+    _seed(sidecar, device)
+    new = backup(bucket, device, now=datetime(2026, 10, 12, tzinfo=timezone.utc))
+    backup(bucket, device, now=datetime(2026, 10, 11, tzinfo=timezone.utc))   # an older, late finisher
+    latest = json.loads(bucket.get_bytes(f"backups/{device.device_id}/LATEST.json"))
+    assert latest["prefix"] == new.prefix
+    manifest = json.loads(bucket.get_bytes(new.prefix + "manifest.json"))
+    assert manifest["catalog"]["schema_version"] >= 2 and len(manifest["catalog"]["checksum"]) == 64
+    assert manifest["catalog"]["unpushed_ops"] == 3   # nothing has synced in this test
+    assert last_local_backup()["prefix"].startswith(f"backups/{device.device_id}/")
