@@ -194,8 +194,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
   *Note:* Cross-device propagation of API edits is covered by tests/test_api_edit.py::test_api_edit_reaches_another_device; the UI e2e covers optimistic edits, persistence and remove/undo.
 - [x] **T6.7** People screen: list, rename, merge. ✅ 2026-10-11
   *Done when:* renaming updates every photo of that person.
-- [ ] **T6.8** Sync & devices screen, including the last database backup and a "Back up databases now" button.
+- [x] **T6.8** Sync & devices screen, including the last database backup and a "Back up databases now" button. ✅ 2026-10-11
   *Done when:* it shows the devices (with platform), the last sync, the last backup age, a "Sync now" button and the converged status.
+  *Note:* The e2e server now runs against an in-process mock S3 (moto) with stand-in originals in Deep Archive, so sync, backups and original restores are exercised in the browser. The 'converged' banner across several devices is covered by tests/test_api_sync.py.
 
 ---
 

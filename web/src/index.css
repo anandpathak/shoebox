@@ -156,3 +156,6 @@ input[type="search"], input[type="text"], select { width: 100%; min-width: 0; bo
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
 .person-card select { flex: 1 1 200px; }
 .person-card input[type="text"] { flex: 1 1 200px; }
+.ok { color: var(--ok); } .warn { color: var(--amber); }
+.ok-pill { background: var(--ok-soft); color: var(--ok); }
+.card > p { margin: 0; }

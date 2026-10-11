@@ -81,3 +81,21 @@ def sync_status(request: Request, conn: sqlite3.Connection = Depends(db)):
     status["pending_ops"] = conn.execute("SELECT COUNT(*) FROM outbox").fetchone()[0]
     status["s3"] = bucket(request) is not None
     return status
+
+
+@router.get("/sync/verify")
+def sync_verify(request: Request, conn: sqlite3.Connection = Depends(db)):
+    """Does every device that has synced hold the same library? (Uses each device's last registry entry.)"""
+    from ...catalog.checksum import checksum
+    from ...sync import list_registry
+
+    mine = checksum(conn)
+    s3 = bucket(request)
+    entries = list_registry(s3) if s3 else []
+    me = request.app.state.device.device_id
+    devices = [{"device_id": e["device_id"], "name": e["name"], "platform": e["platform"],
+                "last_seen": e.get("last_seen"), "pending_ops": e.get("pending_ops", 0), "media": e.get("media"),
+                "same": e.get("checksum") == mine, "this_device": e["device_id"] == me} for e in entries]
+    others = [d for d in devices if not d["this_device"]]
+    return {"checksum": mine, "devices": devices, "converged": bool(others) and all(d["same"] for d in others),
+            "s3": s3 is not None}

@@ -35,3 +35,23 @@ def test_background_loop_syncs(tmp_path, sidecar, device, bucket):
                 break
             time.sleep(0.1)
         assert client.get("/api/sync/status").json()["pending_ops"] == 0
+
+
+def test_verify_endpoint(api, sidecar, device, bucket, tmp_path):
+    from photoctl.catalog import open_catalog
+    from photoctl.device import Device
+    from photoctl.sync import sync_once
+
+    client, token, app = api
+    client.headers["Authorization"] = f"Bearer {token}"
+    seed(sidecar, device, app.state.settings.library, n=1)
+    assert client.get("/api/sync/verify").json()["s3"] is False
+    app.state.s3 = bucket
+    client.post("/api/sync")
+    other = open_catalog(tmp_path / "o.sqlite")
+    peer = Device("01PEERPEERPEERPEERPEERPEER", "Mini", "macos", "x")
+    sync_once(other, bucket, peer)
+    client.post("/api/sync")
+    sync_once(other, bucket, peer)
+    r = client.get("/api/sync/verify").json()
+    assert r["converged"] is True and {d["name"] for d in r["devices"]} == {"Mini", device.name}

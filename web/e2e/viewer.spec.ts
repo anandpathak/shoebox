@@ -44,5 +44,6 @@ test('videos play, downloads work, originals explain the wait', async ({ page })
   expect(dl.headers()['content-disposition']).toContain('attachment')
   await expect(viewer.getByText(/about 12 hours/)).toBeVisible()
   await viewer.getByRole('button', { name: 'Request original' }).click()
-  await expect(viewer.getByText(/runs without S3/)).toBeVisible()   // the e2e server has no bucket
+  // the mock S3 restores instantly; real Deep Archive shows "Original requested" for ~12 h first
+  await expect(viewer.getByRole('link', { name: 'Download original' }).or(viewer.getByText('Original requested'))).toBeVisible()
 })

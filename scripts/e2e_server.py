@@ -2,7 +2,8 @@
 
     uv run python scripts/e2e_server.py --port 8799 --items 300
 
-Nothing here touches ~/.photoctl or S3: it uses a temp PHOTOCTL_HOME and a temp library folder.
+Nothing here touches ~/.photoctl or real S3: it uses a temp PHOTOCTL_HOME, a temp library folder and an
+in-process mock S3 (moto) with tiny stand-in originals in Deep Archive. --no-s3 runs without any bucket.
 """
 
 from __future__ import annotations
@@ -99,18 +100,45 @@ def seed(library: Path, items: int, seed_value: int = 7) -> None:
     conn.close()
 
 
+def start_mock_s3(home: Path, upload_originals: bool) -> str:
+    """Mock S3 on a local port; originals uploaded as tiny Deep Archive objects so restores work."""
+    from moto.server import ThreadedMotoServer
+
+    server = ThreadedMotoServer(port=0)
+    server.start()
+    host, port = server.get_host_and_port()
+    os.environ.update({"AWS_ENDPOINT_URL": f"http://{host}:{port}", "AWS_ACCESS_KEY_ID": "e2e",
+                       "AWS_SECRET_ACCESS_KEY": "e2e", "AWS_DEFAULT_REGION": "us-east-1"})
+    os.environ.pop("AWS_PROFILE", None)
+    from photoctl.catalog import open_catalog
+    from photoctl.s3 import Bucket
+
+    name = "e2e-archive"
+    b = Bucket(name)
+    b.client.create_bucket(Bucket=name)
+    if upload_originals:
+        conn = open_catalog()
+        for (raw,) in conn.execute("SELECT raw_key FROM media"):
+            b.client.put_object(Bucket=name, Key=raw, Body=b"original", StorageClass="DEEP_ARCHIVE")
+        conn.close()
+    return name
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8799)
     ap.add_argument("--items", type=int, default=300)
     ap.add_argument("--home", help="Reuse this PHOTOCTL_HOME (default: a new temp dir)")
+    ap.add_argument("--no-s3", action="store_true", help="Run without a (mock) bucket")
     args = ap.parse_args()
     home = Path(args.home or tempfile.mkdtemp(prefix="photoctl-e2e-"))
     os.environ["PHOTOCTL_HOME"] = str(home)
     os.environ["PHOTOCTL_TOKEN_STORE"] = "file"
     library = home / "library"
-    if not (home / "catalog.sqlite").exists():
+    fresh = not (home / "catalog.sqlite").exists()
+    if fresh:
         seed(library, args.items)
+    bucket = None if args.no_s3 else start_mock_s3(home, upload_originals=fresh)
 
     import uvicorn
 
@@ -118,7 +146,8 @@ def main() -> None:
     from photoctl.server.config import Settings
 
     dist = ROOT / "src" / "photoctl" / "web" / "dist"
-    app = create_app(Settings(library=library, port=args.port, static_dir=dist, sync_interval=0))
+    app = create_app(Settings(library=library, port=args.port, static_dir=dist, sync_interval=0,
+                              bucket=bucket))
     print(f"e2e server: http://127.0.0.1:{args.port}  home={home}", flush=True)
     uvicorn.run(app, host="127.0.0.1", port=args.port, log_level="warning")
 
