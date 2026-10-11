@@ -17,6 +17,8 @@ export interface Editor {
   removeTag(id: string, tag: string): Promise<MediaDetail>
   remove(id: string): Promise<void>
   restore(id: string): Promise<MediaDetail>
+  renamePerson(personId: string, name: string): Promise<void>
+  mergePerson(personId: string, into: string): Promise<void>
 }
 
 export interface DataSource {
@@ -43,6 +45,8 @@ export class ServerDataSource implements DataSource {
     removeTag: (id, tag) => api<MediaDetail>(`/api/media/${enc(id)}/tags/${enc(tag)}`, { method: 'DELETE' }),
     remove: async (id) => { await api(`/api/media/${enc(id)}/delete`, { method: 'POST' }) },
     restore: (id) => api<MediaDetail>(`/api/media/${enc(id)}/restore`, { method: 'POST' }),
+    renamePerson: async (pid, name) => { await api(`/api/people/${enc(pid)}`, { method: 'PATCH', json: { name } }) },
+    mergePerson: async (pid, into) => { await api(`/api/people/${enc(pid)}/merge`, { method: 'POST', json: { into } }) },
   }
 
   search(p: SearchParams) {

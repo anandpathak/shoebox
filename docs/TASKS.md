@@ -192,7 +192,7 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T6.6** Editing: title, description, favourite, tags, hide/delete (tombstone) with optimistic UI. ✅ 2026-10-11
   *Done when:* an edit made on device A shows on device B after sync.
   *Note:* Cross-device propagation of API edits is covered by tests/test_api_edit.py::test_api_edit_reaches_another_device; the UI e2e covers optimistic edits, persistence and remove/undo.
-- [ ] **T6.7** People screen: list, rename, merge.
+- [x] **T6.7** People screen: list, rename, merge. ✅ 2026-10-11
   *Done when:* renaming updates every photo of that person.
 - [ ] **T6.8** Sync & devices screen, including the last database backup and a "Back up databases now" button.
   *Done when:* it shows the devices (with platform), the last sync, the last backup age, a "Sync now" button and the converged status.

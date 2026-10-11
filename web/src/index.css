@@ -146,3 +146,13 @@ input[type="search"], input[type="text"], select { width: 100%; min-width: 0; bo
 .tag.person { background: var(--sunk); color: var(--ink); }
 .tag-input { width: 120px !important; min-height: 30px !important; padding: 4px 10px !important; border-radius: 999px !important; font-size: .82rem; }
 .btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+
+/* People */
+.person-card { gap: 12px; }
+.person-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.person-text { display: grid; flex: 1; min-width: 120px; }
+.avatar { width: 56px; height: 56px; border-radius: 50%; overflow: hidden; border: 0; padding: 0; background: var(--accent-soft);
+  color: var(--accent); font: 600 1.3rem var(--display); display: grid; place-items: center; flex: none; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.person-card select { flex: 1 1 200px; }
+.person-card input[type="text"] { flex: 1 1 200px; }
