@@ -18,11 +18,14 @@ def _migrations() -> dict[int, str]:
 SCHEMA_VERSION = max(_migrations())
 
 
-def open_catalog(path: Path | None = None) -> sqlite3.Connection:
-    """Open (creating and migrating if needed) the catalog with WAL + busy_timeout."""
+def open_catalog(path: Path | None = None, *, any_thread: bool = False) -> sqlite3.Connection:
+    """Open (creating and migrating if needed) the catalog with WAL + busy_timeout.
+
+    `any_thread` lets one request's connection be used across the server's worker threads (it's
+    still only used by one request at a time)."""
     path = Path(path) if path else paths.catalog_db()
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path, timeout=5.0)
+    conn = sqlite3.connect(path, timeout=5.0, check_same_thread=not any_thread)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode = WAL")
     conn.execute("PRAGMA busy_timeout = 5000")

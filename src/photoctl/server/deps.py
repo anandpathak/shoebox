@@ -12,7 +12,7 @@ from .auth import User, authenticate
 
 
 def db() -> Iterator[sqlite3.Connection]:
-    conn = open_catalog()
+    conn = open_catalog(any_thread=True)
     try:
         yield conn
     finally:
