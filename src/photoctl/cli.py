@@ -464,23 +464,46 @@ def device(rename):
     click.echo(json.dumps(dev.__dict__, indent=2))
 
 
-@main.command()
+@main.group(invoke_without_command=True)
 @click.option("--bucket", envvar="PHOTOCTL_BUCKET", required=True)
 @click.option("--profile", envvar="AWS_PROFILE", default=None)
 @click.option("--watch", type=int, default=None, metavar="SECONDS", help="Keep syncing every N seconds.")
 @click.option("--snapshot", "force_snapshot", is_flag=True, help="Also publish a fresh library snapshot.")
-def sync(bucket, profile, watch, force_snapshot):
+@click.pass_context
+def sync(ctx, bucket, profile, watch, force_snapshot):
     """Send this device's changes to S3 and apply everyone else's."""
     import time
 
     from .device import load_device
 
     s3, dev = _bucket(bucket, profile), load_device()
+    ctx.obj = {"s3": s3, "device": dev}
+    if ctx.invoked_subcommand:
+        return
     while True:
         _run_sync(s3, dev, quiet=bool(watch), force_snapshot=force_snapshot)
         if not watch:
             return
         time.sleep(watch)
+
+
+@sync.command("verify")
+@click.pass_obj
+def sync_verify(obj):
+    """Sync, then check that every device that has synced holds the same library."""
+    from .catalog import open_catalog
+    from .sync import verify
+
+    _run_sync(obj["s3"], obj["device"], quiet=True)
+    report = verify(open_catalog(), obj["s3"], obj["device"])
+    for d in report["different"]:
+        hint = f"{d['pending_ops']} unsent changes" if d.get("pending_ops") else "hasn't synced since the last change"
+        click.echo(f"differs: {d['name']} ({d['platform']}), last seen {d['last_seen']} — {hint}")
+    if report["converged"]:
+        click.echo(f"converged: {1 + len(report['same'])} devices share checksum {report['checksum'][:12]}…")
+    else:
+        click.echo("not converged yet: sync the devices listed above, then verify again.")
+        raise SystemExit(1)
 
 
 @main.command()

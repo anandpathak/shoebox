@@ -94,8 +94,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T3.7** Snapshot + bootstrap: compaction lease (`sync/locks/compact.json`), VACUUM'd gz snapshot, `HEAD.json` CAS with `If-Match`; a new device bootstraps from the snapshot, then pulls the remaining ops. ✅ 2026-10-11
   *Done when:* a fresh device gets a full catalog in < 1 min for 10k items, and a simulated expired lease is taken over.
   *Note:* Measured with 10k items (mocked S3): snapshot 6.1 MB gzipped, published in 2.3 s; fresh device bootstrap + pull 0.3 s, checksums equal. Snapshots drop the op log (re-applying is harmless) except ops still waiting in deferred_ops. 'photoctl sync --snapshot' forces one.
-- [ ] **T3.8** `photoctl sync verify`: compares the local checksum with other devices' published checksums.
+- [x] **T3.8** `photoctl sync verify`: compares the local checksum with other devices' published checksums. ✅ 2026-10-11
   *Done when:* after both devices sync, verify reports "converged".
+  *Note:* Sync now also registers the device in the catalog if it isn't yet (found by this test).
 - [ ] **T3.9** Integration test on a `-test` bucket: two processes (two `device_id`s) doing concurrent archive + edits + sync → same checksum.
   *Done when:* it passes 3 runs in a row.
 - [ ] **T3.10** Publish this device's catalog to `sync/catalogs/<device_id>/` (`catalog.sqlite.gz` + `manifest.json`, manifest CAS with `If-Match`) after sync when changed, at most every 10 min (§11.1).

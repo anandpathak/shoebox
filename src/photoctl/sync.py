@@ -145,9 +145,33 @@ def list_registry(bucket) -> list[dict]:
     return sorted(out, key=lambda d: d.get("last_seen", ""), reverse=True)
 
 
+def ensure_registered(conn: sqlite3.Connection, device) -> None:
+    from .catalog.ops import Emitter
+
+    row = conn.execute("SELECT name, platform FROM devices WHERE device_id = ?", (device.device_id,)).fetchone()
+    if row is None or tuple(row) != (device.name, device.platform):
+        Emitter(conn, device.device_id).emit("device.register", {"device_id": device.device_id, "name": device.name,
+                                                                 "platform": device.platform})
+
+
 def sync_once(conn: sqlite3.Connection, bucket, device) -> SyncResult:
     """Push this device's outbox, pull everyone else's ops, refresh our registry entry. Hold the SyncLock."""
+    ensure_registered(conn, device)
     result = push(conn, bucket)
     pull(conn, bucket, device.device_id, result)
     publish_registry(conn, bucket, device)
     return result
+
+
+def verify(conn: sqlite3.Connection, bucket, device) -> dict:
+    """Compare our checksum with what every other device last published. Run right after sync_once."""
+    from .catalog.checksum import checksum
+
+    mine = checksum(conn)
+    report = {"checksum": mine, "same": [], "different": []}
+    for entry in list_registry(bucket):
+        if entry["device_id"] == device.device_id:
+            continue
+        (report["same"] if entry.get("checksum") == mine else report["different"]).append(entry)
+    report["converged"] = not report["different"]
+    return report
