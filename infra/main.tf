@@ -60,6 +60,19 @@ resource "aws_s3_bucket_lifecycle_configuration" "archive" {
     }
   }
 
+  # Sync change batches. New devices bootstrap from sync/snapshots/latest.sqlite.gz (refreshed at
+  # least every 30 days by whichever device holds the compaction lease), so old batches can expire.
+  rule {
+    id     = "sync-ops-expiry"
+    status = "Enabled"
+    filter {
+      prefix = "sync/ops/"
+    }
+    expiration {
+      days = var.sync_ops_retention_days
+    }
+  }
+
   rule {
     id     = "housekeeping"
     status = "Enabled"
@@ -110,6 +123,8 @@ data "aws_iam_policy_document" "ingest" {
   }
   statement {
     sid = "ReadWriteObjects"
+    # Covers raw/, compressed/, thumb/, meta/, sync/ (ops, snapshots, leases, catalogs, device registry)
+    # and backups/. No s3:DeleteObject: leases and pointers are replaced with conditional PUTs instead.
     actions = [
       "s3:PutObject",
       "s3:GetObject",

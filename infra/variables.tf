@@ -27,3 +27,14 @@ variable "noncurrent_version_days" {
   type        = number
   default     = 30
 }
+
+variable "sync_ops_retention_days" {
+  description = "Days to keep sync change batches (sync/ops/). Must exceed the 30-day snapshot refresh interval."
+  type        = number
+  default     = 365
+
+  validation {
+    condition     = var.sync_ops_retention_days > 30
+    error_message = "Keep sync batches longer than the 30-day snapshot refresh interval."
+  }
+}

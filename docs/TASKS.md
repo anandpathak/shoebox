@@ -75,8 +75,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 
 ## M3 — Sync through S3 with locks (§6, §7)
 
-- [ ] **T3.1** Terraform: add `sync/*` read/write to the ingest policy; add lifecycle rules for old op batches and snapshots.
+- [~] **T3.1** Terraform: add `sync/*` read/write to the ingest policy; add lifecycle rules for old op batches and snapshots.
   *Done when:* `tofu plan` shows only the expected changes and `apply` succeeds.
+  *Note:* Written and `tofu validate` passes (2026-10-11). The ingest policy already covers `sync/*` (it allows the whole bucket, no deletes); added `sync-ops-expiry` (365 days, `sync_ops_retention_days`). Snapshots use one overwritten key (`sync/snapshots/latest.sqlite.gz`), so old versions expire through the existing noncurrent-version rule. **Your step:** `aws login`, then `cd infra && tofu plan && tofu apply`.
 - [ ] **T3.2** Switch the raw upload to a conditional create (`IfNoneMatch='*'`); on 412 → verify size + sha256 → mark as already archived.
   *Done when:* two concurrent archive processes on the same photo produce one upload and both succeed.
 - [ ] **T3.3** Push: outbox → `sync/ops/<device_id>/<hlc>.jsonl.gz` with `If-None-Match`; delete the outbox rows after success.
