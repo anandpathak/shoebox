@@ -62,8 +62,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T2.4** **Property test** (Hypothesis): 2–3 simulated devices (Mac + phones), random ops, random delivery interleavings → identical catalog checksum. ✅ 2026-10-11
   *Done when:* 1,000 examples pass in CI.
   *Note:* Found and fixed a real bug: two removes of the same tag made tombstones.removed_by depend on arrival order. Verified the test catches a planted order-dependence bug. Default 300 examples; PHOTOCTL_PROPERTY_EXAMPLES=1000 for the full run.
-- [ ] **T2.5** Change `archive` (T1.5) to emit `media.upsert` / `media.source` / `device.register` ops instead of direct inserts.
+- [x] **T2.5** Change `archive` (T1.5) to emit `media.upsert` / `media.source` / `device.register` ops instead of direct inserts. ✅ 2026-10-11
   *Done when:* the catalog after archive is the same as before, and the ops appear in `outbox`.
+  *Note:* archive, catalog backfill and thumbs backfill all emit ops; backfill skips records already in the catalog unless --force.
 - [x] **T2.6** `photoctl catalog checksum`: deterministic hash over sorted rows (used by sync verify). ✅ 2026-10-11
   *Done when:* the same ops give the same checksum on two DB files.
 - [ ] **T2.7** Conformance vectors `spec/sync_vectors/*.json` (ops → expected rows), shared with the TypeScript `apply_ops` (T9.4).

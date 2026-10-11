@@ -17,11 +17,10 @@ import sqlite3
 from typing import Iterable
 
 from .ops import store_op, validate
-from .store import _FACT_COLUMNS, media_row, person_id, refresh_fts
+from .store import _FACT_COLUMNS, UNNAMED_PERSON, media_row, person_id, refresh_fts
 
 EDITABLE = ("title", "description", "favorite", "hidden")
 IMPORT, EDIT = "0", "1"
-UNNAMED_PERSON = "_UNKNOWN_"
 
 
 def _ver(priority: str, hlc: str) -> str:

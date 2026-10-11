@@ -1,8 +1,8 @@
 """Turn sidecar records into catalog rows and keep the full-text index in step.
 
-Until the op log lands (M2), archive and backfill call `upsert_record` directly. Import data
+Every write goes through ops (`upsert_record` emits them; `apply.py` applies them). Import data
 (Apple keywords, labels, albums, people) gets deterministic `add_op` ids, so importing the same
-sidecar twice is a no-op.
+sidecar twice changes nothing.
 """
 
 from __future__ import annotations
@@ -10,7 +10,6 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
-import time
 from typing import Any
 
 MIME = {
@@ -21,19 +20,14 @@ MIME = {
 }
 UNNAMED_PERSON = "_UNKNOWN_"
 
-# Columns refreshed from the sidecar on every upsert. User-editable ones (title, description,
-# favorite, hidden) are only set on first insert so later imports never clobber edits.
+# Facts from the sidecar; each is last-writer-wins on its own. The user-editable fields (title,
+# description, favorite, hidden) are imported at a lower priority so imports never beat edits.
 _FACT_COLUMNS = (
     "sha256", "media_type", "raw_key", "compressed_key", "poster_key", "thumb_key", "meta_key", "orig_name",
     "orig_ext", "mime", "bytes_raw", "bytes_compressed", "width", "height", "duration_s", "taken_at",
     "taken_at_source", "tz", "lat", "lon", "place_country", "place_region", "place_city", "place_locality",
     "place_name", "camera_make", "camera_model",
 )
-
-
-def stamp(device_id: str) -> str:
-    """Placeholder clock value until the HLC module (T2.1): wall ms, counter, device."""
-    return f"{int(time.time() * 1000):013d}-0000-{device_id}"
 
 
 def person_id(name: str) -> str:
@@ -106,56 +100,23 @@ def source_ref(record: dict) -> str:
 
 
 def upsert_record(conn: sqlite3.Connection, record: dict, device: Any, *,
-                  bytes_compressed: int | None = None, thumb_key: str | None = None) -> str:
-    """Insert or refresh one sidecar record (+ its tags, albums, people, source) and its FTS row."""
-    hlc = stamp(device.device_id)
-    row = media_row(record, bytes_compressed=bytes_compressed, thumb_key=thumb_key)
-    pid = row["photo_id"]
-    apple = record.get("apple") or {}
-    with conn:
-        upsert_device(conn, device, hlc)
-        cols = list(row) + ["created_hlc", "updated_hlc"]
-        conn.execute(
-            f"INSERT INTO media ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))}) "
-            f"ON CONFLICT(photo_id) DO UPDATE SET "
-            + ", ".join(f"{c} = COALESCE(excluded.{c}, media.{c})" for c in _FACT_COLUMNS)
-            + ", updated_hlc = excluded.updated_hlc",
-            [*row.values(), hlc, hlc],
-        )
-        conn.execute(
-            "INSERT OR IGNORE INTO media_sources (photo_id, device_id, source_ref, seen_hlc) VALUES (?, ?, ?, ?)",
-            (pid, device.device_id, source_ref(record), hlc),
-        )
-        for source, values in (("apple-keyword", apple.get("keywords")), ("apple-label", apple.get("labels"))):
-            for tag in dict.fromkeys(t.strip() for t in values or [] if t and t.strip()):
-                conn.execute("INSERT OR IGNORE INTO media_tags (photo_id, tag, source, add_op) VALUES (?, ?, ?, ?)",
-                             (pid, tag.lower(), source, f"import:{pid}:{source}:{tag.lower()}"))
-        for album in dict.fromkeys(a for a in apple.get("albums") or [] if a):
-            conn.execute("INSERT OR IGNORE INTO media_albums (photo_id, album, add_op) VALUES (?, ?, ?)",
-                         (pid, album, f"import:{pid}:album:{album}"))
-        for name in dict.fromkeys(n.strip() for n in apple.get("persons") or [] if n and n.strip()):
-            if name == UNNAMED_PERSON:
-                continue
-            per = person_id(name)
-            conn.execute("INSERT OR IGNORE INTO people (person_id, name) VALUES (?, ?)", (per, name))
-            conn.execute("INSERT OR IGNORE INTO media_people (photo_id, person_id, source, add_op) VALUES (?, ?, ?, ?)",
-                         (pid, per, "apple", f"import:{pid}:person:{per}"))
-        refresh_fts(conn, pid)
-    return pid
+                  bytes_compressed: int | None = None) -> str:
+    """Record one archived item as ops (device.register if new, media.upsert, media.source) and apply them."""
+    from .ops import Emitter
 
-
-def upsert_device(conn: sqlite3.Connection, device: Any, hlc: str) -> None:
-    conn.execute(
-        "INSERT INTO devices (device_id, name, platform, first_seen_hlc, last_seen_hlc) VALUES (?, ?, ?, ?, ?) "
-        "ON CONFLICT(device_id) DO UPDATE SET name = excluded.name, platform = excluded.platform, "
-        "last_seen_hlc = excluded.last_seen_hlc",
-        (device.device_id, device.name, device.platform, hlc, hlc),
-    )
-
-
-def set_thumb_key(conn: sqlite3.Connection, photo_id: str, thumb_key: str) -> None:
-    with conn:
-        conn.execute("UPDATE media SET thumb_key = ? WHERE photo_id = ?", (thumb_key, photo_id))
+    items: list[tuple[str, dict]] = []
+    known = conn.execute("SELECT name, platform FROM devices WHERE device_id = ?", (device.device_id,)).fetchone()
+    if known is None or tuple(known) != (device.name, device.platform):
+        items.append(("device.register", {"device_id": device.device_id, "name": device.name,
+                                          "platform": device.platform}))
+    body = {"record": record}
+    if bytes_compressed is not None:
+        body["bytes_compressed"] = bytes_compressed
+    items.append(("media.upsert", body))
+    items.append(("media.source", {"photo_id": record["photo_id"], "device_id": device.device_id,
+                                   "source_ref": source_ref(record)}))
+    Emitter(conn, device.device_id).emit_many(items)
+    return record["photo_id"]
 
 
 def refresh_fts(conn: sqlite3.Connection, photo_id: str) -> None:

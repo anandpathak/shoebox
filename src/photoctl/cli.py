@@ -470,7 +470,8 @@ def catalog_checksum(catalog_path):
 @click.option("--from-s3", is_flag=True, help="Read sidecars from s3://<bucket>/meta/ instead.")
 @click.option("--bucket", envvar="PHOTOCTL_BUCKET")
 @click.option("--profile", envvar="AWS_PROFILE", default=None)
-def catalog_backfill(catalog_path, from_dir, from_s3, bucket, profile):
+@click.option("--force", is_flag=True, help="Re-import records that are already in the catalog.")
+def catalog_backfill(catalog_path, from_dir, from_s3, bucket, profile, force):
     """Build or refresh the catalog from existing JSON sidecars."""
     from .catalog import open_catalog
     from .catalog.store import load_record, upsert_record
@@ -482,8 +483,9 @@ def catalog_backfill(catalog_path, from_dir, from_s3, bucket, profile):
         keys = [k for k in s3.list_keys("meta/") if k.endswith(".json")]
         with click.progressbar(keys, label="Backfilling from S3") as bar:
             for key in bar:
-                upsert_record(conn, json.loads(s3.get_bytes(key)), dev)
-                n += 1
+                if force or not _in_catalog(conn, key.rsplit("/", 1)[-1].removesuffix(".json"), dev):
+                    upsert_record(conn, json.loads(s3.get_bytes(key)), dev)
+                    n += 1
     else:
         root = (from_dir or Path("library")) / "meta"
         files = sorted(root.rglob("*.json")) if root.exists() else []
@@ -491,11 +493,13 @@ def catalog_backfill(catalog_path, from_dir, from_s3, bucket, profile):
             raise click.ClickException(f"No sidecars found under {root}")
         with click.progressbar(files, label="Backfilling") as bar:
             for f in bar:
+                if not force and _in_catalog(conn, f.stem, dev):
+                    continue
                 rec = load_record(f)
-                comp = (from_dir or Path("library")) / (rec.get("keys") or {}).get("compressed", "")
+                comp = (from_dir or Path("library")) / ((rec.get("keys") or {}).get("compressed") or "")
                 upsert_record(conn, rec, dev, bytes_compressed=comp.stat().st_size if comp.is_file() else None)
                 n += 1
-    click.echo(f"Upserted {n} records.")
+    click.echo(f"Added {n} records.")
 
 
 @catalog.command("export")
@@ -516,6 +520,11 @@ def catalog_export(catalog_path, flavour, device_id, output):
     click.echo(f"Wrote {out} ({_human(out.stat().st_size)})")
 
 
+def _in_catalog(conn, photo_id: str, dev) -> bool:
+    return conn.execute("SELECT 1 FROM media_sources WHERE photo_id = ? AND device_id = ?",
+                        (photo_id, dev.device_id)).fetchone() is not None
+
+
 # ---------------------------------------------------------------- thumbnails
 
 @main.group()
@@ -531,9 +540,11 @@ def thumbs():
 def thumbs_backfill(out, bucket, profile, catalog_path):
     """Make thumbnails for archived items that don't have one yet."""
     from .catalog import open_catalog
-    from .catalog.store import load_record, set_thumb_key
+    from .catalog.store import load_record, upsert_record
+    from .device import load_device
 
     s3 = _bucket(bucket, profile) if bucket else None
+    dev = load_device()
     conn = open_catalog(catalog_path)
     made = 0
     for meta in sorted((out / "meta").rglob("*.json")):
@@ -549,7 +560,7 @@ def thumbs_backfill(out, bucket, profile, catalog_path):
         if s3:
             s3.upload(out / thumb_key, thumb_key, content_type="image/jpeg")
             s3.upload(meta, keys["meta"], content_type="application/json")
-        set_thumb_key(conn, rec["photo_id"], thumb_key)
+        upsert_record(conn, rec, dev)
         made += 1
     click.echo(f"Made {made} thumbnails{' and uploaded them' if s3 and made else ''}.")
 

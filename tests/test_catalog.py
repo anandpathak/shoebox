@@ -1,6 +1,16 @@
 from photoctl.catalog import SCHEMA_VERSION, open_catalog, schema_version
 from photoctl.catalog.store import person_id, stats, upsert_record
 
+
+def test_writes_go_through_ops(tmp_path, sidecar, device):
+    conn = open_catalog(tmp_path / "c.sqlite")
+    upsert_record(conn, sidecar, device)
+    kinds = [r[0] for r in conn.execute("SELECT kind FROM ops ORDER BY hlc")]
+    assert kinds == ["device.register", "media.upsert", "media.source"]
+    assert conn.execute("SELECT COUNT(*) FROM outbox").fetchone()[0] == 3
+    upsert_record(conn, sidecar, device)  # device already registered: not repeated
+    assert [r[0] for r in conn.execute("SELECT kind FROM ops ORDER BY hlc")][3:] == ["media.upsert", "media.source"]
+
 TABLES = {"media", "media_sources", "devices", "media_tags", "media_albums", "people", "media_people",
           "tombstones", "media_fts", "ops", "outbox", "sync_cursor", "meta"}
 
@@ -45,8 +55,9 @@ def test_fts_finds_place_people_tags(tmp_path, sidecar, device):
 def test_reimport_is_noop_and_keeps_user_edits(tmp_path, sidecar, device):
     conn = open_catalog(tmp_path / "c.sqlite")
     upsert_record(conn, sidecar, device)
-    with conn:
-        conn.execute("UPDATE media SET title = 'My edit' WHERE photo_id = ?", (sidecar["photo_id"],))
+    from photoctl.catalog.ops import Emitter
+    Emitter(conn, device.device_id).emit("media.set", {"photo_id": sidecar["photo_id"], "field": "title",
+                                                       "value": "My edit"})
     upsert_record(conn, sidecar, device)
     assert conn.execute("SELECT COUNT(*) FROM media_tags").fetchone()[0] == 4
     assert conn.execute("SELECT COUNT(*) FROM media_fts").fetchone()[0] == 1
