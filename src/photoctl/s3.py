@@ -39,6 +39,7 @@ class Bucket:
         storage_class: str = "STANDARD",
         content_type: str | None = None,
         metadata: dict[str, str] | None = None,
+        tagging: str | None = None,
     ) -> None:
         extra = {
             "StorageClass": storage_class,
@@ -48,6 +49,8 @@ class Bucket:
         }
         if content_type:
             extra["ContentType"] = content_type
+        if tagging:
+            extra["Tagging"] = tagging
         self.client.upload_file(str(path), self.name, key, ExtraArgs=extra, Config=TRANSFER)
         head = self.head(key)
         if head is None or head["ContentLength"] != path.stat().st_size:
@@ -114,10 +117,11 @@ class Bucket:
             raise
 
     def put_bytes(self, key: str, data: bytes, *, content_type: str = "application/octet-stream",
-                  metadata: dict[str, str] | None = None) -> None:
+                  metadata: dict[str, str] | None = None, tagging: str | None = None) -> None:
         self.client.put_object(Bucket=self.name, Key=key, Body=data, ContentType=content_type,
                                ChecksumAlgorithm="SHA256", ServerSideEncryption="AES256",
-                               Metadata={k: _ascii(v) for k, v in (metadata or {}).items()})
+                               Metadata={k: _ascii(v) for k, v in (metadata or {}).items()},
+                               **({"Tagging": tagging} if tagging else {}))
 
     def get_bytes(self, key: str) -> bytes:
         return self.client.get_object(Bucket=self.name, Key=key)["Body"].read()

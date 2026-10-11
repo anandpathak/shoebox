@@ -107,8 +107,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 
 ## M3b — Database backup & recovery (§12)
 
-- [ ] **T3b.1** Terraform: lifecycle for `backups/` (daily kept 30 days, `monthly/` kept 365 days); confirm the ingest policy can write but not delete there.
+- [~] **T3b.1** Terraform: lifecycle for `backups/` (daily kept 30 days, `monthly/` kept 365 days); confirm the ingest policy can write but not delete there.
   *Done when:* `tofu apply` succeeds and a test delete on `backups/` with the ingest identity is denied.
+  *Note:* Written and `tofu validate` passes (2026-10-11). Backups are tagged `retention=daily` / `retention=monthly` and two tag-filtered rules expire them after 30 / 365 days (`backup_daily_days`, `backup_monthly_days`); the ingest policy gained `s3:PutObjectTagging`/`GetObjectTagging` and still has no delete. **Your step:** `tofu plan && tofu apply` (together with T3.1).
 - [ ] **T3b.2** Full `photoctl db backup`: catalog + state + `device.json` + `config.toml`; consistent copies via the online backup API; `integrity_check`; manifest (sha256 per file, schema_version, last pushed op, version); `LATEST.json` replaced with `If-Match`; first backup of the month copied to `monthly/`.
   *Done when:* a backup taken while an archive run is writing passes `integrity_check` after download.
 - [ ] **T3b.3** Automatic schedule: after every archive run + daily via a LaunchAgent (`photoctl db schedule install|uninstall`); `photoctl status` shows "Last backup: 3 h ago", amber after 48 h.

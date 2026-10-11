@@ -73,6 +73,36 @@ resource "aws_s3_bucket_lifecycle_configuration" "archive" {
     }
   }
 
+  # Database backups (photoctl db backup). Objects are tagged by photoctl: retention=daily for each
+  # backup, retention=monthly for the first backup of each month.
+  rule {
+    id     = "backups-daily"
+    status = "Enabled"
+    filter {
+      and {
+        prefix = "backups/"
+        tags   = { retention = "daily" }
+      }
+    }
+    expiration {
+      days = var.backup_daily_days
+    }
+  }
+
+  rule {
+    id     = "backups-monthly"
+    status = "Enabled"
+    filter {
+      and {
+        prefix = "backups/"
+        tags   = { retention = "monthly" }
+      }
+    }
+    expiration {
+      days = var.backup_monthly_days
+    }
+  }
+
   rule {
     id     = "housekeeping"
     status = "Enabled"
@@ -127,7 +157,9 @@ data "aws_iam_policy_document" "ingest" {
     # and backups/. No s3:DeleteObject: leases and pointers are replaced with conditional PUTs instead.
     actions = [
       "s3:PutObject",
+      "s3:PutObjectTagging",
       "s3:GetObject",
+      "s3:GetObjectTagging",
       "s3:GetObjectAttributes",
       "s3:RestoreObject",
       "s3:AbortMultipartUpload",

@@ -38,3 +38,15 @@ variable "sync_ops_retention_days" {
     error_message = "Keep sync batches longer than the 30-day snapshot refresh interval."
   }
 }
+
+variable "backup_daily_days" {
+  description = "Days to keep each daily database backup."
+  type        = number
+  default     = 30
+}
+
+variable "backup_monthly_days" {
+  description = "Days to keep the first database backup of each month."
+  type        = number
+  default     = 365
+}

@@ -25,6 +25,7 @@ from .catalog.export import integrity_ok, snapshot
 from .device import Device
 
 DATABASES = ("state", "catalog")
+DAILY, MONTHLY = "retention=daily", "retention=monthly"  # matched by the lifecycle rules in infra/main.tf
 
 
 def _sha256(path: Path) -> str:
@@ -89,11 +90,12 @@ def backup(bucket, device: Device, *, now: datetime | None = None) -> BackupResu
                 entry = {}
             entry |= {"key": prefix + name, "sha256": _sha256(out), "bytes": out.stat().st_size}
             bucket.upload(out, prefix + name, content_type="application/octet-stream",
-                          metadata={"sha256": entry["sha256"]})
+                          metadata={"sha256": entry["sha256"]}, tagging=DAILY)
             manifest["files"][name] = entry
     if not manifest["files"]:
         raise RuntimeError("nothing to back up yet (no state.sqlite, catalog.sqlite or device.json)")
-    bucket.put_bytes(prefix + "manifest.json", json.dumps(manifest, indent=2).encode(), content_type="application/json")
+    bucket.put_bytes(prefix + "manifest.json", json.dumps(manifest, indent=2).encode(), content_type="application/json",
+                     tagging=DAILY)
     bucket.put_bytes(root + "LATEST.json", json.dumps({"prefix": prefix, **{k: manifest[k] for k in
                      ("created_at", "photoctl_version")}}).encode(), content_type="application/json")
     monthly = _copy_monthly(bucket, root, prefix, manifest, now)
@@ -104,11 +106,12 @@ def _copy_monthly(bucket, root: str, prefix: str, manifest: dict, now: datetime)
     month_prefix = f"{root}monthly/{now:%Y-%m}/"
     if month_prefix in bucket.list_prefixes(f"{root}monthly/"):
         return None
-    for name, entry in manifest["files"].items():
-        bucket.client.copy_object(Bucket=bucket.name, Key=month_prefix + name, ServerSideEncryption="AES256",
-                                  CopySource={"Bucket": bucket.name, "Key": entry["key"]})
-    bucket.client.copy_object(Bucket=bucket.name, Key=month_prefix + "manifest.json", ServerSideEncryption="AES256",
-                              CopySource={"Bucket": bucket.name, "Key": prefix + "manifest.json"})
+    sources = [(entry["key"], month_prefix + name) for name, entry in manifest["files"].items()]
+    sources.append((prefix + "manifest.json", month_prefix + "manifest.json"))
+    for src, dest in sources:
+        bucket.client.copy_object(Bucket=bucket.name, Key=dest, ServerSideEncryption="AES256",
+                                  CopySource={"Bucket": bucket.name, "Key": src},
+                                  TaggingDirective="REPLACE", Tagging=MONTHLY)
     return month_prefix
 
 

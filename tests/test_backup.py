@@ -60,3 +60,12 @@ def test_new_machine_recovers_identity(bucket, sidecar, device):
     restore(bucket, device.device_id, with_identity=True)
     from photoctl.device import load_device
     assert load_device(create=False).device_id == device.device_id
+
+
+def test_backups_are_tagged_for_lifecycle(bucket, sidecar, device):
+    _seed(sidecar, device)
+    res = backup(bucket, device, now=datetime(2026, 10, 11, tzinfo=timezone.utc))
+    tags = lambda k: {t["Key"]: t["Value"] for t in bucket.client.get_object_tagging(Bucket=bucket.name, Key=k)["TagSet"]}
+    assert tags(res.files["state.sqlite.gz"]["key"]) == {"retention": "daily"}
+    assert tags(res.prefix + "manifest.json") == {"retention": "daily"}
+    assert tags(res.monthly + "state.sqlite.gz") == {"retention": "monthly"}
