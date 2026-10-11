@@ -157,7 +157,7 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
   *Done when:* TestClient tests pass, and thumbnails stream from local disk or redirect to presigned URLs.
 - [x] **T5.3** Write endpoints: PATCH media, tags, people. Each one emits ops, and nothing writes SQLite directly. ✅ 2026-10-11
   *Done when:* an edit through the API appears in `outbox` and syncs to device B.
-- [ ] **T5.4** Restore endpoints (POST/GET original).
+- [x] **T5.4** Restore endpoints (POST/GET original). ✅ 2026-10-11
   *Done when:* they return the restore status correctly.
 - [ ] **T5.5** Sync endpoints + a background sync task (every 60 s, sharing the T3.5 lock).
   *Done when:* `/api/sync/status` shows the last push/pull and pending ops.
