@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import type { BackupList, Device } from '../api/types'
+import { InstallHint } from '../components/InstallHint'
 import { TopBar } from '../components/Shell'
 import { useApp } from '../lib/app'
 import { ago, bytes } from '../lib/format'
@@ -44,6 +45,7 @@ export function Sync() {
       <TopBar title="Sync & devices" />
       <div className="stack">
         {error && <div className="error">{error}</div>}
+        <InstallHint always />
         <section className="card">
           <h2>{!s3 ? 'This Mac only' : sync?.pending_ops ? `${sync.pending_ops} changes waiting to sync` : 'Up to date'}</h2>
           {!s3 && <p className="muted">The server runs without S3, so changes stay on this Mac. Start it with a bucket to sync devices.</p>}

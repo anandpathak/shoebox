@@ -170,3 +170,4 @@ input[type="search"], input[type="text"], select { width: 100%; min-width: 0; bo
 .progress.thin { height: 4px; margin-top: 4px; }
 .upload-row, .history-row { align-items: flex-start !important; }
 details summary { cursor: pointer; color: var(--danger); }
+.install { margin: 8px 0 12px; border-color: var(--accent); background: var(--accent-soft); }

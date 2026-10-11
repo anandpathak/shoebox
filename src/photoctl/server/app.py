@@ -59,7 +59,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     from . import routes
     routes.register(app)
     if settings.static_dir and Path(settings.static_dir).exists():
+        import mimetypes
+
         from fastapi.staticfiles import StaticFiles
+
+        mimetypes.add_type("application/manifest+json", ".webmanifest")
 
         # Built web app (JS/CSS/icons/manifest). Registered last so /api and / win.
         app.mount("/", StaticFiles(directory=settings.static_dir), name="web")

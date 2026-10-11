@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Device, Person } from '../api/types'
 import { Grid } from '../components/Grid'
+import { InstallHint } from '../components/InstallHint'
 import { describe, EMPTY, SearchBar, type Filters } from '../components/SearchBar'
 import { TopBar } from '../components/Shell'
 import { useApp } from '../lib/app'
@@ -50,6 +51,7 @@ export function Library({ route }: { route: Route }) {
         <SearchBar value={filters} onChange={(f) => go(`library${toQuery(f)}`, true)} devices={devices} people={people}
                    understood={searching ? describe(query) : ''} />
       </TopBar>
+      <InstallHint />
       {error && <div className="error">{error}</div>}
       {!loading && !error && items.length === 0
         ? (searching
