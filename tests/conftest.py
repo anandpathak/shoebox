@@ -43,7 +43,21 @@ def sidecar():
 def photoctl_home(tmp_path, monkeypatch):
     home = tmp_path / "photoctl-home"
     monkeypatch.setenv("PHOTOCTL_HOME", str(home))
+    monkeypatch.setenv("PHOTOCTL_TOKEN_STORE", "file")   # never touch the real Keychain in tests
     return home
+
+
+@pytest.fixture
+def api(tmp_path):
+    """(TestClient from this Mac, token, app). Requests come from 127.0.0.1 to http://127.0.0.1:8765."""
+    from fastapi.testclient import TestClient
+
+    from photoctl.server.app import create_app
+    from photoctl.server.config import Settings
+
+    app = create_app(Settings(library=tmp_path / "library", allowed_logins=["me@example.com"]))
+    client = TestClient(app, base_url="http://127.0.0.1:8765", client=("127.0.0.1", 50000))
+    return client, app.state.token, app
 
 
 @pytest.fixture

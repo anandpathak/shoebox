@@ -664,6 +664,34 @@ def original(photo_id, tier, days, check, dest, bucket, profile):
         click.echo("Not requested yet. Run without --status to request it.")
 
 
+@main.command()
+@click.option("--port", default=8765, show_default=True)
+@click.option("--host", default="127.0.0.1", show_default=True,
+              help="Keep 127.0.0.1; reach it from phones with `tailscale serve`, never by opening a port.")
+@click.option("--out", "library", type=click.Path(path_type=Path), default=Path("library"), show_default=True)
+@click.option("--bucket", envvar="PHOTOCTL_BUCKET")
+@click.option("--profile", envvar="AWS_PROFILE", default=None)
+@click.option("--print-token", is_flag=True, help="Print the API token (for scripts) and exit.")
+def serve(port, host, library, bucket, profile, print_token):
+    """Run the web app and API on this Mac."""
+    import uvicorn
+
+    from .server.app import create_app
+    from .server.auth import get_or_create_token
+    from .server.config import Settings
+
+    if print_token:
+        click.echo(get_or_create_token())
+        return
+    if host not in ("127.0.0.1", "localhost", "::1"):
+        raise click.UsageError("photoctl only listens on this Mac. Use `tailscale serve` to reach it from phones.")
+    web = Path(__file__).parent / "web" / "dist"
+    app = create_app(Settings.load(library=library, bucket=bucket, profile=profile, port=port,
+                                   static_dir=web if web.exists() else None))
+    click.echo(f"photoctl is running at http://127.0.0.1:{port}  (Ctrl-C to stop)")
+    uvicorn.run(app, host=host, port=port, log_level="warning")
+
+
 # ---------------------------------------------------------------- catalog
 
 @main.group()
