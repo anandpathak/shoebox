@@ -14,39 +14,15 @@ At the end of a run the local databases are backed up to s3://<bucket>/backups/<
 from __future__ import annotations
 
 import json
-import shutil
-import tempfile
-import threading
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
 import click
 
 from . import paths
-from .derive import compress, compress_video, make_thumb, photo_id_from_sha256, sha256_file, video_poster
+from .archiver import ARCHIVE_ALBUM
+from .derive import make_thumb
 from .state import State
-
-ARCHIVE_ALBUM = "Archived to S3"
-_export_lock = threading.Lock()  # Photos.app AppleScript export is not thread-safe
-
-
-@dataclass
-class Result:
-    source_ref: str
-    status: str
-    fields: dict = field(default_factory=dict)
-    uploaded_bytes: int = 0
-    uuid: str = ""
-    error: str | None = None
-    record: dict | None = None
-
-
-def _partition(dt: datetime | None) -> str:
-    if dt is None:
-        return "0000/0000-00"
-    return f"{dt:%Y}/{dt:%Y-%m}"
 
 
 def _human(n: float) -> str:
@@ -63,175 +39,6 @@ def _bucket(bucket: str | None, profile: str | None):
     if not bucket:
         raise click.UsageError("--bucket (or $PHOTOCTL_BUCKET) is required.")
     return Bucket(bucket, profile)
-
-
-def _select_photos(library, uuids, selected, albums, from_date, to_date, include_hidden, include_videos,
-                   all_photos, limit):
-    import osxphotos
-
-    if not (uuids or selected or albums or from_date or to_date or all_photos):
-        raise click.UsageError("Choose what to archive: --selected, --album, --from/--to, --uuid, or --all.")
-
-    if selected:
-        import photoscript
-
-        try:
-            uuids = list(uuids) + [p.uuid for p in photoscript.PhotosLibrary().selection]
-        except photoscript.exceptions.AppleScriptError as e:
-            raise click.ClickException(
-                f"Couldn't read the selection from Photos.app ({e}).\n"
-                "Allow your terminal to control Photos: System Settings → Privacy & Security → "
-                "Automation → <your terminal> → Photos.\n"
-                "Or skip automation entirely: put the photo in an album and use --album <name>."
-            ) from e
-        if not uuids:
-            raise click.UsageError("Nothing is selected in Photos.app.")
-
-    try:
-        db = osxphotos.PhotosDB(dbfile=library) if library else osxphotos.PhotosDB()
-    except OSError as e:
-        raise click.ClickException(
-            f"Can't read the Photos library ({e}).\nGrant your terminal app Full Disk Access: "
-            "System Settings → Privacy & Security → Full Disk Access, then restart the terminal."
-        ) from e
-    photos = db.photos(
-        uuid=list(uuids) or None,
-        albums=list(albums) or None,
-        from_date=from_date,
-        to_date=to_date,
-    )
-    photos = [p for p in photos if (include_videos or not p.ismovie)
-              and not p.intrash and (include_hidden or not p.hidden)]
-    photos.sort(key=lambda p: p.date or datetime.min)
-    return photos[:limit] if limit else photos
-
-
-def _process(photo, *, out: Path, bucket, storage_class, long_edge, quality, video_height, video_crf,
-             download_missing, live_video, dry_run) -> Result:
-    ref = f"applephotos:{photo.uuid}"
-    tmpdir = None
-    try:
-        src = Path(photo.path) if photo.path else None
-        if src is None or not src.exists():
-            if not download_missing:
-                return Result(ref, "missing_original", uuid=photo.uuid,
-                              error="original not on disk (iCloud); re-run with --download-missing")
-            tmpdir = Path(tempfile.mkdtemp(prefix="photoctl-"))
-            with _export_lock:
-                exported = photo.export(str(tmpdir), use_photos_export=True)
-            if not exported:
-                return Result(ref, "missing_original", uuid=photo.uuid, error="download from iCloud failed")
-            src = Path(exported[0])
-
-        sha = sha256_file(src)
-        pid = photo_id_from_sha256(sha)
-        part = _partition(photo.date)
-        ext = src.suffix.lower().lstrip(".") or "bin"
-        raw_key = f"raw/{part}/{pid}.{ext}"
-        is_video = bool(photo.ismovie)
-        comp_key = f"compressed/{part}/{pid}.{'mp4' if is_video else 'jpg'}"
-        poster_key = f"compressed/{part}/{pid}.jpg" if is_video else None
-        thumb_key = f"thumb/{part}/{pid}.jpg"
-        meta_key = f"meta/{part}/{pid}.json"
-        comp_path = out / comp_key
-        meta_path = out / meta_key
-        size = src.stat().st_size
-
-        extras: list[tuple[Path, str]] = []  # companion originals that share the photo_id
-        if photo.has_raw and photo.path_raw and Path(photo.path_raw).exists():
-            p = Path(photo.path_raw)
-            extras.append((p, f"raw/{part}/{pid}.{p.suffix.lower().lstrip('.')}"))
-        if live_video and not is_video and photo.live_photo and photo.path_live_photo and Path(photo.path_live_photo).exists():
-            p = Path(photo.path_live_photo)
-            extras.append((p, f"raw/{part}/{pid}.{p.suffix.lower().lstrip('.')}"))
-
-        if dry_run:
-            return Result(ref, "would_archive", uuid=photo.uuid,
-                          uploaded_bytes=size + sum(p.stat().st_size for p, _ in extras),
-                          fields={"raw_key": raw_key})
-
-        status = "done"
-        error = None
-        derived: list[tuple[Path, str, str]] = []  # (local path, key, content type)
-        try:
-            if is_video:
-                compress_video(src, comp_path, short_edge=video_height, crf=video_crf)
-                derived.append((comp_path, comp_key, "video/mp4"))
-                video_poster(src, out / poster_key, long_edge=long_edge)
-                derived.append((out / poster_key, poster_key, "image/jpeg"))
-                make_thumb(out / poster_key, out / thumb_key)
-            else:
-                compress(src, comp_path, long_edge=long_edge, quality=quality)
-                derived.append((comp_path, comp_key, "image/jpeg"))
-                make_thumb(comp_path, out / thumb_key)
-            derived.append((out / thumb_key, thumb_key, "image/jpeg"))
-        except Exception as e:  # unknown/undecodable type: still archive the original
-            status, error = "no_derivative", str(e)
-        derived_keys = {k for _, k, _ in derived}
-
-        record = {
-            "schema_version": 1,
-            "photo_id": pid,
-            "media_type": "video" if is_video else "photo",
-            "keys": {"raw": raw_key, "compressed": comp_key if comp_key in derived_keys else None,
-                     "poster": poster_key if poster_key in derived_keys else None,
-                     "thumb": thumb_key if thumb_key in derived_keys else None, "meta": meta_key,
-                     "companions": [k for _, k in extras]},
-            "file": {"sha256": sha, "orig_name": photo.original_filename, "orig_ext": ext, "bytes_raw": size,
-                     "width": photo.width, "height": photo.height, "uti": photo.uti_original},
-            "taken_at": photo.date.isoformat() if photo.date else None,
-            "source": {"type": "applephotos", "ref": photo.uuid},
-            "apple": json.loads(photo.json()),  # persons, albums, keywords, title, place, labels, …
-        }
-        meta_path.parent.mkdir(parents=True, exist_ok=True)
-        meta_path.write_text(json.dumps(record, indent=2, ensure_ascii=False))
-        fields = {
-            "photo_id": pid, "sha256": sha, "raw_key": raw_key,
-            "compressed_key": record["keys"]["compressed"], "meta_key": meta_key, "bytes_raw": size,
-            "bytes_compressed": comp_path.stat().st_size if comp_key in derived_keys else None,
-        }
-
-        s3_meta = {"sha256": sha, "orig-name": photo.original_filename or src.name,
-                   "source": ref, "taken-at": record["taken_at"] or ""}
-        uploaded = 0
-        if bucket is None:  # --local-only
-            return Result(ref, status, uuid=photo.uuid, error=error, record=record, fields=fields)
-        # Content-addressed keys: if the object already exists (an earlier run, or another device racing us)
-        # it holds the same bytes — check that rather than uploading again.
-        for path, key in [(src, raw_key), *extras]:
-            if bucket.create_if_absent(path, key, storage_class=storage_class, metadata=s3_meta):
-                uploaded += path.stat().st_size
-            elif path is src:
-                _verify_existing(bucket, key, sha, size)
-        for path, key, content_type in derived:
-            bucket.upload(path, key, content_type=content_type, metadata=s3_meta)
-            uploaded += path.stat().st_size
-        bucket.upload(meta_path, meta_key, content_type="application/json")
-
-        return Result(ref, status, uuid=photo.uuid, uploaded_bytes=uploaded, error=error, record=record,
-                      fields=fields)
-    except Exception as e:
-        return Result(ref, "failed", uuid=photo.uuid, error=f"{type(e).__name__}: {e}")
-    finally:
-        if tmpdir:
-            shutil.rmtree(tmpdir, ignore_errors=True)
-
-
-def _verify_existing(bucket, key: str, sha: str, size: int) -> None:
-    head = bucket.head(key)
-    if head is None:
-        raise RuntimeError(f"s3://{bucket.name}/{key} reported as existing but can't be read")
-    if head["ContentLength"] != size or head.get("Metadata", {}).get("sha256") not in (None, sha):
-        raise RuntimeError(f"s3://{bucket.name}/{key} already exists with different content")
-
-
-def _add_to_album(uuids: list[str], name: str) -> None:
-    import photoscript
-
-    lib = photoscript.PhotosLibrary()
-    album = lib.album(name) or lib.create_album(name)
-    for i in range(0, len(uuids), 200):
-        album.add([photoscript.Photo(u) for u in uuids[i:i + 200]])
 
 
 def _run_sync(s3, device, quiet: bool = False, force_snapshot: bool = False) -> None:
@@ -258,16 +65,6 @@ def _run_sync(s3, device, quiet: bool = False, force_snapshot: bool = False) -> 
         click.echo(f"Synced: pushed {r.pushed_ops} ops in {r.pushed_batches} batches, "
                    f"applied {r.applied_ops} new ops from {r.pulled_batches} batches"
                    + (f", skipped {len(r.rejected_batches)} bad batches" if r.rejected_batches else ""))
-
-
-def _run_backup(s3, device) -> None:
-    from .backup import backup
-
-    try:
-        res = backup(s3, device)
-        click.echo(f"Backed up databases to s3://{s3.name}/{res.prefix}")
-    except Exception as e:
-        click.echo(f"Database backup failed ({e}); run `photoctl db backup` to retry.", err=True)
 
 
 @click.group()
@@ -313,91 +110,51 @@ def archive(bucket, profile, out, selected, albums, from_date, to_date, uuids, a
             include_hidden, download_missing, live_video, videos, video_height, video_crf, storage_class, long_edge,
             quality, workers, mark_album, do_backup, dry_run, local_only, state_db):
     """Compress + upload originals from Apple Photos to S3."""
-    from .catalog import open_catalog
-    from .catalog.store import upsert_record
-    from .device import load_device
-    from .runlock import AlreadyRunning, IngestLock, RunLog
+    from .archiver import Options, Selection, SelectionError, run_archive
+    from .runlock import AlreadyRunning
 
     if not (bucket or dry_run or local_only):
         raise click.UsageError("--bucket (or $PHOTOCTL_BUCKET) is required unless --local-only or --dry-run.")
     record_state = not (dry_run or local_only)
-    device = load_device()
-    lock = IngestLock()
+    sel = Selection(selected=selected, albums=tuple(albums), from_date=from_date, to_date=to_date, uuids=tuple(uuids),
+                    all=all_photos, limit=limit, include_hidden=include_hidden, include_videos=videos, library=library)
+    opts = Options(out=out, bucket=_bucket(bucket, profile) if record_state else None, storage_class=storage_class,
+                   long_edge=long_edge, quality=quality, video_height=video_height, video_crf=video_crf,
+                   download_missing=download_missing, live_video=live_video, workers=workers, mark_album=mark_album,
+                   backup=do_backup, dry_run=dry_run, local_only=local_only, state_db=state_db)
+    bar = None
+
+    def on_event(kind, **d):
+        nonlocal bar
+        if kind == "start":
+            click.echo(f"{d['matched']} items matched ({d['matched'] - d['videos']} photos, {d['videos']} videos) · "
+                       f"{d['skipped']} already archived · {d['todo']} to process")
+            if d["todo"]:
+                bar = click.progressbar(length=d["todo"], label="Archiving", show_pos=True)
+                bar.__enter__()
+        elif kind == "item":
+            if d["error"] and d["status"] != "done":
+                click.echo(f"\n  {d['status']}: {d['source_ref']} — {d['error']}", err=True)
+            if bar:
+                bar.update(1)
+        elif kind == "end":
+            if bar:
+                bar.__exit__(None, None, None)
+            if d["counts"]:
+                verb = "would upload" if dry_run else "uploaded"
+                click.echo("\nSummary: " + ", ".join(f"{k}={v}" for k, v in sorted(d["counts"].items()))
+                           + f", {verb}={_human(d['uploaded_bytes'])}")
+                if not dry_run:
+                    click.echo(f"Compressed images + sidecars: {Path(out).resolve()}")
+        elif kind == "message":
+            click.echo(d["text"])
+
     try:
-        lock.__enter__()
+        run_archive(None, opts, selection=sel, on_event=on_event)
     except AlreadyRunning as e:
         raise click.ClickException(str(e)) from None
-    log = RunLog(lock.run_id)
-    try:
-        state = State(state_db)
-        photos = _select_photos(library, uuids, selected, albums, from_date, to_date, include_hidden, videos,
-                                all_photos, None)
-        todo = [p for p in photos if local_only or not state.is_done(f"applephotos:{p.uuid}")]
-        skipped = len(photos) - len(todo)
-        if limit:
-            todo = todo[:limit]
-        n_videos = sum(1 for p in photos if p.ismovie)
-        click.echo(f"{len(photos)} items matched ({len(photos) - n_videos} photos, {n_videos} videos) · "
-                   f"{skipped} already archived · {len(todo)} to process")
-        log.event("start", run_id=lock.run_id, device_id=device.device_id, matched=len(photos), todo=len(todo),
-                  dry_run=dry_run, local_only=local_only)
-        if not todo:
-            log.event("end", counts={}, uploaded_bytes=0)
-            return
-
-        s3 = _bucket(bucket, profile) if record_state else None
-        if s3:
-            s3.client.head_bucket(Bucket=bucket)  # fail fast on auth/bucket problems
-        catalog = None if dry_run else open_catalog(out / "catalog.sqlite" if local_only else None)
-
-        kwargs = dict(out=out, bucket=s3, storage_class=storage_class, long_edge=long_edge, quality=quality,
-                      video_height=video_height, video_crf=video_crf,
-                      download_missing=download_missing, live_video=live_video, dry_run=dry_run)
-        counts: dict[str, int] = {}
-        total_bytes = 0
-        archived_uuids: list[str] = []
-        with ThreadPoolExecutor(max_workers=workers) as pool, \
-                click.progressbar(length=len(todo), label="Archiving", show_pos=True) as bar:
-            futures = [pool.submit(_process, p, **kwargs) for p in todo]
-            for fut in as_completed(futures):
-                r = fut.result()
-                counts[r.status] = counts.get(r.status, 0) + 1
-                total_bytes += r.uploaded_bytes
-                if record_state:
-                    state.upsert(r.source_ref, status=r.status, error=r.error, **r.fields)
-                    if r.status in ("done", "no_derivative"):
-                        archived_uuids.append(r.uuid)
-                if catalog is not None and r.record is not None:
-                    upsert_record(catalog, r.record, device, bytes_compressed=r.fields.get("bytes_compressed"))
-                log.event("item", source_ref=r.source_ref, status=r.status, photo_id=r.fields.get("photo_id"),
-                          error=r.error, uploaded_bytes=r.uploaded_bytes)
-                if r.error and r.status != "done":
-                    bar.label = f"Archiving (last issue: {r.status})"
-                    click.echo(f"\n  {r.status}: {r.source_ref} — {r.error}", err=True)
-                bar.update(1)
-
-        verb = "would upload" if dry_run else "uploaded"
-        click.echo("\nSummary: " + ", ".join(f"{k}={v}" for k, v in sorted(counts.items()))
-                   + f", already_archived={skipped}, {verb}={_human(total_bytes)}")
-        log.event("end", counts=counts, uploaded_bytes=total_bytes)
-        if not dry_run:
-            click.echo(f"Compressed images + sidecars: {out.resolve()}")
-        if mark_album and archived_uuids:
-            try:
-                _add_to_album(archived_uuids, ARCHIVE_ALBUM)
-                click.echo(f'Added {len(archived_uuids)} photos to the "{ARCHIVE_ALBUM}" album in Photos.')
-            except Exception as e:
-                click.echo(f"Could not update Photos album ({e}); archive itself succeeded.", err=True)
-        if catalog is not None:
-            catalog.close()
-        if s3:
-            _run_sync(s3, device)
-        if s3 and do_backup:
-            state.db.close()
-            _run_backup(s3, device)
-    finally:
-        log.close()
-        lock.__exit__(None, None, None)
+    except SelectionError as e:
+        raise click.ClickException(str(e)) from None
 
 
 def _backup_age_line(now: datetime | None = None) -> str:

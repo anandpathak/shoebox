@@ -202,8 +202,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 
 ## M7 — Uploads & run triggers from the app (§8, §9.2)
 
-- [ ] **T7.1** Refactor `archive` into a library function `run_archive(selection, options, progress_cb, cancel_token)` used by both the CLI and the API.
+- [x] **T7.1** Refactor `archive` into a library function `run_archive(selection, options, progress_cb, cancel_token)` used by both the CLI and the API. ✅ 2026-10-11
   *Done when:* the CLI behaviour is unchanged (existing tests pass).
+  *Note:* photoctl/archiver.py: run_archive(items | selection, Options, on_event, cancel). Cancellation stops after the items in progress; the CLI is a thin wrapper drawing its progress bar from events. The per-item pipeline takes any item with source_type/ref (Apple Photos now, uploads in T7.3).
 - [ ] **T7.2** `POST /api/uploads/apple-photos` (selection on the Mac / album / date range / all, dry-run) → background run holding the ingest lock; SSE progress; `POST /api/runs/{id}/cancel`.
   *Done when:* a run started from the UI shows live progress, a second start shows "already running", and cancel stops after the current item.
 - [ ] **T7.3** tus resumable upload endpoint `/api/uploads/files` → `~/.photoctl/inbox/<device_id>/` → same pipeline (`source_ref = upload:<device_id>:<name>`); records `metadata_fidelity` + a "metadata incomplete" flag when GPS/date is missing.

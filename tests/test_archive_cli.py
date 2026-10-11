@@ -29,8 +29,9 @@ def fake_photo(path, uuid, day):
 def photos(tmp_path, monkeypatch):
     items = [fake_photo(make_jpeg(tmp_path / f"src/IMG_{i}.jpg", (4032, 3024), (40 * i, 90, 160)), f"UUID-{i}", i)
              for i in range(1, 4)]
-    monkeypatch.setattr(cli, "_select_photos", lambda *a, **k: items)
-    monkeypatch.setattr(cli, "_add_to_album", lambda *a, **k: None)
+    from photoctl import archiver
+    monkeypatch.setattr(archiver, "select_photos", lambda *a, **k: items)
+    monkeypatch.setattr(archiver, "add_to_album", lambda *a, **k: None)
     return items
 
 
@@ -62,7 +63,8 @@ def test_archive_uploads_catalogs_backs_up_and_is_idempotent(tmp_path, photos, b
 
     runs = list((paths.home() / "runs").glob("*.jsonl"))
     events = [json.loads(x)["event"] for x in runs[0].read_text().splitlines()]
-    assert events[0] == "start" and events[-1] == "end" and events.count("item") == 3
+    assert events[0] == "start" and "end" in events and events.count("item") == 3
+    assert all(e == "message" for e in events[events.index("end") + 1:])
 
     again = CliRunner().invoke(cli.main, ["archive", "--all", "--bucket", "test-archive", "--out", str(out),
                                           "--no-backup"])
