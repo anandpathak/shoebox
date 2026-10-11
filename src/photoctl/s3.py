@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 
 import boto3
 from boto3.s3.transfer import TransferConfig
 from botocore.exceptions import ClientError
 
-TRANSFER = TransferConfig(multipart_threshold=64 * 1024 * 1024, multipart_chunksize=16 * 1024 * 1024)
+MULTIPART_THRESHOLD = 64 * 1024 * 1024
+PART_SIZE = 16 * 1024 * 1024
+TRANSFER = TransferConfig(multipart_threshold=MULTIPART_THRESHOLD, multipart_chunksize=PART_SIZE)
+
+
+def _code(e: ClientError) -> str:
+    return e.response.get("Error", {}).get("Code", "")
 
 
 class Bucket:
@@ -45,6 +52,66 @@ class Bucket:
         head = self.head(key)
         if head is None or head["ContentLength"] != path.stat().st_size:
             raise RuntimeError(f"upload verification failed for s3://{self.name}/{key}")
+
+    def create_if_absent(self, path: Path, key: str, *, storage_class: str = "STANDARD",
+                         content_type: str | None = None, metadata: dict[str, str] | None = None) -> bool:
+        """Upload only if `key` doesn't exist yet (S3 If-None-Match). True if we created it, False if it was
+        already there — e.g. another device archived the same photo at the same moment."""
+        extra = {"StorageClass": storage_class, "ServerSideEncryption": "AES256", "ChecksumAlgorithm": "SHA256",
+                 "Metadata": {k: _ascii(v) for k, v in (metadata or {}).items()}}
+        if content_type:
+            extra["ContentType"] = content_type
+        size = path.stat().st_size
+        for attempt in range(5):
+            try:
+                created = (self._put_if_absent(path, key, extra) if size <= MULTIPART_THRESHOLD
+                           else self._multipart_if_absent(path, key, extra, size))
+            except ClientError as e:
+                if _code(e) == "ConditionalRequestConflict":  # a concurrent conditional write is in flight
+                    time.sleep(0.5 * (attempt + 1))
+                    continue
+                raise
+            if created:
+                head = self.head(key)
+                if head is None or head["ContentLength"] != size:
+                    raise RuntimeError(f"upload verification failed for s3://{self.name}/{key}")
+            return created
+        raise RuntimeError(f"gave up after repeated conflicting writes to s3://{self.name}/{key}")
+
+    def _put_if_absent(self, path: Path, key: str, extra: dict) -> bool:
+        try:
+            with open(path, "rb") as f:
+                self.client.put_object(Bucket=self.name, Key=key, Body=f, IfNoneMatch="*", **extra)
+            return True
+        except ClientError as e:
+            if _code(e) == "PreconditionFailed":
+                return False
+            raise
+
+    def _multipart_if_absent(self, path: Path, key: str, extra: dict, size: int) -> bool:
+        if self.head(key) is not None:  # cheap early exit before sending gigabytes
+            return False
+        upload_id = self.client.create_multipart_upload(Bucket=self.name, Key=key, **extra)["UploadId"]
+        try:
+            parts = []
+            with open(path, "rb") as f:
+                for number in range(1, (size + PART_SIZE - 1) // PART_SIZE + 1):
+                    resp = self.client.upload_part(Bucket=self.name, Key=key, UploadId=upload_id, PartNumber=number,
+                                                   Body=f.read(PART_SIZE), ChecksumAlgorithm="SHA256")
+                    parts.append({"PartNumber": number, "ETag": resp["ETag"],
+                                  "ChecksumSHA256": resp.get("ChecksumSHA256")})
+            parts = [{k: v for k, v in p.items() if v is not None} for p in parts]
+            self.client.complete_multipart_upload(Bucket=self.name, Key=key, UploadId=upload_id,
+                                                  MultipartUpload={"Parts": parts}, IfNoneMatch="*")
+            return True
+        except ClientError as e:
+            self.client.abort_multipart_upload(Bucket=self.name, Key=key, UploadId=upload_id)
+            if _code(e) == "PreconditionFailed":
+                return False
+            raise
+        except BaseException:
+            self.client.abort_multipart_upload(Bucket=self.name, Key=key, UploadId=upload_id)
+            raise
 
     def put_bytes(self, key: str, data: bytes, *, content_type: str = "application/octet-stream",
                   metadata: dict[str, str] | None = None) -> None:

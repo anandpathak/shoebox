@@ -196,13 +196,13 @@ def _process(photo, *, out: Path, bucket, storage_class, long_edge, quality, vid
         uploaded = 0
         if bucket is None:  # --local-only
             return Result(ref, status, uuid=photo.uuid, error=error, record=record, fields=fields)
-        if bucket.head(raw_key) is None:  # content-addressed: same key means same bytes
-            bucket.upload(src, raw_key, storage_class=storage_class, metadata=s3_meta)
-            uploaded += size
-        for p, key in extras:
-            if bucket.head(key) is None:
-                bucket.upload(p, key, storage_class=storage_class, metadata=s3_meta)
-                uploaded += p.stat().st_size
+        # Content-addressed keys: if the object already exists (an earlier run, or another device racing us)
+        # it holds the same bytes — check that rather than uploading again.
+        for path, key in [(src, raw_key), *extras]:
+            if bucket.create_if_absent(path, key, storage_class=storage_class, metadata=s3_meta):
+                uploaded += path.stat().st_size
+            elif path is src:
+                _verify_existing(bucket, key, sha, size)
         for path, key, content_type in derived:
             bucket.upload(path, key, content_type=content_type, metadata=s3_meta)
             uploaded += path.stat().st_size
@@ -215,6 +215,14 @@ def _process(photo, *, out: Path, bucket, storage_class, long_edge, quality, vid
     finally:
         if tmpdir:
             shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+def _verify_existing(bucket, key: str, sha: str, size: int) -> None:
+    head = bucket.head(key)
+    if head is None:
+        raise RuntimeError(f"s3://{bucket.name}/{key} reported as existing but can't be read")
+    if head["ContentLength"] != size or head.get("Metadata", {}).get("sha256") not in (None, sha):
+        raise RuntimeError(f"s3://{bucket.name}/{key} already exists with different content")
 
 
 def _add_to_album(uuids: list[str], name: str) -> None:

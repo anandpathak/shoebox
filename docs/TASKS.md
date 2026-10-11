@@ -78,8 +78,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [~] **T3.1** Terraform: add `sync/*` read/write to the ingest policy; add lifecycle rules for old op batches and snapshots.
   *Done when:* `tofu plan` shows only the expected changes and `apply` succeeds.
   *Note:* Written and `tofu validate` passes (2026-10-11). The ingest policy already covers `sync/*` (it allows the whole bucket, no deletes); added `sync-ops-expiry` (365 days, `sync_ops_retention_days`). Snapshots use one overwritten key (`sync/snapshots/latest.sqlite.gz`), so old versions expire through the existing noncurrent-version rule. **Your step:** `aws login`, then `cd infra && tofu plan && tofu apply`.
-- [ ] **T3.2** Switch the raw upload to a conditional create (`IfNoneMatch='*'`); on 412 → verify size + sha256 → mark as already archived.
+- [x] **T3.2** Switch the raw upload to a conditional create (`IfNoneMatch='*'`); on 412 → verify size + sha256 → mark as already archived. ✅ 2026-10-11
   *Done when:* two concurrent archive processes on the same photo produce one upload and both succeed.
+  *Note:* Single PUT with If-None-Match up to 64 MB; larger files use multipart with If-None-Match on CompleteMultipartUpload (aborted on 412). A 412 is verified against size + sha256 metadata.
 - [ ] **T3.3** Push: outbox → `sync/ops/<device_id>/<hlc>.jsonl.gz` with `If-None-Match`; delete the outbox rows after success.
   *Done when:* killing the process mid-push and re-running gives no lost and no duplicated batches.
 - [ ] **T3.4** Pull: list each device prefix with `StartAfter=cursor`, sort by HLC, `apply_ops`, advance cursors in the same transaction.
