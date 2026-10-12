@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import os
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -24,6 +25,7 @@ class Settings:
     hostnames: list[str] = field(default_factory=list)
     sync_interval: int = 60
     static_dir: Path | None = None
+    analysis: bool = True        # analyse new photos (labels, faces) in the background; PHOTOCTL_ANALYSIS=0 turns it off
 
     @classmethod
     def load(cls, **overrides) -> "Settings":
@@ -34,5 +36,7 @@ class Settings:
         known = {k: v for k, v in data.items() if k in cls.__dataclass_fields__}
         known.update({k: v for k, v in overrides.items() if v is not None})
         s = cls(**known)
+        if os.environ.get("PHOTOCTL_ANALYSIS") == "0":
+            s.analysis = False
         s.library = Path(s.library)
         return s

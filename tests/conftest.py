@@ -44,6 +44,7 @@ def photoctl_home(tmp_path, monkeypatch):
     home = tmp_path / "photoctl-home"
     monkeypatch.setenv("PHOTOCTL_HOME", str(home))
     monkeypatch.setenv("PHOTOCTL_TOKEN_STORE", "file")   # never touch the real Keychain in tests
+    monkeypatch.setenv("PHOTOCTL_ANALYSIS", "0")         # no background analysis (or model downloads) unless a test asks
     return home
 
 

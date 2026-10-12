@@ -539,6 +539,53 @@ def _prepare_tailscale(settings, port: int, setup: bool) -> None:
     click.echo("iPhone: Safari → Share → Add to Home Screen.  Android: Chrome → ⋮ → Install app.\n")
 
 
+# ---------------------------------------------------------------- analysis
+
+@main.command()
+@click.option("--out", "library", type=click.Path(path_type=Path), default=Path("library"), show_default=True,
+              help="Where the compressed copies are.")
+@click.option("--limit", type=int, default=None, help="Analyse at most this many items.")
+@click.option("--redo", is_flag=True, help="Analyse everything again (keeps names you've given).")
+def analyze(library, limit, redo):
+    """Label photos (beach, landscape, food…) and find faces, so they can be searched.
+
+    Runs on this Mac only: Apple Vision for labels, OpenCV for faces (models are downloaded once).
+    `photoctl serve` does this by itself in the background; name people in the app under People.
+    """
+    from .analyze.run import analyze_pending, pending
+    from .analyze.facedb import open_faces
+    from .catalog import open_catalog
+    from .device import load_device
+
+    conn, fdb = open_catalog(), open_faces()
+    todo = len(pending(conn, fdb, redo=redo)[:limit])
+    if not todo:
+        click.echo("Everything is analysed already.")
+        return
+    with click.progressbar(length=todo, label=f"Analysing {todo} items") as bar:
+        counts = analyze_pending(conn, library, load_device().device_id, limit=limit, redo=redo, fdb=fdb,
+                                 on_item=lambda _: bar.update(1))
+    click.echo(f"Analysed {counts['analyzed']}, skipped {counts['skipped']} (no local copy), failed {counts['failed']}; "
+               f"{counts['tags']} labels, {counts['faces']} faces.")
+    groups = fdb.execute("SELECT COUNT(DISTINCT cluster) FROM faces WHERE status = 'new'").fetchone()[0]
+    if groups:
+        click.echo(f"{groups} groups of faces are waiting for a name: open the app → People → Who's this?")
+
+
+@main.command()
+@click.option("--limit", default=20, show_default=True)
+def faces(limit):
+    """Unnamed groups of faces, biggest first (name them in the app under People)."""
+    from .analyze.facedb import clusters, open_faces
+
+    fdb = open_faces()
+    named = fdb.execute("SELECT COUNT(*) FROM faces WHERE status IN ('confirmed', 'auto')").fetchone()[0]
+    rows = clusters(fdb, limit=limit)
+    click.echo(f"{named} faces recognised; {len(rows)} unnamed groups shown.")
+    for r in rows:
+        click.echo(f"  group {r['cluster']}: {r['faces']} faces in {r['photos']} photos")
+
+
 # ---------------------------------------------------------------- catalog
 
 @main.group()

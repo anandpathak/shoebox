@@ -41,6 +41,7 @@ class RunManager:
     def __init__(self):
         self.runs: dict[str, Run] = {}
         self._lock = threading.Lock()
+        self.on_finished: list = []          # called with the Run after it ends (e.g. analyse new photos)
 
     def start(self, kind: str, label: str, opts: Options, *, items=None, selection: Selection | None = None,
               device=None, timeout: float = 10.0) -> Run:
@@ -94,6 +95,11 @@ class RunManager:
                 if run:
                     run.ended_at = _now()
                     _announce(run)
+                    for fn in self.on_finished:
+                        try:
+                            fn(run)
+                        except Exception:  # noqa: BLE001 — a follow-up must never break the run
+                            pass
 
         threading.Thread(target=work, name=f"archive-{kind}", daemon=True).start()
         if not accepted.wait(timeout):

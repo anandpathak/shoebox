@@ -188,6 +188,7 @@ def main() -> None:
     home = Path(args.home or tempfile.mkdtemp(prefix="photoctl-e2e-"))
     os.environ["PHOTOCTL_HOME"] = str(home)
     os.environ["PHOTOCTL_TOKEN_STORE"] = "file"
+    os.environ.setdefault("PHOTOCTL_ANALYSIS", "0")   # seeded stand-in images: don't label them or fetch face models
     library = home / "library"
     fake_photos_library(home)  # never read the real Photos library from tests or demos
     fresh = not (home / "catalog.sqlite").exists()
