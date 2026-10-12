@@ -254,8 +254,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T9.1** Add `@sqlite.org/sqlite-wasm` in a Web Worker with the `opfs-sahpool` VFS; FTS5 check. ✅ 2026-10-12
   *Done when:* a fixture catalog opens and an FTS query runs in iOS Safari and Android Chrome.
   *Note:* Tested in Chrome (iPhone, Pixel, desktop sizes) and in Playwright's WebKit (Safari's engine) at iPhone size: a catalog imports into OPFS, FTS works, and it survives a reload. WebKit refuses OPFS in private/ephemeral sessions (as Safari Private Browsing does), so on-device mode needs normal browsing or the installed app. Not yet checked on a physical iPhone.
-- [ ] **T9.2** "Use on this device": download `/api/catalogs/library` (resumable) → `DecompressionStream` → import into OPFS; `navigator.storage.persist()`; ask iOS users to install the PWA first (eviction rule).
+- [~] **T9.2** "Use on this device": download `/api/catalogs/library` (resumable) → `DecompressionStream` → import into OPFS; `navigator.storage.persist()`; ask iOS users to install the PWA first (eviction rule).
   *Done when:* a 50 MB catalog imports on both phones and survives an app restart.
+  *Note:* Built 2026-10-12: Catalogs screen → Use on this device (resumable download, unit-tested with a mid-download drop; gunzip in the browser; import into OPFS; persistent-storage request; iPhone install warning; Remove downloaded data). Browser tests pass in Chrome and in WebKit at iPhone size, including across a reload. **Your step:** enable it on both real phones (iPhone from the installed app) and restart the app.
 - [ ] **T9.3** `LocalDataSource`: runs the shared `queries/*.sql`; automatic fallback when the server is unreachable; status bar shows "Offline – catalog from <time>".
   *Done when:* in airplane mode, search returns the same ids as online for 20 test queries (query parity test in CI too).
 - [ ] **T9.4** TypeScript `apply_ops` + HLC passing **every** `spec/sync_vectors` vector (run in CI with Node + sqlite-wasm).

@@ -2,6 +2,7 @@ import { RegisterDevice } from './components/RegisterDevice'
 import { Shell } from './components/Shell'
 import { AppProvider } from './lib/app'
 import { useRoute } from './lib/router'
+import { Catalogs } from './screens/Catalogs'
 import { Library } from './screens/Library'
 import { People } from './screens/People'
 import { Sync } from './screens/Sync'
@@ -17,6 +18,7 @@ function Screens() {
       {tab === 'people' ? <People />
         : tab === 'sync' ? <Sync />
         : tab === 'uploads' ? <Uploads />
+        : tab === 'catalogs' ? <Catalogs />
         : <Library route={route} />}
       {route.name === 'media' && route.params[0] && <Viewer route={route} />}
     </Shell>
