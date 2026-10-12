@@ -1,4 +1,6 @@
 // Operations the on-device worker offers. Each gets the storage env first.
+import { mediaDetail, search, type SearchOptions } from './query'
+import { QUERIES } from './sql'
 import type { Env } from './worker'
 
 export const handlers = {
@@ -15,6 +17,20 @@ export const handlers = {
   },
   query(env: Env, name: string, sql: string, params?: Record<string, unknown>) {
     return env.db(name).all(sql, params)
+  },
+  search(env: Env, name: string, o: SearchOptions) {
+    return search(env.db(name), o)
+  },
+  media(env: Env, name: string, id: string) {
+    const d = mediaDetail(env.db(name), id)
+    if (!d) throw new Error('No such item on this device')
+    return d
+  },
+  people(env: Env, name: string) {
+    return env.db(name).all(QUERIES.people)
+  },
+  devices(env: Env, name: string) {
+    return env.db(name).all(QUERIES.devices)
   },
   remove(env: Env, name: string) {
     env.remove(name)

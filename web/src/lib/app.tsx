@@ -2,10 +2,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { api } from '../api/client'
 import type { Health, SyncStatus } from '../api/types'
-import { ServerDataSource, type DataSource } from '../data/source'
+import { LocalDataSource, ServerDataSource, type DataSource } from '../data/source'
+import { getLocal, onLocal, type LocalState } from '../local/state'
 
 interface AppState {
   source: DataSource
+  localState: LocalState
   health: Health | null
   online: boolean
   authError: string | null
@@ -18,7 +20,10 @@ interface AppState {
 const Ctx = createContext<AppState | null>(null)
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const source = useMemo(() => new ServerDataSource(), [])
+  const server = useMemo(() => new ServerDataSource(), [])
+  const device = useMemo(() => new LocalDataSource(), [])
+  const [localState, setLocalState] = useState(getLocal)
+  useEffect(() => onLocal(setLocalState), [])
   const [health, setHealth] = useState<Health | null>(null)
   const [online, setOnline] = useState(true)
   const [authError, setAuthError] = useState<string | null>(null)
@@ -48,8 +53,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [refreshSync])
 
   const changed = useCallback(() => { setVersion((v) => v + 1); refreshSync() }, [refreshSync])
+  // Can't reach the Mac but the catalog is on this device: search and browse from it.
+  const source: DataSource = !online && localState.enabled ? device : server
+  useEffect(() => { setVersion((v) => v + 1) }, [source])
   return (
-    <Ctx.Provider value={{ source, health, online, authError, sync, refreshSync, version, changed }}>
+    <Ctx.Provider value={{ source, localState, health, online, authError, sync, refreshSync, version, changed }}>
       {children}
     </Ctx.Provider>
   )

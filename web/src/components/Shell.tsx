@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { useApp } from '../lib/app'
+import { ago } from '../lib/format'
 import { Icon } from './Icon'
 
 export const TABS = [
@@ -11,9 +12,15 @@ export const TABS = [
 ] as const
 
 export function StatusBar() {
-  const { health, online, authError, sync } = useApp()
+  const { health, online, authError, sync, localState } = useApp()
   if (authError) return <div className="status error"><i /><span>{authError}</span></div>
-  if (!online) return <div className="status offline"><i /><span>Offline — can't reach your Mac</span></div>
+  if (!online) {
+    return (
+      <div className="status offline" role="status"><i /><span>{localState.enabled
+        ? `Offline — on-device catalog from ${ago(localState.refreshedAt ?? localState.downloadedAt)}`
+        : "Offline — can't reach your Mac"}</span></div>
+    )
+  }
   const via = health?.via === 'tailscale' ? ' · tailnet' : ''
   return (
     <div className="status" role="status">

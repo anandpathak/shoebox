@@ -257,8 +257,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [~] **T9.2** "Use on this device": download `/api/catalogs/library` (resumable) → `DecompressionStream` → import into OPFS; `navigator.storage.persist()`; ask iOS users to install the PWA first (eviction rule).
   *Done when:* a 50 MB catalog imports on both phones and survives an app restart.
   *Note:* Built 2026-10-12: Catalogs screen → Use on this device (resumable download, unit-tested with a mid-download drop; gunzip in the browser; import into OPFS; persistent-storage request; iPhone install warning; Remove downloaded data). Browser tests pass in Chrome and in WebKit at iPhone size, including across a reload. **Your step:** enable it on both real phones (iPhone from the installed app) and restart the app.
-- [ ] **T9.3** `LocalDataSource`: runs the shared `queries/*.sql`; automatic fallback when the server is unreachable; status bar shows "Offline – catalog from <time>".
+- [x] **T9.3** `LocalDataSource`: runs the shared `queries/*.sql`; automatic fallback when the server is unreachable; status bar shows "Offline – catalog from <time>". ✅ 2026-10-12
   *Done when:* in airplane mode, search returns the same ids as online for 20 test queries (query parity test in CI too).
+  *Note:* TypeScript query module passes spec/query_vectors.json; a search parity fixture (spec/search_parity.json, 20 queries) checks the on-device search returns exactly the server's rows, in order (vitest + sqlite-wasm in Node). Browser test: offline, 8 queries match the server results in Chrome and WebKit.
 - [ ] **T9.4** TypeScript `apply_ops` + HLC passing **every** `spec/sync_vectors` vector (run in CI with Node + sqlite-wasm).
   *Done when:* the TS and Python results are identical for all vectors.
 - [ ] **T9.5** Incremental refresh: `GET /api/sync/ops?since=` → TS `apply_ops`; re-download the snapshot if too far behind.

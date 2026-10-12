@@ -9,7 +9,7 @@ const PROJECTS = [
   { name: 'pixel', port: 8802, use: { ...devices['Pixel 7'], ...chrome } },
   { name: 'desktop', port: 8803, use: { ...devices['Desktop Chrome'], ...chrome, viewport: { width: 1280, height: 800 } } },
   // Safari's engine (WebKit) at iPhone size: closest to iOS Safari available on a Mac. Runs the on-device tests.
-  { name: 'webkit-iphone', port: 8805, only: /local|offline/, use: { ...devices['iPhone 15'] } },
+  { name: 'webkit-iphone', port: 8805, only: /local|offline-search/, use: { ...devices['iPhone 15'] } },
   // A phone reaching the Mac through `tailscale serve`: identified by the Tailscale login header.
   { name: 'tailnet-pixel', port: 8804, tailnet: true,
     use: { ...devices['Pixel 7'], ...chrome, extraHTTPHeaders: { 'Tailscale-User-Login': 'phone-user@example.com' } } },

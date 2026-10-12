@@ -71,3 +71,28 @@ export class ServerDataSource implements DataSource {
     return `/api/media/${encodeURIComponent(id)}/compressed${download ? '?download=true' : ''}`
   }
 }
+
+/** The library on this device (on-device catalog in OPFS). Read-only until offline edits land. */
+export class LocalDataSource implements DataSource {
+  readonly kind = 'device' as const
+  readonly canEdit = false
+  readonly edit: Editor
+  private server = new ServerDataSource()
+  private name: string
+  constructor(name = 'library') {
+    this.name = name
+    const no = () => Promise.reject(new Error('Editing offline isn’t available yet'))
+    this.edit = { patch: no, addTag: no, removeTag: no, remove: no, restore: no, renamePerson: no, mergePerson: no }
+  }
+  private call<T>(op: string, ...args: unknown[]) {
+    return import('../local/client').then(({ local }) => local.call<T>(op, this.name, ...args))
+  }
+  search(p: SearchParams) { return this.call<SearchResult>('search', p) }
+  media(id: string) { return this.call<MediaDetail>('media', id) }
+  people() { return this.call<Person[]>('people') }
+  devices() { return this.call<Device[]>('devices') }
+  // Files: same URLs; thumbnails come from the service-worker cache when offline.
+  thumbUrl(id: string) { return this.server.thumbUrl(id) }
+  posterUrl(id: string) { return this.server.posterUrl(id) }
+  compressedUrl(id: string, download = false) { return this.server.compressedUrl(id, download) }
+}
