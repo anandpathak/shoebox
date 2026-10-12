@@ -7,6 +7,7 @@ import { ago, bytes } from '../lib/format'
 import { local } from '../local/client'
 import { enableOnDevice } from '../local/enable'
 import { clearOfflineImages, downloadThumbs, savedCount } from '../local/offline'
+import { publishLocal } from '../local/publish'
 import { refreshLocal } from '../local/refresh'
 import { clearLocal, getLocal, onLocal } from '../local/state'
 
@@ -44,6 +45,15 @@ export function Catalogs() {
       changed()
     } catch (e) { setError((e as Error).message); setBusy(null) }
   }
+  const publish = async () => {
+    setError(null)
+    setBusy('Sharing…')
+    try {
+      const r = await publishLocal(true)
+      setBusy(r ? `Shared: ${r.item_count} items, ${r.contributed_count} from this device.` : null)
+      changed()
+    } catch (e) { setError((e as Error).message); setBusy(null) }
+  }
   const remove = async () => {
     await local.call('remove', 'library').catch(() => {})
     try { await clearOfflineImages() } catch { /* ignore */ }
@@ -72,6 +82,7 @@ export function Catalogs() {
               <div className="row">
                 <button className="btn" disabled={!online || !!busy} onClick={refresh}>Refresh now</button>
                 <button className="btn" disabled={!online || !!busy} onClick={enable}>Download again</button>
+                <button className="btn" disabled={!online || !!busy} onClick={publish}>Share this device's catalog</button>
                 <button className="btn danger" disabled={!!busy} onClick={remove}>Remove downloaded data</button>
               </div>
             </>

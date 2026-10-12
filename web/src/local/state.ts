@@ -6,6 +6,8 @@ export interface LocalState {
   epoch: string | null    // server catalog epoch (X-Catalog-Epoch)
   items: number
   refreshedAt: string | null
+  publishedAt?: string | null
+  open?: string[]          // on-device catalogs to search together (default: just the library)
 }
 
 const KEY = 'photoctl.local'

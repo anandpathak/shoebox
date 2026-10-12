@@ -277,10 +277,12 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 
 ## M10 — Per-device catalogs: download any device's SQLite, search them together (§11)
 
-- [ ] **T10.1** Phones publish their on-device catalog: export from OPFS → gzip → `PUT /api/catalogs/{device_id}` → `sync/catalogs/<device_id>/` (the server writes the manifest).
+- [~] **T10.1** Phones publish their on-device catalog: export from OPFS → gzip → `PUT /api/catalogs/{device_id}` → `sync/catalogs/<device_id>/` (the server writes the manifest).
   *Done when:* the iPhone and Android catalogs appear in `GET /api/catalogs` with the correct platform and counts.
-- [ ] **T10.2** `contributed` flavour generation on the server for any device (media whose sources include that device).
+  *Note:* Built 2026-10-12: the phone exports its on-device catalog, gzips it in the browser and PUTs it; the Mac validates it and writes it plus a manifest to S3. Runs after a refresh (at most every 10 min) and from 'Share this device's catalog'. Browser test as a Pixel on the tailnet: shared catalog listed as android with 1 contributed item. **Your step:** share from both real phones.
+- [x] **T10.2** `contributed` flavour generation on the server for any device (media whose sources include that device). ✅ 2026-10-12
   *Done when:* the Android `contributed` catalog contains only photos uploaded from the Android phone.
+  *Note:* Built in T5.7: GET /api/catalogs/{device_id}?flavour=contributed exports only media whose sources include that device (tests/test_api_catalogs.py::test_contributed_published_and_zip).
 - [ ] **T10.3** Catalogs screen: list every device catalog (platform icon, items, size, age), download one / several / all (`all.zip`), toggle which are open.
   *Done when:* all catalogs can be downloaded on an iPhone and on an Android phone.
 - [ ] **T10.4** Multi-catalog on-device search: open the selected catalogs in sqlite-wasm, `ATTACH`, `UNION ALL` the shared queries, dedup by `photo_id`, show device badges.

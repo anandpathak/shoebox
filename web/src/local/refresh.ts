@@ -4,6 +4,7 @@ import { ApiError, api } from '../api/client'
 import type { Op } from './apply'
 import { getDevice } from '../lib/device'
 import { local } from './client'
+import { publishLocal } from './publish'
 import { getLocal, setLocal } from './state'
 
 let running: Promise<number> | null = null
@@ -49,5 +50,7 @@ async function run(redownload: () => Promise<unknown>): Promise<number> {
     setLocal({ cursor, epoch: res.epoch, refreshedAt: new Date().toISOString() })
     if (!res.more) break
   }
+  // Share this device's catalog with the others now and then (needs S3 on the Mac; best effort).
+  publishLocal().catch(() => {})
   return applied
 }
