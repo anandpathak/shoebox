@@ -37,6 +37,8 @@ export interface SearchResult {
   items: MediaItem[]
   next: string | null
   query?: ParsedQuery
+  mode?: 'smart' | 'keywords' | 'filters'   // smart = ranked by meaning (plain-English search on the Mac)
+  people?: string[]                         // names in the query, used as filters
 }
 
 export interface Source { device_id: string; name: string | null; platform: string | null; source_ref: string }
@@ -48,6 +50,7 @@ export interface MediaDetail extends Omit<MediaItem, 'devices'> {
   orig_name: string | null
   mime: string | null
   description: string | null
+  caption?: string | null          // generated on the Mac (Florence-2) unless the user wrote one
   deleted: number
   lat: number | null
   lon: number | null

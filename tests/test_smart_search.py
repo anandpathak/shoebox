@@ -92,9 +92,8 @@ def test_finds_photos_by_meaning(lib):
     assert counts["embedded"] == 6 and counts["captioned"] == 6
     res = smart("kids playing in the snow")
     assert res["mode"] == "smart"
-    assert set(ids(res)) == set(snow) and not res["weak"]
-    nothing = smart("a plate of spaghetti")                        # matches nothing well: closest few, flagged
-    assert nothing["weak"] and len(ids(nothing)) == 6
+    assert set(ids(res)) == set(snow)
+    assert ids(smart("a plate of spaghetti")) == []                # nothing close: no results, not random ones
     assert run()["embedded"] == 0                                   # done once
 
 

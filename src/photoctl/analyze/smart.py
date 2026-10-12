@@ -2,7 +2,7 @@
 
 Dates, "videos", and people's names in the query become filters (people come from the catalog); the
 rest is matched by meaning against photo vectors (SigLIP 2). Keyword matches (tags, captions, places)
-are boosted, so exact hits still come first.
+are boosted, so exact hits still come first. Nothing close enough means no results, as with keywords.
 """
 
 from __future__ import annotations
@@ -17,7 +17,6 @@ from ..catalog.query import parse_query, search, tokens
 
 MIN_PROBABILITY = 0.001       # SigLIP's calibrated "this text describes the image" probability
 KEYWORD_BOOST = 0.02          # added to the cosine similarity for a keyword match
-WEAK_RESULTS = 12             # nothing clears the bar: show this many closest matches, flagged as weak
 
 
 def names_in(conn: sqlite3.Connection, text: str) -> tuple[list[str], str]:
@@ -59,14 +58,13 @@ def smart_search(conn: sqlite3.Connection, q: str, *, embed_text: Callable[[str]
     ranked = sorted(((cos[i] + (KEYWORD_BOOST if pids[i] in keyword else 0.0), prob[i], pids[i])
                      for i in range(len(pids))), reverse=True)
     good = [r for r in ranked if r[1] >= MIN_PROBABILITY or r[2] in keyword]
-    weak = not good
-    chosen = (good or ranked[:WEAK_RESULTS])[:limit]
+    chosen = good[:limit]          # nothing close enough → no matches (better than showing random photos)
     # keyword matches without a vector yet (not analysed) go after the ranked ones
     seen = {p for _, _, p in chosen}
     extra = [p for p in keyword if p not in seen and p in candidates][:max(limit - len(chosen), 0)]
     items = [{**candidates[p], "score": round(float(c), 4)} for c, _, p in chosen] + [candidates[p] for p in extra]
     return {"items": items, "next": None, "query": parsed, "mode": "smart", "people": people,
-            "free_text": free, "weak": weak}
+            "free_text": free}
 
 
 def _month_word(month: str) -> str:

@@ -10,9 +10,10 @@ export interface SearchParams {
   q?: string; person?: string; place?: string; tag?: string; album?: string
   from?: string; to?: string; type?: 'photo' | 'video'; fav?: boolean; device?: string
   hidden?: boolean; cursor?: string | null; limit?: number
+  smart?: boolean      // plain-English search, best matches first (Mac only; the device catalog ignores it)
 }
 
-export interface MediaPatch { title?: string | null; description?: string | null; favorite?: boolean; hidden?: boolean }
+export interface MediaPatch { title?: string | null; description?: string | null; caption?: string | null; favorite?: boolean; hidden?: boolean }
 
 export interface Editor {
   patch(id: string, patch: MediaPatch): Promise<MediaDetail>
@@ -52,7 +53,10 @@ export class ServerDataSource implements DataSource {
     mergePerson: async (pid, into) => { await api(`/api/people/${enc(pid)}/merge`, { method: 'POST', json: { into } }) },
   }
 
-  search(p: SearchParams) {
+  search({ smart, ...p }: SearchParams) {
+    if (smart && p.q?.trim() && !p.cursor) {
+      return api<SearchResult>(`/api/search/smart${qs({ q: p.q, person: p.person, type: p.type, fav: p.fav, device: p.device, limit: p.limit })}`)
+    }
     return api<SearchResult>(`/api/search${qs({ ...p })}`)
   }
   media(id: string) {

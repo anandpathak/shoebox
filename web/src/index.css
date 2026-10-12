@@ -197,3 +197,9 @@ details summary { cursor: pointer; color: var(--danger); }
 .who-body { flex: 1 1 220px; min-width: 0; display: grid; gap: 6px; }
 .who-body .row { flex-wrap: wrap; }
 .who-body input { flex: 1 1 120px; min-width: 0; }
+
+/* Generated caption in the viewer */
+.caption { display: flex; align-items: flex-start; gap: 6px; margin: 4px 0 8px; font-size: .92rem; line-height: 1.4; }
+.caption svg { flex: none; margin-top: 3px; }
+.caption .link { margin-left: auto; flex: none; background: none; border: 0; color: var(--accent, inherit); cursor: pointer; padding: 0 0 0 8px; }
+.caption-edit input { flex: 1 1 200px; min-width: 0; }

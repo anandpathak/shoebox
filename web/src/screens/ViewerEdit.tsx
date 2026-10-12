@@ -36,7 +36,7 @@ export function Editor({ item, onChanged }: { item: MediaDetail; onChanged: () =
   }
   const patch = (p: MediaPatch, opt: Partial<MediaDetail>) => run(opt, () => source.edit.patch(item.photo_id, p))
 
-  if (!source.canEdit) return <h2>{item.title || dateLabel(item.taken_at)}</h2>
+  if (!source.canEdit) return <><h2>{item.title || dateLabel(item.taken_at)}</h2>{item.caption && <p className="caption muted">{item.caption}</p>}</>
   if (deleted) {
     return (
       <div className="editor card">
@@ -64,6 +64,7 @@ export function Editor({ item, onChanged }: { item: MediaDetail; onChanged: () =
                   if (dirty.desc && desc !== (local.description ?? '')) patch({ description: desc || null }, { description: desc || null })
                   setDirty((d) => ({ ...d, desc: false }))
                 }} />
+      <Caption text={local.caption ?? null} onSave={(c) => patch({ caption: c }, { caption: c })} />
       <div className="row">
         <button className="btn" aria-pressed={!!local.favorite} onClick={() => patch({ favorite: !local.favorite }, { favorite: local.favorite ? 0 : 1 })}>
           <Icon name="heart" size={18} filled={!!local.favorite} />{local.favorite ? 'Favourite' : 'Add to favourites'}</button>
@@ -91,5 +92,28 @@ export function Editor({ item, onChanged }: { item: MediaDetail; onChanged: () =
       </div>
       {error && <div className="error" role="alert">{error}</div>}
     </div>
+  )
+}
+
+/** What's in the photo, written by the Mac (or by you: your version is kept). */
+function Caption({ text, onSave }: { text: string | null; onSave: (c: string | null) => void }) {
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(text ?? '')
+  useEffect(() => { if (!editing) setValue(text ?? '') }, [text, editing])
+  if (!text && !editing) return null
+  if (editing) {
+    return (
+      <form className="row caption-edit" onSubmit={(e) => { e.preventDefault(); setEditing(false); if (value.trim() !== (text ?? '')) onSave(value.trim() || null) }}>
+        <input type="text" value={value} onChange={(e) => setValue(e.target.value)} aria-label="Caption" autoFocus />
+        <button className="btn primary">Save</button>
+        <button type="button" className="btn" onClick={() => setEditing(false)}>Cancel</button>
+      </form>
+    )
+  }
+  return (
+    <p className="caption muted" data-testid="caption">
+      <Icon name="sparkle" size={14} />{text}
+      <button className="link small" onClick={() => setEditing(true)} aria-label="Edit caption">Edit</button>
+    </p>
   )
 }

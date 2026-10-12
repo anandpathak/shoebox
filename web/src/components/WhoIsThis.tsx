@@ -8,6 +8,7 @@ interface Group { cluster: number; faces: number; photos: number; sample: number
 interface Status {
   enabled: boolean; total: number; analyzed: number; running: boolean; last_error: string | null
   unnamed_groups: number; faces: Record<string, number>
+  ai?: { installed: boolean; search_ready: number; captions: number; step: string | null }
 }
 
 export function analysisLine(s: Status): string {
@@ -18,6 +19,8 @@ export function analysisLine(s: Status): string {
     left > 0 ? `Looked at ${s.analyzed.toLocaleString()} of ${s.total.toLocaleString()} photos${s.running ? '…' : ''}`
       : `All ${s.total.toLocaleString()} photos looked at`,
     named ? `${named.toLocaleString()} faces recognised` : '',
+    s.ai?.installed && s.ai.captions ? `${s.ai.captions.toLocaleString()} described` : '',
+    s.ai?.step === 'loading models' ? 'loading AI models…' : '',
   ].filter(Boolean).join(' · ')
 }
 

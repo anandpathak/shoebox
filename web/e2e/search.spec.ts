@@ -1,16 +1,19 @@
 import { expect, test } from '@playwright/test'
 
-async function apiCount(page: import('@playwright/test').Page, params: Record<string, string>) {
-  const r = await page.request.get(`/api/search?${new URLSearchParams({ ...params, limit: '500' })}`)
+async function apiCount(page: import('@playwright/test').Page, params: Record<string, string>, path = '/api/search') {
+  const r = await page.request.get(`${path}?${new URLSearchParams({ ...params, limit: '500' })}`)
   return (await r.json()).items.length as number
 }
 
-test('typed search matches the API (same query as photoctl search)', async ({ page }) => {
+test('typed search matches the API (best matches, and newest first like photoctl search)', async ({ page }) => {
   await page.goto('/')
   await page.getByLabel('Search the library').fill('beach')
   await expect(page).toHaveURL(/q=beach/)
+  const best = await apiCount(page, { q: 'beach' }, '/api/search/smart')
+  expect(best).toBeGreaterThan(0)
+  await expect(page.locator('.tile')).toHaveCount(Math.min(best, 120))
+  await page.getByRole('button', { name: 'Newest first' }).click()
   const expected = await apiCount(page, { q: 'beach' })
-  expect(expected).toBeGreaterThan(0)
   await expect(page.locator('.tile')).toHaveCount(Math.min(expected, 120))
   await page.getByLabel('Search the library').fill('december 2024')
   await expect(page.locator('.understood')).toContainText('December 2024')

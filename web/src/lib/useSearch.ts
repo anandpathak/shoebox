@@ -1,6 +1,6 @@
 // Paged search with keyset cursors: first page on change, more pages on demand.
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { MediaItem, ParsedQuery } from '../api/types'
+import type { MediaItem, ParsedQuery, SearchResult } from '../api/types'
 import type { DataSource, SearchParams } from '../data/source'
 
 export function useSearch(source: DataSource, params: SearchParams, version: number) {
@@ -10,6 +10,7 @@ export function useSearch(source: DataSource, params: SearchParams, version: num
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
   const [query, setQuery] = useState<ParsedQuery | undefined>()
+  const [meta, setMeta] = useState<Pick<SearchResult, 'mode' | 'people'>>({})
   const key = JSON.stringify(params)
   const gen = useRef(0)
 
@@ -18,7 +19,11 @@ export function useSearch(source: DataSource, params: SearchParams, version: num
     setLoading(true)
     setError(null)
     source.search({ ...params, limit: 120 })
-      .then((r) => { if (my !== gen.current) return; setItems(r.items); setNext(r.next); setDone(!r.next); setQuery(r.query) })
+      .then((r) => {
+        if (my !== gen.current) return
+        setItems(r.items); setNext(r.next); setDone(!r.next); setQuery(r.query)
+        setMeta({ mode: r.mode, people: r.people })
+      })
       .catch((e) => { if (my === gen.current) setError(e.message) })
       .finally(() => { if (my === gen.current) setLoading(false) })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -35,5 +40,5 @@ export function useSearch(source: DataSource, params: SearchParams, version: num
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source, key, next, loading])
 
-  return { items, loading, error, done, more, query }
+  return { items, loading, error, done, more, query, meta }
 }

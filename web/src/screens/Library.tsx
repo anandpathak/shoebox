@@ -12,7 +12,7 @@ import { useSearch } from '../lib/useSearch'
 function fromQuery(q: URLSearchParams): Filters {
   const type = q.get('type')
   return { q: q.get('q') ?? '', type: type === 'photo' || type === 'video' ? type : '', fav: q.get('fav') === '1',
-           device: q.get('device') ?? '', person: q.get('person') ?? '' }
+           device: q.get('device') ?? '', person: q.get('person') ?? '', order: q.get('order') === 'new' ? 'new' : '' }
 }
 
 function toQuery(f: Filters): string {
@@ -22,8 +22,16 @@ function toQuery(f: Filters): string {
   if (f.fav) p.set('fav', '1')
   if (f.device) p.set('device', f.device)
   if (f.person) p.set('person', f.person)
+  if (f.q && f.order) p.set('order', f.order)
   const s = p.toString()
   return s ? `?${s}` : ''
+}
+
+/** "Showing best matches for “kids in snow” · with Asha" */
+export function understood(what: string, meta: { mode?: string; people?: string[] }): string {
+  const people = meta.people?.length ? ` · with ${meta.people.join(' and ')}` : ''
+  if (meta.mode !== 'smart') return what + people
+  return `best matches for ${what || 'your search'}${people}`
 }
 
 export function Library({ route }: { route: Route }) {
@@ -36,20 +44,22 @@ export function Library({ route }: { route: Route }) {
     source.people().then(setPeople).catch(() => {})
   }, [source, version])
 
+  const canRank = source.kind === 'server'
   const params = useMemo(() => ({
     q: filters.q || undefined, type: filters.type || undefined, fav: filters.fav || undefined,
     device: filters.device || undefined, person: filters.person || undefined,
-  }), [filters.q, filters.type, filters.fav, filters.device, filters.person])
-  const { items, loading, error, done, more, query } = useSearch(source, params, version)
+    smart: canRank && filters.order !== 'new' ? true : undefined,
+  }), [filters.q, filters.type, filters.fav, filters.device, filters.person, filters.order, canRank])
+  const { items, loading, error, done, more, query, meta } = useSearch(source, params, version)
   const searching = JSON.stringify(filters) !== JSON.stringify(EMPTY)
-  useEffect(() => rememberList(toQuery(filters), items.map((i) => i.photo_id)), [items, filters.q, filters.type, filters.fav, filters.device, filters.person]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => rememberList(toQuery(filters), items.map((i) => i.photo_id)), [items, filters.q, filters.type, filters.fav, filters.device, filters.person, filters.order]) // eslint-disable-line react-hooks/exhaustive-deps
   const open = (id: string) => go(`media/${id}${toQuery(filters)}`)
 
   return (
     <>
       <TopBar title="Library">
         <SearchBar value={filters} onChange={(f) => go(`library${toQuery(f)}`, true)} devices={devices} people={people}
-                   understood={searching ? describe(query) : ''} />
+                   understood={searching ? understood(describe(query), meta) : ''} canRank={canRank && meta.mode !== 'keywords'} />
       </TopBar>
       <InstallHint />
       {error && <div className="error">{error}</div>}

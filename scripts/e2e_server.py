@@ -120,6 +120,59 @@ def seed_faces(items: int) -> None:
     conn.close()
 
 
+class FakeEmbedder:
+    """Stand-in for SigLIP 2 in browser tests: a word → a fixed random vector; a photo → the sum of its labels."""
+
+    import numpy as _np
+
+    def word(self, w: str):
+        import hashlib
+
+        import numpy as np
+
+        seed = int.from_bytes(hashlib.sha256(w.lower().encode()).digest()[:8], "big")
+        v = np.random.default_rng(seed).normal(size=256)
+        return v / np.linalg.norm(v)
+
+    def vec(self, words):
+        import numpy as np
+
+        v = sum((self.word(w) for w in words), np.zeros(256))
+        n = np.linalg.norm(v)
+        return (v / n if n else v).astype(np.float32)
+
+    def text(self, q: str):
+        return self.vec(q.split())
+
+    def probability(self, cos):
+        import numpy as np
+
+        return 1 / (1 + np.exp(-(cos * 20 - 14)))     # ~cos 0.35 to count as a match
+
+
+def fake_ai(items: int) -> None:
+    """Plain-English search and captions without downloading models: stand-in vectors and a few captions."""
+    from photoctl.analyze import ai
+    from photoctl.analyze.vectors import open_vectors, save
+    from photoctl.catalog import open_catalog
+    from photoctl.catalog.ops import Emitter
+    from photoctl.device import load_device
+
+    emb = FakeEmbedder()
+    ai.available = lambda: True
+    ai.embedder = lambda: emb
+    model = ai.settings()["search_model"]
+    conn, vdb = open_catalog(), open_vectors()
+    if vdb.execute("SELECT COUNT(*) FROM vectors").fetchone()[0] == 0:
+        rows = conn.execute("SELECT m.photo_id, group_concat(t.tag, ' ') FROM media m "
+                            "LEFT JOIN media_tags t USING (photo_id) GROUP BY m.photo_id").fetchall()
+        save(vdb, model, [(pid, emb.vec((tags or "").split())) for pid, tags in rows])
+        em = Emitter(conn, load_device().device_id)
+        em.emit_many([("media.caption", {"photo_id": photo_id(n), "caption": f"Palm trees by a quiet lagoon, picture {n}",
+                                         "model": "fake"}) for n in range(0, min(items, 30), 10)])
+    conn.close()
+
+
 def fake_photos_library(home: Path, n: int = 8) -> None:
     """Replace Apple Photos with a few generated photos so 'Archive from Apple Photos' works in tests."""
     import json
@@ -216,6 +269,7 @@ def main() -> None:
         seed(library, args.items)
         seed_faces(args.items)
     bucket = None if args.no_s3 else start_mock_s3(home, upload_originals=fresh)
+    fake_ai(args.items)
 
     import uvicorn
 

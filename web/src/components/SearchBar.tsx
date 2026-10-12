@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import type { Device, ParsedQuery, Person } from '../api/types'
 import { Icon } from './Icon'
 
-export interface Filters { q: string; type: '' | 'photo' | 'video'; fav: boolean; device: string; person: string }
-export const EMPTY: Filters = { q: '', type: '', fav: false, device: '', person: '' }
+export interface Filters { q: string; type: '' | 'photo' | 'video'; fav: boolean; device: string; person: string; order: '' | 'new' }
+export const EMPTY: Filters = { q: '', type: '', fav: false, device: '', person: '', order: '' }
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October',
   'November', 'December']
@@ -21,8 +21,9 @@ export function describe(q: ParsedQuery | undefined): string {
   return bits.join(' · ')
 }
 
-export function SearchBar({ value, onChange, devices, people, understood }: {
+export function SearchBar({ value, onChange, devices, people, understood, canRank }: {
   value: Filters; onChange: (f: Filters) => void; devices: Device[]; people: Person[]; understood: string
+  canRank?: boolean    // the Mac can rank typed searches by meaning
 }) {
   const [text, setText] = useState(value.q)
   useEffect(() => setText(value.q), [value.q])
@@ -38,7 +39,7 @@ export function SearchBar({ value, onChange, devices, people, understood }: {
     <div className="searchbar">
       <label className="search">
         <Icon name="search" size={18} />
-        <input type="search" placeholder="Search places, people, tags, “december 2024”…" value={text}
+        <input type="search" placeholder="Search anything: “kids in the snow”, people, places, “december 2024”…" value={text}
                onChange={(e) => setText(e.target.value)} aria-label="Search the library" enterKeyHint="search" />
       </label>
       <div className="chips" role="toolbar" aria-label="Filters">
@@ -62,6 +63,12 @@ export function SearchBar({ value, onChange, devices, people, understood }: {
         ))}
         {active && <button className="chip" onClick={() => { setText(''); onChange(EMPTY) }}>Clear</button>}
       </div>
+      {canRank && value.q.trim() && (
+        <div className="chips" role="toolbar" aria-label="Order">
+          <button className="chip" aria-pressed={value.order === ''} onClick={() => set({ order: '' })}>Best matches</button>
+          <button className="chip" aria-pressed={value.order === 'new'} onClick={() => set({ order: 'new' })}>Newest first</button>
+        </div>
+      )}
       {understood && <p className="understood muted small">Showing {understood}</p>}
     </div>
   )
