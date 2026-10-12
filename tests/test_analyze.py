@@ -33,7 +33,10 @@ class Fakes:
     """Stand-ins for Apple Vision and the face engine, per photo."""
 
     def __init__(self):
-        self.labels, self.faces = {}, {}
+        self.labels, self.faces, self.text = {}, {}, {}
+
+    def read_text(self, im):
+        return self.text.get(im.info["pid"], "")
 
     def classify(self, im):
         return self.labels.get(im.info["pid"], [])
@@ -48,7 +51,7 @@ def lib(tmp_path, sidecar, device, monkeypatch):
     conn = open_catalog()
     fakes = Fakes()
 
-    def add(n, labels=(), faces=(), **apple):
+    def add(n, labels=(), faces=(), text="", **apple):
         apple.setdefault("persons", [])          # the sample sidecar names "Asha"; only name people when a test says so
         apple.setdefault("labels", [])
         rec = record(sidecar, n, **apple)
@@ -56,6 +59,7 @@ def lib(tmp_path, sidecar, device, monkeypatch):
         make_jpeg(library / rec["keys"]["compressed"])
         fakes.labels[rec["photo_id"]] = list(labels)
         fakes.faces[rec["photo_id"]] = list(faces)
+        fakes.text[rec["photo_id"]] = text
         return rec["photo_id"]
 
     from photoctl.analyze import image, run
@@ -71,7 +75,7 @@ def lib(tmp_path, sidecar, device, monkeypatch):
 
     def analyze(**kw):
         return analyze_pending(conn, library, device.device_id, fdb=fdb, classify=fakes.classify,
-                               find_faces=fakes.find_faces, **kw)
+                               find_faces=fakes.find_faces, read_text=fakes.read_text, **kw)
 
     def emit(ops):
         if ops:
@@ -192,6 +196,40 @@ def test_face_data_stays_private(lib):
 
     assert oct(os.stat(paths.home() / "faces.sqlite").st_mode & 0o777) == "0o600"
     assert conn.execute("SELECT name FROM sqlite_master WHERE name = 'faces'").fetchone() is None   # not in the catalog
+
+
+def test_text_in_the_picture_is_searchable(lib):
+    conn, fdb, add, analyze, emit = lib
+    p = add(1, text="CROMA Tax Invoice Total 4,299.00")
+    q = add(2, text="")
+    analyze()
+    assert search(conn, "croma") == [p] and search(conn, "invoice") == [p]
+    assert conn.execute("SELECT text_in_image FROM media WHERE photo_id = ?", (q,)).fetchone()[0] is None
+
+
+def test_stray_letters_are_not_text():
+    from photoctl.analyze.vision import useful_text
+
+    assert useful_text("A") == "" and useful_text("NIKE") == ""
+    assert useful_text("Tax  Invoice") == "Tax Invoice"
+
+
+@pytest.mark.skipif(sys.platform != "darwin", reason="Apple Vision is macOS only")
+def test_real_vision_reads_a_receipt():
+    from PIL import Image, ImageDraw, ImageFont
+
+    from photoctl.analyze.vision import read_text
+
+    im = Image.new("RGB", (900, 500), "white")
+    d = ImageDraw.Draw(im)
+    try:
+        font = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial.ttf", 48)
+    except OSError:
+        font = ImageFont.load_default(size=48)
+    for i, line in enumerate(["CROMA ELECTRONICS", "Tax Invoice", "Total 4299.00"]):
+        d.text((60, 60 + i * 110), line, fill="black", font=font)
+    text = read_text(im).lower()
+    assert "croma" in text and "invoice" in text
 
 
 @pytest.mark.skipif(sys.platform != "darwin", reason="Apple Vision is macOS only")

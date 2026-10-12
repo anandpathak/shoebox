@@ -7,4 +7,4 @@
   exported or backed up. Only names the user confirms become people on photos (and those sync).
 """
 
-VERSION = 1   # bump to re-analyse everything after a change in what's extracted
+VERSION = 2   # bump to re-analyse everything after a change in what's extracted (2: text in the picture)

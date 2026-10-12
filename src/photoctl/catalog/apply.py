@@ -155,6 +155,15 @@ def _media_caption(ctx: _Ctx, op: dict) -> None:
     ctx.touched.add(b["photo_id"])
 
 
+def _media_text(ctx: _Ctx, op: dict) -> None:
+    """Words found in the picture (latest analysis wins)."""
+    b = op["body"]
+    if not _media_exists(ctx, b["photo_id"]):
+        return _defer(ctx, op, b["photo_id"])
+    _lww_row(ctx, "media", "photo_id", b["photo_id"], {"text_in_image": b["text"]}, _ver(IMPORT, op["hlc"]))
+    ctx.touched.add(b["photo_id"])
+
+
 def _media_deleted(ctx: _Ctx, op: dict) -> None:
     pid = op["body"]["photo_id"]
     if not _media_exists(ctx, pid):
@@ -223,6 +232,7 @@ HANDLERS = {
     "media.source": _media_source,
     "media.set": _media_set,
     "media.caption": _media_caption,
+    "media.text": _media_text,
     "media.delete": _media_deleted,
     "media.restore": _media_deleted,
     "tag.add": _set_add("media_tags", "tag", lower=True),

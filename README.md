@@ -77,6 +77,8 @@ uv run photoctl analyze        # label photos and find faces (the server also do
 uv run photoctl faces          # groups of faces still waiting for a name
 ```
 
+- **Text in photos** (signs, receipts, documents) is read with Apple's on-device text recognition and is searchable
+  everywhere: *"croma invoice"*.
 - **Labels** come from Apple's Vision framework (on-device): *beach, mountain, food, dog, document…* plus
   everyday words like *landscape, people, portrait, group, sunset*. They're ordinary tags, so search finds
   them on every device; remove a wrong one like any tag.

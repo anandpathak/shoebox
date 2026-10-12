@@ -66,6 +66,7 @@ export function Editor({ item, onChanged }: { item: MediaDetail; onChanged: () =
                   setDirty((d) => ({ ...d, desc: false }))
                 }} />
       <Caption text={local.caption ?? null} onSave={(c) => patch({ caption: c }, { caption: c })} />
+      {local.text_in_image && <p className="muted small text-in-image" title={local.text_in_image}>Text in photo: {local.text_in_image}</p>}
       <div className="row">
         <button className="btn" aria-pressed={!!local.favorite} onClick={() => patch({ favorite: !local.favorite }, { favorite: local.favorite ? 0 : 1 })}>
           <Icon name="heart" size={18} filled={!!local.favorite} />{local.favorite ? 'Favourite' : 'Add to favourites'}</button>

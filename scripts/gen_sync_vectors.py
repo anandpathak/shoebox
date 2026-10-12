@@ -250,6 +250,12 @@ def vectors():
          a.op("media.caption", {"photo_id": P1, "caption": "A dog running on a beach"}),
          a.op("media.caption", {"photo_id": P1, "caption": "A brown dog on the sand"})],
         {"media": {P1: {"caption": "A brown dog on the sand"}}, "fts": {"brown": [P1], "running": []}})
+    a = Dev("MAC", 1_700_000_000_000)
+    add("text_in_image", "Words found in the picture are searchable; a newer reading replaces the older one.",
+        [a.op("media.upsert", {"record": rec()}),
+         a.op("media.text", {"photo_id": P1, "text": "CROMA Tax Invoice 4,299"}),
+         a.op("media.text", {"photo_id": P1, "text": "CROMA Tax Invoice Total 4,299.00"})],
+        {"media": {P1: {"text_in_image": "CROMA Tax Invoice Total 4,299.00"}}, "fts": {"croma": [P1], "invoice": [P1]}})
     return V
 
 

@@ -7,6 +7,7 @@ import m1 from '../../../src/photoctl/catalog/migrations/0001_initial.sql?raw'
 import m2 from '../../../src/photoctl/catalog/migrations/0002_deferred_ops.sql?raw'
 import m3 from '../../../src/photoctl/catalog/migrations/0003_restore_requests.sql?raw'
 import m4 from '../../../src/photoctl/catalog/migrations/0004_caption.sql?raw'
+import m5 from '../../../src/photoctl/catalog/migrations/0005_text_in_image.sql?raw'
 
 export const QUERIES = { search: searchSql, media_detail: detailSql, people: peopleSql, devices: devicesSql }
-export const MIGRATIONS: [number, string][] = [[1, m1], [2, m2], [3, m3], [4, m4]]
+export const MIGRATIONS: [number, string][] = [[1, m1], [2, m2], [3, m3], [4, m4], [5, m5]]

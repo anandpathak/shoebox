@@ -374,7 +374,7 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T15.3** Faces: OpenCV YuNet + SFace (pinned SHA-256 models), fingerprints in `faces.sqlite` (0600, Mac only); clustering; learning from Apple Photos names; naming → `media.person.add` (source face) + re-matching; *not them* / *not a person*.
 - [x] **T15.4** `photoctl analyze`, `photoctl faces`; background worker after archive runs / phone uploads; API.
 - [x] **T15.5** People → *Who's this?* (face groups, name with suggestions, *Not a person*, progress); e2e test.
-- [ ] **T15.6** Text in photos (OCR, Vision `VNRecognizeTextRequest`) searchable: needs a synced text field.
+- [x] **T15.6** Text in photos: Apple Vision text recognition → op `media.text` → catalog v5 `text_in_image`, part of keyword search on every device; shown in the viewer. Analysis version 2 re-reads already-analysed photos once.
 - [x] **T15.7** Captions with Florence-2 (optional `ai` extra): new op `media.caption` (import priority, user edits win), catalog v4, part of keyword search everywhere; editable in the viewer.
 - [x] **T15.10** Plain-English search with SigLIP 2: vectors on the Mac, `/api/search/smart` and `photoctl search --best`; names/dates become filters; *Best matches* / *Newest first* in the app.
 - [~] **T15.11** Check caption quality and the search threshold (`MIN_PROBABILITY`) on a real library.

@@ -140,7 +140,7 @@ def refresh_fts(conn: sqlite3.Connection, photo_id: str) -> None:
     conn.execute(
         "INSERT INTO media_fts (photo_id, title, description, tags, people, place, orig_name, albums) "
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        (photo_id, m["title"] or "", " ".join(filter(None, (m["description"], m["caption"]))), " ".join(tags),
+        (photo_id, m["title"] or "", " ".join(filter(None, (m["description"], m["caption"], m["text_in_image"]))), " ".join(tags),
          " ".join(people), place,
          m["orig_name"] or "", " ".join(albums)),
     )

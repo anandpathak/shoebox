@@ -51,6 +51,7 @@ export interface MediaDetail extends Omit<MediaItem, 'devices'> {
   mime: string | null
   description: string | null
   caption?: string | null          // generated on the Mac (Florence-2) unless the user wrote one
+  text_in_image?: string | null    // words read from the picture (signs, receipts, documents)
   deleted: number
   lat: number | null
   lon: number | null

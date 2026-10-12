@@ -23,12 +23,14 @@ def pending(catalog: sqlite3.Connection, fdb: sqlite3.Connection, *, redo: bool 
     return [r for r in rows if r["photo_id"] not in done]
 
 
-def analyze_one(catalog, fdb, library: Path, row, *, classify=None, find_faces=None) -> tuple[list, dict]:
+def analyze_one(catalog, fdb, library: Path, row, *, classify=None, find_faces=None, read_text=None) -> tuple[list, dict]:
     """Analyse one item. Returns (ops to emit, summary)."""
     from .faces import engine
     from .vision import classify as vision_classify
+    from .vision import read_text as vision_text
 
     classify = classify or vision_classify
+    read_text = read_text or vision_text
     find_faces = find_faces or (lambda im: engine().faces(im))
     pid = row["photo_id"]
     path = source_path(library, row)
@@ -51,12 +53,16 @@ def analyze_one(catalog, fdb, library: Path, row, *, classify=None, find_faces=N
     removed = {r[0] for r in catalog.execute(
         f"SELECT tag FROM media_tags WHERE photo_id = ? AND source = 'vision' AND NOT {LIVE}", (pid,))}
     ops += [("tag.add", {"photo_id": pid, "tag": t, "source": "vision"}) for t in tags if t not in have | removed]
+    text = read_text(im)
+    current = catalog.execute("SELECT text_in_image FROM media WHERE photo_id = ?", (pid,)).fetchone()[0]
+    if text and text != current:
+        ops.append(("media.text", {"photo_id": pid, "text": text}))
     learnt = learn_from_photo_names(fdb, catalog, pid)
     ops += assign(fdb, catalog, ids)
     fdb.execute("INSERT OR REPLACE INTO analyzed (photo_id, version, analyzed_at, faces, labels, error) "
                 "VALUES (?, ?, ?, ?, ?, NULL)", (pid, VERSION, now(), len(found), json.dumps(labels[:20])))
     fdb.commit()
-    return ops, {"photo_id": pid, "tags": tags, "faces": len(found), "learnt": learnt}
+    return ops, {"photo_id": pid, "tags": tags, "faces": len(found), "learnt": learnt, "text": bool(text)}
 
 
 def analyze_pending(catalog, library: Path, device_id: str, *, limit: int | None = None, redo: bool = False,

@@ -45,7 +45,7 @@ def seed(app, sidecar, device, people):
     run.load = load
     try:
         analyze_pending(conn, library, device.device_id, fdb=open_faces(),
-                        classify=lambda im: [("beach", 0.9)],
+                        classify=lambda im: [("beach", 0.9)], read_text=lambda im: "",
                         find_faces=lambda im: [Face((0.4, 0.3, 0.2, 0.3), 0.95, by_photo[im.info["pid"]])])
     finally:
         run.load = real
