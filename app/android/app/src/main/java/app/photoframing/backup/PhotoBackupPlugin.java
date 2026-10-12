@@ -126,8 +126,7 @@ public class PhotoBackupPlugin extends Plugin {
 
     @PluginMethod
     public void uploads(PluginCall call) {
-        try { call.resolve(new JSObject().put("uploads", JSArray.from(store.uploadList()))); }
-        catch (JSONException e) { call.reject(e.getMessage()); }
+        call.resolve(new JSObject().put("uploads", store.uploadList()));
     }
 
     @PluginMethod

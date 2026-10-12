@@ -15,6 +15,16 @@ npx cap open android    # Android Studio, then Run
 npm test                # the start page's address checks
 ```
 
+Android without Android Studio (needs the Android SDK, e.g. `brew install --cask android-commandlinetools` with
+`ANDROID_HOME` set, and JDK 21+; Capacitor 7 won't compile on JDK 17):
+
+```sh
+cd app && npx cap sync android && cd android
+JAVA_HOME=$(/usr/libexec/java_home -v 21+ 2>/dev/null || echo /opt/homebrew/opt/openjdk/libexec/openjdk.jdk/Contents/Home) \
+  ./gradlew assembleDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk    # phone with USB debugging on
+```
+
 The iOS project uses Swift Package Manager (no CocoaPods). App id: `app.photoframing` on both platforms.
 
 Notes
