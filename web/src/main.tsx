@@ -8,12 +8,15 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
 import './local/client'
+import { startAutomaticBackup } from './backup/runner'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
   </StrictMode>,
 )
+
+startAutomaticBackup()     // only does something inside the iPhone/Android app
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(() => {}) })

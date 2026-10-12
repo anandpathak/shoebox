@@ -19,6 +19,7 @@ public class PhotoBackupPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "forget", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "conditions", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "finishBackground", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "configure", returnType: CAPPluginReturnPromise),
     ]
     private let core = BackupCore.shared
     private let work = DispatchQueue(label: "app.photoframing.backup.work", qos: .utility)
@@ -26,7 +27,6 @@ public class PhotoBackupPlugin: CAPPlugin, CAPBridgedPlugin {
     override public func load() {
         UIDevice.current.isBatteryMonitoringEnabled = true
         core.onUploadFinished = { [weak self] in self?.notifyListeners("uploadFinished", data: [:]) }
-        BackgroundBackup.shared.plugin = self
     }
 
     @objc func access(_ call: CAPPluginCall) { call.resolve(["access": core.access()]) }
@@ -73,12 +73,23 @@ public class PhotoBackupPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
-    @objc func finishBackground(_ call: CAPPluginCall) {
-        BackgroundBackup.shared.finish(success: true)
-        call.resolve()
-    }
+    @objc func finishBackground(_ call: CAPPluginCall) { call.resolve() }
 
-    func runInBackground() { notifyListeners("backgroundRun", data: [:], retainUntilConsumed: true) }
+    /// The web app passes its origin, device id and backup settings on every run, for passes made while it's closed.
+    @objc func configure(_ call: CAPPluginCall) {
+        guard let origin = call.getString("origin"), let device = call.getString("deviceId") else {
+            return call.reject("origin and deviceId are required")
+        }
+        let c = PassConfig(enabled: call.getBool("enabled") ?? false, origin: origin, deviceId: device,
+                           wifiOnly: call.getBool("wifiOnly") ?? true, videos: call.getBool("videos") ?? true,
+                           videosWhileCharging: call.getBool("videosWhileCharging") ?? true,
+                           screenshots: call.getBool("screenshots") ?? false, from: call.getDouble("from"),
+                           albums: call.getArray("albums", String.self))
+        work.async {
+            self.core.configure(c)
+            call.resolve()
+        }
+    }
 }
 
 /// BGTaskScheduler glue. Identifiers are listed in Info.plist (BGTaskSchedulerPermittedIdentifiers).
@@ -87,10 +98,6 @@ final class BackgroundBackup {
     static let refresh = "app.photoframing.backup.refresh"
     static let processing = "app.photoframing.backup.processing"
 
-    weak var plugin: PhotoBackupPlugin? {
-        didSet { if pending != nil { plugin?.runInBackground() } }
-    }
-    private var pending: BGTask?
 
     /// Must run before the app finishes launching.
     func register() {
@@ -109,19 +116,26 @@ final class BackgroundBackup {
         try? BGTaskScheduler.shared.submit(long)
     }
 
+    /// Runs the native pass (BackupCore.backgroundPass); uploads it queues carry on in the background session.
     private func handle(_ task: BGTask) {
         schedule()
         BackupCore.shared.resume()
-        pending = task
-        task.expirationHandler = { [weak self] in self?.finish(success: false) }
-        // The web app (and its backup engine) loads with the app; it answers with finishBackground().
-        plugin?.runInBackground()
-    }
-
-    func finish(success: Bool) {
-        DispatchQueue.main.async {
-            self.pending?.setTaskCompleted(success: success)
-            self.pending = nil
+        let long = task is BGProcessingTask
+        let deadline = Date(timeIntervalSinceNow: long ? 600 : 25)
+        let charging = DispatchQueue.main.sync { () -> Bool in
+            UIDevice.current.isBatteryMonitoringEnabled = true
+            return UIDevice.current.batteryState == .charging || UIDevice.current.batteryState == .full
+        }
+        let lock = NSLock()
+        var completed = false
+        let complete = { (ok: Bool) in
+            lock.lock(); defer { lock.unlock() }
+            if !completed { completed = true; task.setTaskCompleted(success: ok) }
+        }
+        task.expirationHandler = { complete(false) }      // the pass also stops itself at `deadline`
+        DispatchQueue.global(qos: .utility).async {
+            BackupCore.shared.backgroundPass(charging: charging, limit: long ? 500 : 30, deadline: deadline)
+            complete(true)
         }
     }
 }

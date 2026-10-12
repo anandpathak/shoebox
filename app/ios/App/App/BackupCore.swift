@@ -243,6 +243,104 @@ final class BackupCore: NSObject {
     }
 }
 
+/// What the web app last told the native side (origin, device, settings), for passes run while it's closed.
+struct PassConfig: Codable {
+    var enabled: Bool
+    var origin: String
+    var deviceId: String
+    var wifiOnly: Bool
+    var videos: Bool
+    var videosWhileCharging: Bool
+    var screenshots: Bool
+    var from: Double?
+    var albums: [String]?
+}
+
+extension BackupCore {
+    private static let configKey = "backup.config", tokenKey = "backup.bgToken"
+
+    func configure(_ config: PassConfig) {
+        if let data = try? JSONEncoder().encode(config) { UserDefaults.standard.set(data, forKey: BackupCore.configKey) }
+        // Background passes only look at items newer than this; the backlog is the open app's job.
+        if UserDefaults.standard.string(forKey: BackupCore.tokenKey) == nil,
+           let token = changes(since: nil)["token"] as? String {
+            UserDefaults.standard.set(token, forKey: BackupCore.tokenKey)
+        }
+    }
+
+    func config() -> PassConfig? {
+        UserDefaults.standard.data(forKey: BackupCore.configKey).flatMap { try? JSONDecoder().decode(PassConfig.self, from: $0) }
+    }
+
+    static func wanted(_ a: [String: Any], _ c: PassConfig) -> Bool {
+        if a["kind"] as? String == "video" && !c.videos { return false }
+        if a["screenshot"] as? Bool == true && !c.screenshots { return false }
+        if let from = c.from, let created = a["created"] as? Double, created < from { return false }
+        if let albums = c.albums, !((a["albums"] as? [String]) ?? []).contains(where: albums.contains) { return false }
+        return true
+    }
+
+    /// A short pass while the app is closed: new items → hash → ask the Mac → queue uploads. The ledger in the
+    /// app catches up next time it opens; the Mac's check stops anything being sent twice. Blocks; call off the main thread.
+    @discardableResult
+    func backgroundPass(charging: Bool, limit: Int = 30, deadline: Date) -> Int {
+        guard let c = config(), c.enabled, let origin = URL(string: c.origin), access() != "denied" else { return 0 }
+        guard let token = UserDefaults.standard.string(forKey: BackupCore.tokenKey) else { return 0 }  // set by configure()
+        let ch = changes(since: token)
+        let all = ((ch["assets"] as? [[String: Any]]) ?? []).filter { BackupCore.wanted($0, c) }
+        let batch = all.filter { !($0["kind"] as? String == "video" && c.videosWhileCharging && !charging) }.prefix(limit)
+        var hashed: [(asset: [String: Any], sha: String)] = []
+        for a in batch {
+            guard Date() < deadline, let id = a["id"] as? String else { break }
+            let sem = DispatchSemaphore(value: 0)
+            var sha: String?
+            hash(id: id, allowNetwork: !c.wifiOnly || conditions(charging: charging)["wifi"] == true) { r in
+                if case .success(let (h, _)) = r { sha = h }
+                sem.signal()
+            }
+            sem.wait()
+            if let sha { hashed.append((a, sha)) }
+        }
+        guard !hashed.isEmpty, let missing = check(origin: origin, hashes: hashed.map(\.sha)) else {
+            if hashed.count == all.count, let next = ch["token"] as? String { UserDefaults.standard.set(next, forKey: BackupCore.tokenKey) }
+            return 0
+        }
+        var queued = 0, sent = Set<String>()
+        for (a, sha) in hashed where missing.contains(sha) && !sent.contains(sha) {
+            guard let id = a["id"] as? String else { continue }
+            var headers = ["X-Device-Id": c.deviceId, "X-Asset-Id": id, "X-Sha256": sha,
+                           "X-Filename": a["filename"] as? String ?? id]
+            if let created = a["created"] as? Double { headers["X-Last-Modified"] = String(Int64(created)) }
+            if (try? upload(assetId: id, url: origin.appendingPathComponent("api/uploads/raw"), headers: headers, wifiOnly: c.wifiOnly)) != nil {
+                queued += 1
+                sent.insert(sha)
+            }
+        }
+        // Advance only when every new item was looked at; otherwise the next pass picks up the rest.
+        if hashed.count == all.count, let next = ch["token"] as? String { UserDefaults.standard.set(next, forKey: BackupCore.tokenKey) }
+        return queued
+    }
+
+    private func check(origin: URL, hashes: [String]) -> Set<String>? {
+        var req = URLRequest(url: origin.appendingPathComponent("api/backup/check"))
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: ["hashes": Array(Set(hashes))])
+        req.timeoutInterval = 20
+        let sem = DispatchSemaphore(value: 0)
+        var missing: Set<String>?
+        URLSession.shared.dataTask(with: req) { data, resp, _ in
+            if (resp as? HTTPURLResponse)?.statusCode == 200, let data,
+               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                missing = Set((obj["missing"] as? [String]) ?? [])
+            }
+            sem.signal()
+        }.resume()
+        sem.wait()
+        return missing
+    }
+}
+
 extension BackupCore: URLSessionDataDelegate {
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         queue.sync { bodies[dataTask.taskIdentifier, default: Data()].append(data) }

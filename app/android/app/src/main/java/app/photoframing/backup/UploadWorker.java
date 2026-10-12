@@ -7,6 +7,12 @@ import android.content.pm.ServiceInfo;
 import android.os.Build;
 
 import androidx.annotation.NonNull;
+import androidx.work.Constraints;
+import androidx.work.Data;
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.NetworkType;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
 import androidx.core.app.NotificationCompat;
 import androidx.work.ForegroundInfo;
 import androidx.work.Worker;
@@ -35,6 +41,20 @@ public class UploadWorker extends Worker {
     private static final long FOREGROUND_ABOVE = 50L * 1024 * 1024;
 
     public UploadWorker(@NonNull Context ctx, @NonNull WorkerParameters params) { super(ctx, params); }
+
+    /** Queue one upload; WorkManager waits for Wi-Fi (or any network) and survives the app closing. */
+    static void enqueue(Context ctx, BackupStore store, String assetId, String url, String headers, File file, boolean wifiOnly)
+            throws JSONException {
+        OneTimeWorkRequest req = new OneTimeWorkRequest.Builder(UploadWorker.class)
+                .setConstraints(new Constraints.Builder()
+                        .setRequiredNetworkType(wifiOnly ? NetworkType.UNMETERED : NetworkType.CONNECTED).build())
+                .setInputData(new Data.Builder().putString("assetId", assetId).putString("url", url)
+                        .putString("headers", headers).putString("file", file.getAbsolutePath()).build())
+                .addTag("backup")
+                .build();
+        store.putUpload(assetId, new JSONObject().put("assetId", assetId).put("state", "queued"));
+        WorkManager.getInstance(ctx).enqueueUniqueWork("upload-" + assetId, ExistingWorkPolicy.REPLACE, req);
+    }
 
     @NonNull
     @Override

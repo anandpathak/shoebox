@@ -42,6 +42,14 @@ public final class BackupStore {
         return out;
     }
 
+    public synchronized String config() { return prefs.getString("config", null); }
+
+    public synchronized void setConfig(String json) { prefs.edit().putString("config", json).apply(); }
+
+    public synchronized String bgToken() { return prefs.getString("bgToken", null); }
+
+    public synchronized void setBgToken(String token) { prefs.edit().putString("bgToken", token).apply(); }
+
     public synchronized Set<String> knownIds() { return new HashSet<>(prefs.getStringSet("known", new HashSet<>())); }
 
     public synchronized void setKnownIds(Set<String> ids) { prefs.edit().putStringSet("known", new HashSet<>(ids)).apply(); }

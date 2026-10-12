@@ -252,3 +252,18 @@ describe('automatic backup', () => {
     expect(phone.hashed).toEqual([])
   })
 })
+
+describe('uploads queued while the app was closed', () => {
+  it('are tidied up once the ledger sees the item as archived', async () => {
+    const { phone, mac, run, ledger } = setup()
+    phone.add('a', 'aa')
+    // a background pass already sent it
+    await phone.upload({ assetId: 'a', url: 'x', sha256: SHA('aa'), wifiOnly: true,
+                         headers: { 'X-Sha256': SHA('aa') } })
+    phone.deliver(mac)
+    const s = await run()
+    expect(s.backedUp).toBe(1)
+    expect(ledger().entries.a.how).toBe('already')
+    expect(phone.queue.size).toBe(0)
+  })
+})

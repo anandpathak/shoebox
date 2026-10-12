@@ -6,6 +6,7 @@ import { Notifications } from '../components/Notifications'
 import { TopBar } from '../components/Shell'
 import { useApp } from '../lib/app'
 import { ago, bytes } from '../lib/format'
+import { backupNow } from '../backup/runner'
 
 interface Verify {
   checksum: string; converged: boolean; s3: boolean
@@ -59,7 +60,7 @@ export function Sync() {
           )}
           {sync?.error && <div className="error">Last sync failed: {sync.error}</div>}
           {s3 && <div className="row"><button className="btn primary" disabled={busy !== null}
-                       onClick={() => act('sync', () => api('/api/sync', { method: 'POST' }))}>
+                       onClick={() => { void backupNow(); act('sync', () => api('/api/sync', { method: 'POST' })) }}>
             {busy === 'sync' ? 'Syncing…' : 'Sync now'}</button></div>}
         </section>
 

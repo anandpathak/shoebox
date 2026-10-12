@@ -34,9 +34,12 @@ export function backupNow(): Promise<Status | null> {
       do {
         again = false
         const device = getDevice()
+        const settings = await loadSettings()
+        // Background passes (app closed) need the same origin, device and settings.
+        await p.configure({ origin: location.origin, deviceId: device.device_id, ...settings }).catch(() => {})
         s = await runBackup({
           phone: nativePhone(p), load: loadLedger, save: saveLedger, fetch: (...a) => fetch(...a),
-          origin: location.origin, deviceId: device.device_id, platform, settings: await loadSettings(), onProgress: emit,
+          origin: location.origin, deviceId: device.device_id, platform, settings, onProgress: emit,
         })
       } while (again)
       return s
@@ -48,6 +51,7 @@ export function backupNow(): Promise<Status | null> {
 export async function updateSettings(change: Partial<Settings>): Promise<Settings> {
   const next = { ...(await loadSettings()), ...change }
   await saveSettings(next)
+  await plugin()?.configure({ origin: location.origin, deviceId: getDevice().device_id, ...next }).catch(() => {})
   if (next.enabled) {
     const p = plugin()
     if (p && change.enabled) await nativePhone(p).requestAccess()

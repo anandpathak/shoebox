@@ -10,13 +10,6 @@ import android.net.NetworkCapabilities;
 import android.os.BatteryManager;
 import android.os.Build;
 
-import androidx.work.Constraints;
-import androidx.work.Data;
-import androidx.work.ExistingWorkPolicy;
-import androidx.work.NetworkType;
-import androidx.work.OneTimeWorkRequest;
-import androidx.work.WorkManager;
-
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PermissionState;
@@ -28,7 +21,6 @@ import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
@@ -126,18 +118,10 @@ public class PhotoBackupPlugin extends Plugin {
         File file = library.file(id);
         if (!file.exists()) { call.reject(id + " has to be hashed before it's uploaded"); return; }
         boolean wifiOnly = Boolean.TRUE.equals(call.getBoolean("wifiOnly", true));
-        OneTimeWorkRequest req = new OneTimeWorkRequest.Builder(UploadWorker.class)
-                .setConstraints(new Constraints.Builder()
-                        .setRequiredNetworkType(wifiOnly ? NetworkType.UNMETERED : NetworkType.CONNECTED).build())
-                .setInputData(new Data.Builder().putString("assetId", id).putString("url", url)
-                        .putString("headers", headers.toString()).putString("file", file.getAbsolutePath()).build())
-                .addTag("backup")
-                .build();
         try {
-            store.putUpload(id, new JSONObject().put("assetId", id).put("state", "queued"));
-        } catch (JSONException e) { call.reject(e.getMessage()); return; }
-        WorkManager.getInstance(getContext()).enqueueUniqueWork("upload-" + id, ExistingWorkPolicy.REPLACE, req);
-        call.resolve();
+            UploadWorker.enqueue(getContext(), store, id, url, headers.toString(), file, wifiOnly);
+            call.resolve();
+        } catch (JSONException e) { call.reject(e.getMessage()); }
     }
 
     @PluginMethod
@@ -172,4 +156,19 @@ public class PhotoBackupPlugin extends Plugin {
 
     @PluginMethod
     public void finishBackground(PluginCall call) { call.resolve(); }
+
+    /** Origin, device id and backup settings, for passes made while the app is closed (BackgroundPassWorker). */
+    @PluginMethod
+    public void configure(PluginCall call) {
+        JSObject c = call.getData();
+        if (c.getString("origin") == null || c.getString("deviceId") == null) { call.reject("origin and deviceId are required"); return; }
+        work.execute(() -> {
+            store.setConfig(c.toString());
+            if (store.bgToken() == null) {                 // background passes only look at what's new from here on
+                try { store.setBgToken(library.changes(null, store, false).getString("token")); } catch (Exception ignored) { }
+            }
+            BackupScheduler.schedule(getContext());
+            call.resolve();
+        });
+    }
 }

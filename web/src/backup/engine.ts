@@ -146,8 +146,10 @@ export async function collectUploads(ctx: Context, ledger: Ledger, now: number):
       entries[e.id] = retry(e, now, u.error ?? `Upload failed (${u.status ?? 'no answer'})`, 'hashed')
     }
   }
+  // Uploads queued by a background pass (app closed) for items the ledger hasn't got to yet: the check
+  // will find them archived, so the results are only tidied up.
   for (const [id, u] of states) {
-    if (!entries[id] && (u.state === 'done' || u.state === 'failed')) finished.push(id)
+    if (entries[id]?.state !== 'uploading' && (u.state === 'done' || u.state === 'failed')) finished.push(id)
   }
   if (finished.length) await ctx.phone.forget(finished)
   return { ...ledger, entries }

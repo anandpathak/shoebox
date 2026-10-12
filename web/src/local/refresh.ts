@@ -1,6 +1,7 @@
 // Keep the on-device catalog current: pull ops the server has seen since our cursor and apply them here
 // with the same rules as the Mac (LOCAL_APP_PLAN.md §10.2). A 410 means the server's catalog was rebuilt.
 import { ApiError, api } from '../api/client'
+import { backupNow } from '../backup/runner'
 import type { Op } from './apply'
 import { getDevice } from '../lib/device'
 import { local } from './client'
@@ -10,7 +11,10 @@ import { getLocal, setLocal } from './state'
 let running: Promise<number> | null = null
 
 export function refreshLocal(redownload: () => Promise<unknown>): Promise<number> {
-  if (!running) running = run(redownload).finally(() => { running = null })
+  if (!running) {
+    void backupNow()          // each sync also backs up new camera-roll items (native app only; §13.2)
+    running = run(redownload).finally(() => { running = null })
+  }
   return running
 }
 

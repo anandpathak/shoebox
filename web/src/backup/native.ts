@@ -1,6 +1,6 @@
 // The `PhotoBackup` plugin from the native app (app/ios, app/android). In a browser there is none, and the
 // app offers the assisted "Back up recent photos" picker instead (§13.5).
-import type { Phone } from './types'
+import type { Phone, Settings } from './types'
 
 interface CapacitorGlobal {
   isNativePlatform?: () => boolean
@@ -19,6 +19,7 @@ type Plugin = {
   conditions(): ReturnType<Phone['conditions']>
   addListener(event: 'backgroundRun' | 'uploadFinished', fn: () => void): Promise<{ remove(): void }>
   finishBackground(): Promise<void>
+  configure(o: { origin: string; deviceId: string } & Settings): Promise<void>
 }
 
 function cap(): CapacitorGlobal | undefined {

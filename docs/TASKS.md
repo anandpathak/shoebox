@@ -324,7 +324,7 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T12.6** Upload engine: batch check → resumable uploads with retries; iOS background `URLSession`; Android WorkManager with a foreground notification for long uploads.
   Done as: engine in `web/src/backup/engine.ts` (batch check, back-off retries, 422 → re-hash); each file goes up whole as one background request to `POST /api/uploads/raw` (iOS background `URLSession`, Android WorkManager + foreground notification above 50 MB) instead of tus, because OS background transfer queues take a plain file upload. An interrupted file is re-sent from the start.
   *Done when:* force-quitting the app mid-video resumes the upload later without starting over.
-- [ ] **T12.7** Triggers: on app open, pull-to-refresh and every sync; iOS `BGProcessingTask` + `BGAppRefreshTask`; Android periodic WorkManager (6 h) + MediaStore content trigger.
+- [x] **T12.7** Triggers: on app open, pull-to-refresh and every sync; iOS `BGProcessingTask` + `BGAppRefreshTask`; Android periodic WorkManager (6 h) + MediaStore content trigger. ✅ 2026-10-12
   *Done when:* a photo taken with the app closed is backed up overnight on both phones (charging + Wi-Fi).
 - [ ] **T12.8** Backup settings + UI: Wi-Fi only, while charging, videos, screenshots, albums, from date; "Backed up X of Y · N waiting"; "on this phone only" badge in the grid.
   *Done when:* the settings are respected on both platforms and the counts match the ledger.

@@ -64,7 +64,10 @@ public final class MediaLibrary {
     }
 
     /** Items added or edited since `token` (null: everything), and ids that are gone. */
-    public JSONObject changes(String token, BackupStore store) throws JSONException {
+    public JSONObject changes(String token, BackupStore store) throws JSONException { return changes(token, store, true); }
+
+    /** trackDeletions=false for background passes: the ids-seen list belongs to the app's own listing. */
+    public JSONObject changes(String token, BackupStore store, boolean trackDeletions) throws JSONException {
         String next = currentToken();
         String where = MEDIA;
         String[] args = null;
@@ -109,10 +112,12 @@ public final class MediaLibrary {
             }
         }
         // MediaStore keeps no record of deletions: compare against the ids seen last time.
-        Set<String> now = allIds();
         JSONArray deleted = new JSONArray();
-        for (String id : store.knownIds()) if (!now.contains(id)) deleted.put(id);
-        store.setKnownIds(now);
+        if (trackDeletions) {
+            Set<String> now = allIds();
+            for (String id : store.knownIds()) if (!now.contains(id)) deleted.put(id);
+            store.setKnownIds(now);
+        }
         JSONObject out = new JSONObject();
         out.put("assets", assets);
         out.put("deleted", deleted);
