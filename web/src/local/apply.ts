@@ -112,7 +112,7 @@ function mediaDeleted(ctx: Ctx, op: Op) {
 const setAdd = (table: string, col: string, lower: boolean) => (ctx: Ctx, op: Op) => {
   const b = op.body
   const value = lower ? norm(b[col]).toLowerCase() : norm(b[col])
-  if (table === 'media_tags') ctx.db.run('INSERT OR IGNORE INTO media_tags (photo_id, tag, add_op, source) VALUES (?, ?, ?, ?)', [b.photo_id, value, op.op_id, 'user'])
+  if (table === 'media_tags') ctx.db.run('INSERT OR IGNORE INTO media_tags (photo_id, tag, add_op, source) VALUES (?, ?, ?, ?)', [b.photo_id, value, op.op_id, b.source ?? 'user'])
   else ctx.db.run(`INSERT OR IGNORE INTO ${table} (photo_id, ${col}, add_op) VALUES (?, ?, ?)`, [b.photo_id, value, op.op_id])
   ctx.touched.add(b.photo_id)
 }
@@ -128,7 +128,7 @@ function setRemove(ctx: Ctx, op: Op) {
 
 function mediaPersonAdd(ctx: Ctx, op: Op) {
   const b = op.body
-  ctx.db.run('INSERT OR IGNORE INTO media_people (photo_id, person_id, source, add_op) VALUES (?, ?, ?, ?)', [b.photo_id, b.person_id, 'user', op.op_id])
+  ctx.db.run('INSERT OR IGNORE INTO media_people (photo_id, person_id, source, add_op) VALUES (?, ?, ?, ?)', [b.photo_id, b.person_id, b.source ?? 'user', op.op_id])
   ctx.touched.add(b.photo_id)
 }
 

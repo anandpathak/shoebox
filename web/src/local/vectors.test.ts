@@ -60,6 +60,12 @@ function check(db: Db, expect_: any) {
     const got = db.all<{ photo_id: string }>('SELECT photo_id FROM media_fts WHERE media_fts MATCH ?', [q]).map((r) => r.photo_id).sort()
     expect(got, `fts ${q}`).toEqual([...(pids as string[])].sort())
   }
+  for (const [pid, sources] of Object.entries(expect_.sources ?? {}) as [string, Record<string, string>][]) {
+    const got: Record<string, string> = {}
+    for (const r of db.all<{ k: string; s: string }>(`SELECT tag AS k, source AS s FROM media_tags WHERE photo_id = ? AND ${LIVE}`, [pid])) got[r.k] = r.s
+    for (const r of db.all<{ k: string; s: string }>(`SELECT p.name AS k, m.source AS s FROM media_people m JOIN people p USING (person_id) WHERE m.photo_id = ? AND m.${LIVE}`, [pid])) got[r.k.toLowerCase()] = r.s
+    expect(Object.fromEntries(Object.keys(sources).map((k) => [k, got[k]])), `sources ${pid}`).toEqual(sources)
+  }
   for (const [addOp, remover] of Object.entries(expect_.tombstones ?? {})) {
     expect(db.get<{ removed_by: string }>('SELECT removed_by FROM tombstones WHERE add_op = ?', [addOp])!.removed_by).toBe(remover)
   }

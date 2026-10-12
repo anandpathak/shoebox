@@ -47,6 +47,12 @@ def check(conn, expect):
     for q, pids in expect.get("fts", {}).items():
         got = sorted(r[0] for r in conn.execute("SELECT photo_id FROM media_fts WHERE media_fts MATCH ?", (q,)))
         assert got == sorted(pids), q
+    for pid, sources in expect.get("sources", {}).items():   # tag or person name → source
+        got = dict(conn.execute(f"SELECT tag, source FROM media_tags WHERE photo_id = ? AND {LIVE}", (pid,)).fetchall())
+        got |= {n.lower(): s for n, s in conn.execute(
+            f"SELECT p.name, m.source FROM media_people m JOIN people p USING (person_id) WHERE m.photo_id = ? AND m.{LIVE}",
+            (pid,)).fetchall()}
+        assert {k: got.get(k) for k in sources} == sources, pid
     for add_op, remover in expect.get("tombstones", {}).items():
         assert conn.execute("SELECT removed_by FROM tombstones WHERE add_op = ?", (add_op,)).fetchone()[0] == remover
 

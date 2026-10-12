@@ -220,6 +220,18 @@ def vectors():
                                                        "observed_add_ops": [o["op_id"]]})])(
              a.op("media.person.add", {"photo_id": P1, "person_id": "pk"}))],
         {"photo_people": {P1: []}, "fts": {"kid": []}})
+    # 21
+    a, b = Dev("MAC", 1_700_000_000_000), Dev("PHONE", 1_700_000_000_000)
+    up = a.op("media.upsert", {"record": rec()})
+    add("analysis_sources", "Tags from image analysis and people from face recognition keep their source and are "
+        "searchable like any other; the user can still remove them.",
+        [up, a.op("tag.add", {"photo_id": P1, "tag": "Landscape", "source": "vision"}),
+         a.op("person.create", {"person_id": "pa", "name": "Asha"}),
+         a.op("media.person.add", {"photo_id": P1, "person_id": "pa", "source": "face"}),
+         *(lambda o: [o, b.op("tag.remove", {"photo_id": P1, "tag": "mountain", "observed_add_ops": [o["op_id"]]})])(
+             a.op("tag.add", {"photo_id": P1, "tag": "mountain", "source": "vision"}))],
+        {"tags": {P1: ["landscape"]}, "sources": {P1: {"landscape": "vision", "asha": "face"}},
+         "photo_people": {P1: ["Asha"]}, "fts": {"landscape": [P1], "asha": [P1], "mountain": []}})
     return V
 
 

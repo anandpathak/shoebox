@@ -1,0 +1,152 @@
+{
+  "name": "analysis_sources",
+  "description": "Tags from image analysis and people from face recognition keep their source and are searchable like any other; the user can still remove them.",
+  "ops": [
+    {
+      "op_id": "1700000000010-0000-MAC",
+      "hlc": "1700000000010-0000-MAC",
+      "device_id": "MAC",
+      "kind": "media.upsert",
+      "entity": "media:AAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "body": {
+        "record": {
+          "schema_version": 1,
+          "photo_id": "AAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "media_type": "photo",
+          "keys": {
+            "raw": "raw/2025/2025-08/AAAAAAAAAAAAAAAAAAAAAAAAAA.heic",
+            "compressed": "compressed/2025/2025-08/AAAAAAAAAAAAAAAAAAAAAAAAAA.jpg",
+            "thumb": "thumb/2025/2025-08/AAAAAAAAAAAAAAAAAAAAAAAAAA.jpg",
+            "meta": "meta/2025/2025-08/AAAAAAAAAAAAAAAAAAAAAAAAAA.json"
+          },
+          "file": {
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "orig_name": "IMG_0001.HEIC",
+            "orig_ext": "heic",
+            "bytes_raw": 2000000,
+            "width": 4032,
+            "height": 3024
+          },
+          "taken_at": "2025-08-15T11:52:05+05:30",
+          "source": {
+            "type": "applephotos",
+            "ref": "uuid-1"
+          },
+          "apple": {
+            "title": null,
+            "description": null,
+            "favorite": false,
+            "hidden": false,
+            "keywords": [],
+            "labels": [],
+            "albums": [],
+            "persons": [],
+            "latitude": 14.5,
+            "longitude": 74.3,
+            "exif_info": {
+              "camera_make": "Apple",
+              "camera_model": "iPhone 15",
+              "tzname": "GMT+0530"
+            },
+            "place": {
+              "name": "Gokarna, Karnataka",
+              "address": {
+                "city": "Gokarna",
+                "state_province": "Karnataka",
+                "country": "India"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "op_id": "1700000000020-0000-MAC",
+      "hlc": "1700000000020-0000-MAC",
+      "device_id": "MAC",
+      "kind": "tag.add",
+      "entity": "media:AAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "body": {
+        "photo_id": "AAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "tag": "Landscape",
+        "source": "vision"
+      }
+    },
+    {
+      "op_id": "1700000000030-0000-MAC",
+      "hlc": "1700000000030-0000-MAC",
+      "device_id": "MAC",
+      "kind": "person.create",
+      "entity": "person:pa",
+      "body": {
+        "person_id": "pa",
+        "name": "Asha"
+      }
+    },
+    {
+      "op_id": "1700000000040-0000-MAC",
+      "hlc": "1700000000040-0000-MAC",
+      "device_id": "MAC",
+      "kind": "media.person.add",
+      "entity": "media:AAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "body": {
+        "photo_id": "AAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "person_id": "pa",
+        "source": "face"
+      }
+    },
+    {
+      "op_id": "1700000000050-0000-MAC",
+      "hlc": "1700000000050-0000-MAC",
+      "device_id": "MAC",
+      "kind": "tag.add",
+      "entity": "media:AAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "body": {
+        "photo_id": "AAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "tag": "mountain",
+        "source": "vision"
+      }
+    },
+    {
+      "op_id": "1700000000010-0000-PHONE",
+      "hlc": "1700000000010-0000-PHONE",
+      "device_id": "PHONE",
+      "kind": "tag.remove",
+      "entity": "media:AAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "body": {
+        "photo_id": "AAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "tag": "mountain",
+        "observed_add_ops": [
+          "1700000000050-0000-MAC"
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "tags": {
+      "AAAAAAAAAAAAAAAAAAAAAAAAAA": [
+        "landscape"
+      ]
+    },
+    "sources": {
+      "AAAAAAAAAAAAAAAAAAAAAAAAAA": {
+        "landscape": "vision",
+        "asha": "face"
+      }
+    },
+    "photo_people": {
+      "AAAAAAAAAAAAAAAAAAAAAAAAAA": [
+        "Asha"
+      ]
+    },
+    "fts": {
+      "landscape": [
+        "AAAAAAAAAAAAAAAAAAAAAAAAAA"
+      ],
+      "asha": [
+        "AAAAAAAAAAAAAAAAAAAAAAAAAA"
+      ],
+      "mountain": []
+    }
+  }
+}

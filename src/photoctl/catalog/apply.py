@@ -161,7 +161,7 @@ def _set_add(table: str, col: str, lower: bool):
         extra = ", source" if table == "media_tags" else ""
         ctx.conn.execute(f"INSERT OR IGNORE INTO {table} (photo_id, {col}, add_op{extra}) "
                          f"VALUES (?, ?, ?{', ?' if extra else ''})",
-                         (b["photo_id"], value, op["op_id"], *(["user"] if extra else [])))
+                         (b["photo_id"], value, op["op_id"], *([b.get("source", "user")] if extra else [])))
         ctx.touched.add(b["photo_id"])
     return handler
 
@@ -180,7 +180,7 @@ def _set_remove(ctx: _Ctx, op: dict) -> None:
 def _media_person_add(ctx: _Ctx, op: dict) -> None:
     b = op["body"]
     ctx.conn.execute("INSERT OR IGNORE INTO media_people (photo_id, person_id, source, add_op) VALUES (?, ?, ?, ?)",
-                     (b["photo_id"], b["person_id"], "user", op["op_id"]))
+                     (b["photo_id"], b["person_id"], b.get("source", "user"), op["op_id"]))
     ctx.touched.add(b["photo_id"])
 
 
