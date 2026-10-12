@@ -367,6 +367,21 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 
 ---
 
+## M15 — Search by content and people (analysis on the Mac)
+
+- [x] **T15.1** Ops record where tags and people-on-photo came from (`source`: vision / face); conformance vector 21.
+- [x] **T15.2** Labels: Apple Vision on the compressed copy → tags (source vision) + derived words (landscape, people, portrait, group…); never re-adds a tag the user removed.
+- [x] **T15.3** Faces: OpenCV YuNet + SFace (pinned SHA-256 models), fingerprints in `faces.sqlite` (0600, Mac only); clustering; learning from Apple Photos names; naming → `media.person.add` (source face) + re-matching; *not them* / *not a person*.
+- [x] **T15.4** `photoctl analyze`, `photoctl faces`; background worker after archive runs / phone uploads; API.
+- [x] **T15.5** People → *Who's this?* (face groups, name with suggestions, *Not a person*, progress); e2e test.
+- [ ] **T15.6** Text in photos (OCR, Vision `VNRecognizeTextRequest`) searchable: needs a synced text field.
+- [ ] **T15.7** Optional sentence captions ("two people on a beach at sunset") from a local vision model (e.g. via Ollama); off by default.
+- [ ] **T15.8** Viewer: show face boxes with names; *not them* from the photo.
+- [ ] **T15.9** Tune thresholds on a real library (AUTO_MATCH 0.50, JOIN_CLUSTER 0.42, label confidence 0.3).
+  *Done when:* checked on your own photos: few wrong auto-tags, groups mostly one person each.
+
+---
+
 ## Open decisions (see LOCAL_APP_PLAN §16)
 
 - [x] **D1** UI stack: React + Vite + TS (recommended; needed for on-device mode) vs HTMX — built with the recommended option

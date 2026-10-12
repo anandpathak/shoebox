@@ -100,6 +100,26 @@ def seed(library: Path, items: int, seed_value: int = 7) -> None:
     conn.close()
 
 
+def seed_faces(items: int) -> None:
+    """Two made-up people's face fingerprints on some seeded photos (no real faces), so the People screen
+    has groups to name. Stand-ins only: random vectors, boxes in the middle of the picture."""
+    import numpy as np
+
+    from photoctl.analyze.faces import Face
+    from photoctl.analyze.facedb import add_faces, assign, open_faces
+    from photoctl.catalog import open_catalog
+
+    rng = np.random.default_rng(11)
+    people = [rng.normal(size=128) for _ in range(2)]
+    conn, fdb = open_catalog(), open_faces()
+    for n in range(0, min(items, 40), 4):
+        base = people[(n // 4) % 2]
+        v = (base + rng.normal(scale=0.01, size=128)).astype(np.float32)
+        ids = add_faces(fdb, photo_id(n), [Face((0.35, 0.25, 0.3, 0.4), 0.95, v / np.linalg.norm(v))])
+        assign(fdb, conn, ids)
+    conn.close()
+
+
 def fake_photos_library(home: Path, n: int = 8) -> None:
     """Replace Apple Photos with a few generated photos so 'Archive from Apple Photos' works in tests."""
     import json
@@ -194,6 +214,7 @@ def main() -> None:
     fresh = not (home / "catalog.sqlite").exists()
     if fresh:
         seed(library, args.items)
+        seed_faces(args.items)
     bucket = None if args.no_s3 else start_mock_s3(home, upload_originals=fresh)
 
     import uvicorn

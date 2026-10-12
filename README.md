@@ -67,6 +67,27 @@ uv run photoctl thumbs backfill --bucket "$PHOTOCTL_BUCKET"                  # t
 uv run photoctl device                                # this device's id and name
 ```
 
+### Searching by what's in a photo, and who
+
+Photos from Apple Photos come with Apple's labels and the names you gave faces there. Everything else (phone
+uploads, backups from the app) is analysed on this Mac:
+
+```sh
+uv run photoctl analyze        # label photos and find faces (the server also does this in the background)
+uv run photoctl faces          # groups of faces still waiting for a name
+```
+
+- **Labels** come from Apple's Vision framework (on-device): *beach, mountain, food, dog, document…* plus
+  everyday words like *landscape, people, portrait, group, sunset*. They're ordinary tags, so search finds
+  them on every device; remove a wrong one like any tag.
+- **Faces** are found with OpenCV (two small open models, downloaded once into `~/.photoctl/models`). Similar
+  faces are grouped; in the app go to **People → Who's this?** and type a name once. Every photo of that
+  person, now and later, can then be searched by name. Faces you named in Apple Photos are learnt
+  automatically. *Not a person* hides a group; on a photo, *not them* undoes a wrong match.
+- Face fingerprints are biometric data, so they stay in `~/.photoctl/faces.sqlite` on this Mac only: they
+  aren't synced, published or backed up. Only the names you confirm are.
+- Turn background analysis off with `analysis = false` under `[server]` in `~/.photoctl/config.toml`.
+
 ### Database backups
 
 At the end of every archive run, `state.sqlite`, `catalog.sqlite`, `device.json` and `config.toml` are backed up to

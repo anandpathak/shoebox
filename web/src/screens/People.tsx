@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import type { Person } from '../api/types'
 import { TopBar } from '../components/Shell'
+import { WhoIsThis } from '../components/WhoIsThis'
 import { useApp } from '../lib/app'
 import { go } from '../lib/router'
 
 export function People() {
-  const { source, version, changed } = useApp()
+  const { source, version, changed, online, localState } = useApp()
   const [people, setPeople] = useState<Person[] | null>(null)
   const [covers, setCovers] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
@@ -28,9 +29,10 @@ export function People() {
     <>
       <TopBar title="People" />
       {error && <div className="error">{error}</div>}
+      {online && !localState.preferDevice && people && <div className="stack"><WhoIsThis people={people} onChanged={changed} /></div>}
       {people && people.length === 0 && (
         <div className="empty"><strong>No people yet</strong>
-          <span>Names you gave faces in Apple Photos appear here, and you can add people to any photo.</span></div>
+          <span>Names you gave faces in Apple Photos appear here, and so do faces you name above. You can also add people to any photo.</span></div>
       )}
       <div className="people-list stack">
         {people?.map((p) => (

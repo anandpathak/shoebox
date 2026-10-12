@@ -187,3 +187,13 @@ details summary { cursor: pointer; color: var(--danger); }
 .pair { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
 .pair .card { width: 100%; max-width: 420px; }
 .pair form { display: grid; gap: 12px; }
+
+/* Who's this? (naming faces) */
+.who-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.who-list { display: grid; gap: 12px; margin-top: 8px; }
+.who-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--line); }
+.who-faces { display: flex; gap: 4px; flex: none; }
+.who-faces img { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; background: var(--line); }
+.who-body { flex: 1 1 220px; min-width: 0; display: grid; gap: 6px; }
+.who-body .row { flex-wrap: wrap; }
+.who-body input { flex: 1 1 120px; min-width: 0; }
