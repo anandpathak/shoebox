@@ -369,15 +369,15 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 
 ## Open decisions (see LOCAL_APP_PLAN §16)
 
-- [ ] **D1** UI stack: React + Vite + TS (recommended; needed for on-device mode) vs HTMX
-- [ ] **D2** Remote access: Tailscale (recommended) vs Cloudflare Tunnel + Access
-- [ ] **D3** Phone upload fidelity in the web app: accept browser limits (recommended); the native app (M12) gives full metadata
-- [ ] **D4** Offline images: thumbnails by default + opt-in "Save offline" (recommended)
-- [ ] **D5** Op flush policy: end of run + every 60 s (recommended)
-- [ ] **D6** Delete semantics: tombstone only (recommended)
-- [ ] **D7** Database backup schedule: after every run + daily; keep 30 daily + 12 monthly (recommended)
-- [ ] **D8** Phone backup defaults: Wi-Fi only, videos only while charging, no screenshots (recommended)
-- [ ] **D9** "Free up space" on phones: off by default, OS confirmation always (recommended)
+- [x] **D1** UI stack: React + Vite + TS (recommended; needed for on-device mode) vs HTMX — built with the recommended option
+- [x] **D2** Remote access: Tailscale (recommended) vs Cloudflare Tunnel + Access — built with the recommended option
+- [x] **D3** Phone upload fidelity in the web app: accept browser limits (recommended); the native app (M12) gives full metadata — built with the recommended option
+- [x] **D4** Offline images: thumbnails by default + opt-in "Save offline" (recommended) — built with the recommended option
+- [x] **D5** Op flush policy: end of run + every 60 s (recommended) — built with the recommended option
+- [x] **D6** Delete semantics: tombstone only (recommended) — built with the recommended option
+- [x] **D7** Database backup schedule: after every run + daily; keep 30 daily + 12 monthly (recommended) — built with the recommended option
+- [x] **D8** Phone backup defaults: Wi-Fi only, videos only while charging, no screenshots (recommended) — built with the recommended option
+- [ ] **D9** "Free up space" on phones: off by default, OS confirmation always (recommended) — open: the feature (T12.9) isn't built yet
 
 ## Notes / log
 
@@ -385,3 +385,4 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - 2026-10-11 — Added iOS/Android web access + run triggers (M8), on-device SQLite mode (M9), and downloadable per-device catalogs with cross-device search (M10). Renumbered later milestones.
 - 2026-10-11 — Added database backup to S3 + recovery (T0.7, M3b) and automatic backup from iPhone/Android (M12, now required). Always-on moved to M13, native extras to M14.
 - 2026-10-11 — Git repo initialised with a leak guard (`.githooks/pre-commit`). Built T0.7 (DB backup/restore) and all of M1 (catalog, device id, thumbnails, FTS, ingest lock + run log, backfill, export). 22 tests passing (`uv run pytest`). Waiting on T0.6 (first real S3 run).
+- 2026-10-12 — M12 built: server endpoint for native uploads + backup status (T12.2), Capacitor app shell (T12.1), shared TypeScript backup engine and ledger (T12.3, T12.6), iOS and Android PhotoBackup plugins with background passes (T12.4, T12.5, T12.7), *Back up this phone* card with an end-to-end test (T12.8). Native code isn't built on this Mac (no Xcode/Android SDK); those tasks are [~] until built and checked on phones. T12.9 deliberately not started. Next: M13 needs a hosting decision (T13.1).
