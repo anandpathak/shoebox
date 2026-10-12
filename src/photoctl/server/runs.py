@@ -93,6 +93,7 @@ class RunManager:
                 run = holder.get("run")
                 if run:
                     run.ended_at = _now()
+                    _announce(run)
 
         threading.Thread(target=work, name=f"archive-{kind}", daemon=True).start()
         if not accepted.wait(timeout):
@@ -149,3 +150,18 @@ def summarize(path: Path) -> dict:
         elif kind == "message":
             info["messages"].append(e.get("text"))
     return info
+
+
+def _announce(run: Run) -> None:
+    from .push import notify
+
+    failed = run.counts.get("failed", 0) + run.counts.get("missing_original", 0)
+    done = sum(run.counts.values()) - failed
+    title = {"done": "Archive finished", "cancelled": "Archive cancelled", "failed": "Archive failed"}.get(run.status)
+    if not title or (run.status == "done" and not run.counts):
+        return
+    body = run.error or f"{done} done" + (f", {failed} failed" if failed else "") + f" · {run.label}"
+    try:
+        notify(title, body, url="/#/uploads")
+    except Exception:  # notifications are best effort
+        pass

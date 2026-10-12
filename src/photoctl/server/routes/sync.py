@@ -54,6 +54,9 @@ def install_background_sync(app: FastAPI) -> None:
             while True:
                 try:
                     await asyncio.to_thread(run_sync, app, app_bucket(app))
+                    from ..push import check_originals
+
+                    await asyncio.to_thread(check_originals, app_bucket(app))
                 except AlreadyRunning:
                     pass
                 await asyncio.sleep(app.state.settings.sync_interval)

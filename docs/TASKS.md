@@ -237,8 +237,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T8.6** Upload queue when the Mac is unreachable (IndexedDB), resumed automatically. ✅ 2026-10-12
   *Done when:* uploads queued in airplane mode complete after reconnecting.
   *Note:* Files wait in IndexedDB (they survive closing the tab) and upload by themselves when the Mac is reachable again; tus fingerprints resume half-sent files. Browser test: pick while offline, reload, reconnect, uploaded.
-- [ ] **T8.7** (Optional) Web push for "run finished" / "original ready" (iOS 16.4+ installed PWA, Android).
+- [~] **T8.7** (Optional) Web push for "run finished" / "original ready" (iOS 16.4+ installed PWA, Android).
   *Done when:* a notification arrives on both phones.
+  *Note:* Built 2026-10-12: VAPID keys and subscriptions in ~/.photoctl (0600); 'Archive finished/cancelled/failed' sent when a run ends; 'Original ready' from the background loop; Sync screen has Turn on / Send a test / Turn off; the service worker shows notifications and opens the right screen. Sending is tested with a mocked push service (expired subscriptions are dropped). **Your step:** turn it on from the installed app on both phones and press 'Send a test'.
 - [ ] **T8.8** Real-device QA checklist (§15) on iPhone Safari + PWA and Android Chrome + PWA.
   *Done when:* every checklist item passes and the results are noted in this file.
 - [ ] **T8.9** Assisted backup in the web app (§13.5): "Back up recent photos" → picker → SHA-256 in the browser (WebCrypto) → `POST /api/backup/check` → upload only the missing ones.

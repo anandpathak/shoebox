@@ -58,3 +58,22 @@ self.addEventListener('fetch', (event) => {
     return res
   }))
 })
+
+// Notifications: "Archive finished", "Original ready".
+self.addEventListener('push', (event) => {
+  let data = { title: 'Photoframing', body: '', url: '/#/library' }
+  try { data = { ...data, ...event.data.json() } } catch { /* plain text */ }
+  event.waitUntil(self.registration.showNotification(data.title, {
+    body: data.body, icon: '/icons/icon-192.png', badge: '/icons/maskable-192.png', data: { url: data.url },
+  }))
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const url = (event.notification.data && event.notification.data.url) || '/#/library'
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((wins) => {
+    const open = wins.find((w) => new URL(w.url).origin === location.origin)
+    if (open) { open.navigate(url); return open.focus() }
+    return self.clients.openWindow(url)
+  }))
+})
