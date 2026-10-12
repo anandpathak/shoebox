@@ -283,12 +283,15 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T10.2** `contributed` flavour generation on the server for any device (media whose sources include that device). ✅ 2026-10-12
   *Done when:* the Android `contributed` catalog contains only photos uploaded from the Android phone.
   *Note:* Built in T5.7: GET /api/catalogs/{device_id}?flavour=contributed exports only media whose sources include that device (tests/test_api_catalogs.py::test_contributed_published_and_zip).
-- [ ] **T10.3** Catalogs screen: list every device catalog (platform icon, items, size, age), download one / several / all (`all.zip`), toggle which are open.
+- [~] **T10.3** Catalogs screen: list every device catalog (platform icon, items, size, age), download one / several / all (`all.zip`), toggle which are open.
   *Done when:* all catalogs can be downloaded on an iPhone and on an Android phone.
-- [ ] **T10.4** Multi-catalog on-device search: open the selected catalogs in sqlite-wasm, `ATTACH`, `UNION ALL` the shared queries, dedup by `photo_id`, show device badges.
+  *Note:* Built 2026-10-12: Catalogs → Device catalogs lists every shared catalog (platform, its own item count, size, when shared), Download/Update/Remove per device, tick to search, 'Download all catalogs (.zip)'. Browser tests in Chrome + WebKit at phone sizes. **Your step:** download catalogs on a real iPhone and Android phone.
+- [~] **T10.4** Multi-catalog on-device search: open the selected catalogs in sqlite-wasm, `ATTACH`, `UNION ALL` the shared queries, dedup by `photo_id`, show device badges.
   *Done when:* **on one phone, offline, a search returns iPhone and Android photos together**, with duplicates shown once.
-- [ ] **T10.5** Freshness: the age of each catalog in the UI; "Refresh" pulls ops or re-downloads.
+  *Note:* Built 2026-10-12: searches each ticked on-device catalog with the shared SQL and merges (one entry per photo, devices unioned, newest first, keyset paging; unit-tested). Uses separate catalog files rather than ATTACH. Browser test (Chrome + WebKit): offline, iPhone + Pixel catalogs searched together return exactly the server's results for those devices; unticking one narrows it. 'Search on this device now' uses them while online too. **Your step:** confirm on one real phone.
+- [x] **T10.5** Freshness: the age of each catalog in the UI; "Refresh" pulls ops or re-downloads. ✅ 2026-10-12
   *Done when:* a stale catalog is clearly labelled and refresh updates it.
+  *Note:* Built 2026-10-12: each downloaded catalog shows when it was shared and downloaded, a 'newer version available' label when its device has shared again, and Update re-downloads it (browser test).
 
 ---
 

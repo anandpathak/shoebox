@@ -66,7 +66,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => { stop = true; clearInterval(t) }
   }, [online, localState.enabled, version])
   // Can't reach the Mac but the catalog is on this device: search and browse from it.
-  const source: DataSource = !online && localState.enabled ? device : server
+  const haveLocal = localState.enabled || Object.keys(localState.devices ?? {}).length > 0
+  const source: DataSource = haveLocal && (!online || localState.preferDevice) ? device : server
   useEffect(() => { setVersion((v) => v + 1) }, [source])
   return (
     <Ctx.Provider value={{ source, localState, health, online, authError, sync, refreshSync, version, changed }}>

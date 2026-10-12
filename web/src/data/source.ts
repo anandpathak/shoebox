@@ -4,6 +4,7 @@ import { api, qs } from '../api/client'
 import type { Device, MediaDetail, Person, SearchResult } from '../api/types'
 import { getDevice } from '../lib/device'
 import { local } from '../local/client'
+import { getLocal } from '../local/state'
 
 export interface SearchParams {
   q?: string; person?: string; place?: string; tag?: string; album?: string
@@ -107,10 +108,16 @@ export class LocalDataSource implements DataSource {
   private call<T>(op: string, ...args: unknown[]) {
     return local.call<T>(op, this.name, ...args)
   }
-  search(p: SearchParams) { return this.call<SearchResult>('search', p) }
-  media(id: string) { return this.call<MediaDetail>('media', id) }
-  people() { return this.call<Person[]>('people') }
-  devices() { return this.call<Device[]>('devices') }
+  /** On-device catalogs being searched: the library and/or downloaded device catalogs. */
+  private names(): string[] {
+    const st = getLocal()
+    const open = st.open ?? ['library']
+    return open.filter((n) => n !== 'library' || st.enabled)
+  }
+  search(p: SearchParams) { return local.call<SearchResult>('searchMany', this.names(), p) }
+  media(id: string) { return local.call<MediaDetail>('media', this.names(), id) }
+  people() { return local.call<Person[]>('people', this.names()) }
+  devices() { return local.call<Device[]>('devices', this.names()) }
   // Files: same URLs; thumbnails come from the service-worker cache when offline.
   thumbUrl(id: string) { return this.server.thumbUrl(id) }
   posterUrl(id: string) { return this.server.posterUrl(id) }

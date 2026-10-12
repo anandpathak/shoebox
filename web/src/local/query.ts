@@ -105,3 +105,19 @@ export function mediaDetail(db: Db, photoId: string) {
   delete d.field_hlc
   return d
 }
+
+/** Merge results from several catalogs: one entry per photo (devices unioned), newest first, then page. */
+export function mergeResults(results: { name: string; items: MediaItem[] }[], limit: number, q?: string): SearchResult {
+  const merged = new Map<string, MediaItem & { catalogs: string[] }>()
+  for (const { name, items } of results) {
+    for (const it of items) {
+      const cur = merged.get(it.photo_id)
+      if (cur) { cur.devices = [...new Set([...cur.devices, ...it.devices])].sort(); cur.catalogs.push(name) }
+      else merged.set(it.photo_id, { ...it, catalogs: [name] })
+    }
+  }
+  const key = (i: MediaItem) => `${i.taken_at ?? ''}\u0000${i.photo_id}`
+  const all = [...merged.values()].sort((a, b) => (key(a) < key(b) ? 1 : key(a) > key(b) ? -1 : 0))
+  const items = all.slice(0, limit)
+  return { items, next: all.length > limit && items.length ? encodeCursor(items[items.length - 1]) : null, query: parseQuery(q) }
+}

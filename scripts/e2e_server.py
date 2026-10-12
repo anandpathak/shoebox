@@ -153,8 +153,29 @@ def start_mock_s3(home: Path, upload_originals: bool) -> str:
         conn = open_catalog()
         for (raw,) in conn.execute("SELECT raw_key FROM media"):
             b.client.put_object(Bucket=name, Key=raw, Body=b"original", StorageClass="DEEP_ARCHIVE")
+        publish_phone_catalogs(conn, b)
         conn.close()
     return name
+
+
+def publish_phone_catalogs(conn, bucket) -> None:
+    """As if the seeded iPhone and Pixel had shared their catalogs: each one's own photos."""
+    import json
+    from datetime import datetime, timezone
+
+    from photoctl.catalog.export import export_catalog
+    from photoctl.publish import catalog_key, manifest_key
+
+    for device_id, dev_name, platform in (("01E2EIPHONE000000000000000", "My iPhone", "ios"),
+                                          ("01E2EPIXEL0000000000000000", "Pixel 8", "android")):
+        out = Path(tempfile.mkdtemp()) / "c.sqlite.gz"
+        export_catalog(conn, out, flavour="contributed", device_id=device_id, strip_ops=True)
+        n = conn.execute("SELECT COUNT(DISTINCT photo_id) FROM media_sources WHERE device_id = ?", (device_id,)).fetchone()[0]
+        bucket.put_bytes(catalog_key(device_id), out.read_bytes(), content_type="application/gzip")
+        bucket.put_bytes(manifest_key(device_id), json.dumps({
+            "device_id": device_id, "name": dev_name, "platform": platform, "schema_version": 3,
+            "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "max_hlc": "", "checksum": "",
+            "bytes": out.stat().st_size, "item_count": n, "contributed_count": n}).encode(), content_type="application/json")
 
 
 def main() -> None:

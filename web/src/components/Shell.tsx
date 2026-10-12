@@ -29,11 +29,15 @@ export function StatusBar() {
     return (
       <div className="status offline" role="status"><i /><span>{localState.enabled
         ? `Offline — on-device catalog from ${ago(localState.refreshedAt ?? localState.downloadedAt)}`
+        : Object.keys(localState.devices ?? {}).length ? 'Offline — searching downloaded catalogs'
         : "Offline — can't reach your Mac"}</span>
         {pendingHere > 0 && <span className="pill">{pendingHere} {pendingHere === 1 ? 'edit' : 'edits'} waiting</span>}</div>
     )
   }
   const via = health?.via === 'tailscale' ? ' · tailnet' : ''
+  if (localState.preferDevice) {
+    return <div className="status" role="status"><i /><span>Searching catalogs on this device</span></div>
+  }
   return (
     <div className="status" role="status">
       <i /><span>{health ? `Online via ${health.device.name}${via}` : 'Connecting…'}</span>

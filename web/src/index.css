@@ -174,3 +174,5 @@ details summary { cursor: pointer; color: var(--danger); }
 .install { margin: 8px 0 12px; border-color: var(--accent); background: var(--accent-soft); }
 
 .note-warn { display: grid; gap: 4px; background: var(--amber-soft); color: var(--amber); border-radius: 10px; padding: 10px 12px; font-size: .85rem; }
+.catalog-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.catalog-row input[type=checkbox] { width: 20px; height: 20px; }

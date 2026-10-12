@@ -8,6 +8,8 @@ export interface LocalState {
   refreshedAt: string | null
   publishedAt?: string | null
   open?: string[]          // on-device catalogs to search together (default: just the library)
+  preferDevice?: boolean   // search the on-device catalogs even while the Mac is reachable
+  devices?: Record<string, { name: string; platform: string; items: number; downloadedAt: string; createdAt: string }>
 }
 
 const KEY = 'photoctl.local'

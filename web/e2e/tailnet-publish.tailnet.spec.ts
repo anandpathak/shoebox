@@ -3,10 +3,10 @@ import { expect, test } from '@playwright/test'
 test('a phone shares its on-device catalog; the Mac lists it with the right platform and counts', async ({ page }) => {
   await page.goto('/#/catalogs')
   const dialog = page.getByRole('dialog', { name: 'Name this device' })
-  if (await dialog.isVisible()) {
-    await dialog.getByLabel('Device name').fill('Test Pixel')
-    await dialog.getByRole('button', { name: 'Save' }).click()
-  }
+  await expect(dialog).toBeVisible()                  // a fresh phone is always asked to name itself
+  await dialog.getByLabel('Device name').fill('Test Pixel')
+  await dialog.getByRole('button', { name: 'Save' }).click()
+  await expect(dialog).toBeHidden()
   // upload one photo from this phone so it has something of its own
   await page.goto('/#/uploads')
   const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAYAAAABCAYAAADeko4lAAAAEUlEQVR42mNkYPj/n4EBAwYAGfQCAU1nrcwAAAAASUVORK5CYII=', 'base64')

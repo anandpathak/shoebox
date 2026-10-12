@@ -33,5 +33,9 @@ test('upload photos from this device', async ({ page }, info) => {
   // a browser on the Mac itself uploads as the Mac (phones on the tailnet upload as themselves: tailnet.spec)
   const mac = (await (await page.request.get('/api/health')).json()).device.device_id
   await expect.poll(async () => (await (await page.request.get(`/api/search?device=${mac}&q=phone`)).json()).items.length,
-                    { timeout: 30_000 }).toBe(1)
+                    { timeout: 30_000, message: 'upload archived' }).toBe(1).catch(async (e) => {
+    const runs = await (await page.request.get('/api/runs')).json()
+    const inbox = await (await page.request.get('/api/uploads/files')).json()
+    throw new Error(`${e.message}\nruns: ${JSON.stringify(runs.slice(0, 3))}\ninbox: ${JSON.stringify(inbox)}`)
+  })
 })

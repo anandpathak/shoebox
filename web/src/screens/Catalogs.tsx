@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { api } from '../api/client'
 import { isStandalone } from '../components/InstallHint'
 import { TopBar } from '../components/Shell'
 import { useApp } from '../lib/app'
@@ -7,9 +8,10 @@ import { ago, bytes } from '../lib/format'
 import { local } from '../local/client'
 import { enableOnDevice } from '../local/enable'
 import { clearOfflineImages, downloadThumbs, savedCount } from '../local/offline'
+import { dbName, downloadDeviceCatalog, removeDeviceCatalog, setOpen, type Published } from '../local/devices'
 import { publishLocal } from '../local/publish'
 import { refreshLocal } from '../local/refresh'
-import { clearLocal, getLocal, onLocal } from '../local/state'
+import { clearLocal, getLocal, onLocal, setLocal, type LocalState } from '../local/state'
 
 
 export function Catalogs() {
@@ -93,6 +95,7 @@ export function Catalogs() {
           {busy && <p className="small" role="status">{busy}</p>}
           {usage.quota ? <p className="muted small">Storage used by this app: {bytes(usage.usage)} of {bytes(usage.quota)} available.</p> : null}
         </section>
+        <DeviceCatalogs state={state} />
         <OfflineImages onChange={() => navigator.storage?.estimate?.().then(setUsage).catch(() => {})} />
       </div>
     </>
@@ -125,6 +128,74 @@ function OfflineImages({ onChange }: { onChange: () => void }) {
         <button className="btn" disabled={!online} onClick={go}>Download thumbnails</button>
       </div>
       {status && <p className="small" role="status">{status}</p>}
+    </section>
+  )
+}
+
+const PLATFORM: Record<string, string> = { ios: 'iPhone', android: 'Android', macos: 'Mac', web: 'Browser' }
+
+function DeviceCatalogs({ state }: { state: LocalState }) {
+  const { online, changed } = useApp()
+  const [published, setPublished] = useState<Published[]>([])
+  const [busy, setBusy] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => {
+    if (!online) return
+    api<{ library: Published; devices: Published[] }>('/api/catalogs').then((r) => setPublished(r.devices)).catch(() => {})
+  }, [online, state.devices])
+  const downloaded = state.devices ?? {}
+  const rows: Published[] = [...published]
+  for (const [id, d] of Object.entries(downloaded)) {
+    if (!rows.some((r) => r.device_id === id)) rows.push({ device_id: id, name: d.name, platform: d.platform, item_count: d.items, created_at: d.createdAt, kind: 'published' })
+  }
+  const open = new Set(state.open ?? (state.enabled ? ['library'] : []))
+  const act = async (label: string, fn: () => Promise<unknown>) => {
+    setBusy(label)
+    setError(null)
+    try { await fn(); changed() } catch (e) { setError((e as Error).message) } finally { setBusy(null) }
+  }
+  return (
+    <section className="card">
+      <h2>Device catalogs</h2>
+      <p className="muted small">Each device shares its own catalog. Download the ones you want and tick them to search
+        them together on this device, even with no connection.</p>
+      {rows.length === 0 && <p className="muted small">No device has shared its catalog yet.</p>}
+      <div className="list">
+        {state.enabled && (
+          <label className="catalog-row">
+            <input type="checkbox" checked={open.has('library')} onChange={(e) => setOpen('library', e.target.checked)} aria-label="Search the library catalog" />
+            <span><strong>Library</strong><span className="muted small"> · everything · {state.items} items</span></span>
+          </label>
+        )}
+        {rows.map((c) => {
+          const here = downloaded[c.device_id]
+          const name = dbName(c.device_id)
+          return (
+            <div key={c.device_id} className="catalog-row">
+              {here && <input type="checkbox" checked={open.has(name)} onChange={(e) => setOpen(name, e.target.checked)} aria-label={`Search ${c.name}`} />}
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <strong>{c.name}</strong><span className="muted small"> · {PLATFORM[c.platform] ?? c.platform} · {c.contributed_count ?? c.item_count} of its own
+                  {c.bytes ? ` · ${bytes(c.bytes)}` : ''} · shared {ago(c.created_at)}</span>
+                {here && <span className="small ok"> · on this device ({here.items} items, downloaded {ago(here.downloadedAt)})</span>}
+                {here && c.created_at > here.createdAt && <span className="pill">newer version available</span>}
+              </span>
+              <span className="row">
+                {online && <button className="btn" disabled={!!busy} onClick={() => act(`dl-${c.device_id}`, () => downloadDeviceCatalog(c))}>
+                  {busy === `dl-${c.device_id}` ? 'Downloading…' : here ? 'Update' : 'Download'}</button>}
+                {here && <button className="btn" disabled={!!busy} onClick={() => act(`rm-${c.device_id}`, () => removeDeviceCatalog(c.device_id))}>Remove</button>}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+      {error && <div className="error">{error}</div>}
+      <div className="row">
+        {(state.enabled || Object.keys(downloaded).length > 0) && (
+          <label className="check"><input type="checkbox" checked={!!state.preferDevice}
+                 onChange={(e) => setLocal({ preferDevice: e.target.checked })} /> Search on this device now, even while online</label>
+        )}
+        {online && published.length > 0 && <a className="btn" href="/api/catalogs/all.zip" download>Download all catalogs (.zip)</a>}
+      </div>
     </section>
   )
 }

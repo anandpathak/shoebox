@@ -2,7 +2,7 @@
 import { applyOps, type Op } from './apply'
 import { HLC } from './hlc'
 import { makeOp, validate } from './ops'
-import { mediaDetail, search, type SearchOptions } from './query'
+import { mediaDetail, mergeResults, search, type SearchOptions } from './query'
 import { QUERIES } from './sql'
 import type { Env } from './worker'
 
@@ -24,16 +24,35 @@ export const handlers = {
   search(env: Env, name: string, o: SearchOptions) {
     return search(env.db(name), o)
   },
-  media(env: Env, name: string, id: string) {
-    const d = mediaDetail(env.db(name), id)
-    if (!d) throw new Error('No such item on this device')
-    return d
+  /** Search several on-device catalogs together: one result per photo, with every device it came from. */
+  searchMany(env: Env, names: string[], o: SearchOptions) {
+    const limit = o.limit ?? 60
+    return mergeResults(names.map((name) => ({ name, items: search(env.db(name), { ...o, limit }).items })), limit, o.q)
   },
-  people(env: Env, name: string) {
-    return env.db(name).all(QUERIES.people)
+  media(env: Env, name: string | string[], id: string) {
+    for (const n of Array.isArray(name) ? name : [name]) {
+      const d = mediaDetail(env.db(n), id)
+      if (d) return d
+    }
+    throw new Error('No such item on this device')
   },
-  devices(env: Env, name: string) {
-    return env.db(name).all(QUERIES.devices)
+  people(env: Env, name: string | string[]) {
+    const seen = new Map<string, Record<string, unknown>>()
+    for (const n of Array.isArray(name) ? name : [name]) {
+      for (const p of env.db(n).all<{ person_id: string; photos: number }>(QUERIES.people)) {
+        const cur = seen.get(p.person_id) as { photos: number } | undefined
+        if (cur) cur.photos = Math.max(cur.photos, p.photos)
+        else seen.set(p.person_id, p)
+      }
+    }
+    return [...seen.values()]
+  },
+  devices(env: Env, name: string | string[]) {
+    const seen = new Map<string, Record<string, unknown>>()
+    for (const n of Array.isArray(name) ? name : [name]) {
+      for (const d of env.db(n).all<{ device_id: string }>(QUERIES.devices)) if (!seen.has(d.device_id)) seen.set(d.device_id, d)
+    }
+    return [...seen.values()]
   },
   applyOps(env: Env, name: string, ops: Op[]) {
     const db = env.db(name)
