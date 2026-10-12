@@ -260,8 +260,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T9.3** `LocalDataSource`: runs the shared `queries/*.sql`; automatic fallback when the server is unreachable; status bar shows "Offline – catalog from <time>". ✅ 2026-10-12
   *Done when:* in airplane mode, search returns the same ids as online for 20 test queries (query parity test in CI too).
   *Note:* TypeScript query module passes spec/query_vectors.json; a search parity fixture (spec/search_parity.json, 20 queries) checks the on-device search returns exactly the server's rows, in order (vitest + sqlite-wasm in Node). Browser test: offline, 8 queries match the server results in Chrome and WebKit.
-- [ ] **T9.4** TypeScript `apply_ops` + HLC passing **every** `spec/sync_vectors` vector (run in CI with Node + sqlite-wasm).
+- [x] **T9.4** TypeScript `apply_ops` + HLC passing **every** `spec/sync_vectors` vector (run in CI with Node + sqlite-wasm). ✅ 2026-10-12
   *Done when:* the TS and Python results are identical for all vectors.
+  *Note:* web/src/local/apply.ts + hlc.ts + ops.ts (Ajv against spec/ops.schema.json). All 20 spec/sync_vectors pass in the same 4 delivery orders as Python (vitest + sqlite-wasm in Node), plus HLC tests. field_hlc and op bodies are serialised exactly like Python's sorted, compact JSON.
 - [ ] **T9.5** Incremental refresh: `GET /api/sync/ops?since=` → TS `apply_ops`; re-download the snapshot if too far behind.
   *Done when:* an archive on the Mac shows up on the phone's on-device catalog within one refresh.
 - [ ] **T9.6** Offline edits: on-device outbox → `POST /api/sync/ops` when back online.

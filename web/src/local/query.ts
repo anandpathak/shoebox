@@ -3,6 +3,7 @@
 import type { MediaItem, ParsedQuery, SearchResult } from '../api/types'
 import type { Db } from './dbapi'
 import { QUERIES } from './sql'
+import { resolvePerson } from './store'
 
 const MONTH_NAMES: string[][] = [['january', 'jan'], ['february', 'feb'], ['march', 'mar'], ['april', 'apr'], ['may'],
   ['june', 'jun'], ['july', 'jul'], ['august', 'aug'], ['september', 'sep', 'sept'], ['october', 'oct'],
@@ -82,18 +83,6 @@ export function search(db: Db, o: SearchOptions): SearchResult {
   const more = rows.length > limit
   const items = rows.slice(0, limit).map((r) => ({ ...r, devices: typeof r.devices === 'string' && r.devices ? r.devices.split(',').sort() : [] }))
   return { items: items as MediaItem[], next: more && items.length ? encodeCursor(items[items.length - 1]) : null, query: parsed }
-}
-
-export function resolvePerson(db: Db, person: string, limit = 20): string {
-  const seen: string[] = []
-  let p = person
-  while (!seen.includes(p) && seen.length < limit) {
-    seen.push(p)
-    const row = db.get<{ merged_into: string | null }>('SELECT merged_into FROM people WHERE person_id = ?', [p])
-    if (!row || !row.merged_into) return p
-    p = row.merged_into
-  }
-  return [...seen].sort()[0]
 }
 
 export function mediaDetail(db: Db, photoId: string) {
