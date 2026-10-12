@@ -3,6 +3,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { api } from '../api/client'
 import type { Health, SyncStatus } from '../api/types'
 import { LocalDataSource, ServerDataSource, type DataSource } from '../data/source'
+import { enableOnDevice } from '../local/enable'
+import { refreshLocal } from '../local/refresh'
 import { getLocal, onLocal, type LocalState } from '../local/state'
 
 interface AppState {
@@ -58,9 +60,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!online || !localState.enabled) return
     let stop = false
-    const tick = () => import('../local/refresh').then(({ refreshLocal }) =>
-      refreshLocal(() => import('../screens/Catalogs').then((m) => m.enableOnDevice(() => {}))))
-      .catch(() => {})
+    const tick = () => refreshLocal(() => enableOnDevice(() => {})).catch(() => {})
     tick()
     const t = setInterval(() => { if (!stop) tick() }, 60_000)
     return () => { stop = true; clearInterval(t) }

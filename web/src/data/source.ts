@@ -2,6 +2,8 @@
 // on-device implementation (M9) runs the same SQL in SQLite WebAssembly.
 import { api, qs } from '../api/client'
 import type { Device, MediaDetail, Person, SearchResult } from '../api/types'
+import { getDevice } from '../lib/device'
+import { local } from '../local/client'
 
 export interface SearchParams {
   q?: string; person?: string; place?: string; tag?: string; album?: string
@@ -82,7 +84,6 @@ export class LocalDataSource implements DataSource {
   constructor(name = 'library') {
     this.name = name
     const emit = async (items: [string, Record<string, unknown>][]) => {
-      const { getDevice } = await import('../lib/device')
       return this.call('emit', getDevice().device_id, items)
     }
     const norm = (s: string) => s.split(/\s+/).filter(Boolean).join(' ')
@@ -104,7 +105,7 @@ export class LocalDataSource implements DataSource {
     }
   }
   private call<T>(op: string, ...args: unknown[]) {
-    return import('../local/client').then(({ local }) => local.call<T>(op, this.name, ...args))
+    return local.call<T>(op, this.name, ...args)
   }
   search(p: SearchParams) { return this.call<SearchResult>('search', p) }
   media(id: string) { return this.call<MediaDetail>('media', id) }

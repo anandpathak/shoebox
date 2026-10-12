@@ -53,6 +53,10 @@ Record results in the table at the bottom (✓ / ✗ + a note).
 
 ## 7. Offline
 - [ ] Airplane mode, reopen the installed app: it opens and says *Offline*; recently seen thumbnails still show.
+- [ ] Catalogs → Use on this device, then airplane mode and **force-quit and reopen** the app: it says
+      *Offline — on-device catalog* and search works (the browser tests can't reproduce a real relaunch in Safari).
+- [ ] Offline: edit a title and favourite a photo; the status shows *N edits waiting*; back online they appear on the Mac.
+- [ ] Open the app in two Safari tabs: the second explains it's open in another tab and still works online.
 
 ## 8. Notifications
 - [ ] Sync → Notifications → Turn on (iPhone: from the installed app) → Send a test: a notification arrives.

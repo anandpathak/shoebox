@@ -20,6 +20,13 @@ class LocalClient {
     return this.worker
   }
 
+  terminate() {
+    this.worker?.terminate()
+    this.worker = null
+    for (const p of this.pending.values()) p.reject(new Error('The page is closing'))
+    this.pending.clear()
+  }
+
   release(): Promise<unknown> {
     if (!this.worker) return Promise.resolve(true)
     const w = this.worker
@@ -48,7 +55,9 @@ export const local = new LocalClient()
 // Give the on-device storage back when the page is closed or hidden, so the next page (or the app
 // reopening) can open it straight away.
 if (typeof addEventListener === 'function') {
-  addEventListener('pagehide', () => { void local.release() })
+  // Terminate at once: the page may be gone before a polite close finishes, and a lingering worker would
+  // keep the storage (and its lock) away from the next page. SQLite recovers cleanly on the next open.
+  addEventListener('pagehide', () => { local.terminate() })
 }
 
 export async function gunzip(data: ArrayBuffer | Blob): Promise<Uint8Array> {

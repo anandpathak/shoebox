@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useApp } from '../lib/app'
 import { ago } from '../lib/format'
+import { local } from '../local/client'
 import { Icon } from './Icon'
 
 export const TABS = [
@@ -15,7 +16,7 @@ function usePendingOnDevice(enabled: boolean, version: number): number {
   const [n, setN] = useState(0)
   useEffect(() => {
     if (!enabled) { setN(0); return }
-    import('../local/client').then(({ local }) => local.call<number>('outboxCount', 'library')).then(setN).catch(() => setN(0))
+    local.call<number>('outboxCount', 'library').then(setN).catch(() => setN(0))
   }, [enabled, version])
   return n
 }

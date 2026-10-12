@@ -2,6 +2,7 @@
 // with the same rules as the Mac (LOCAL_APP_PLAN.md §10.2). A 410 means the server's catalog was rebuilt.
 import { ApiError, api } from '../api/client'
 import type { Op } from './apply'
+import { getDevice } from '../lib/device'
 import { local } from './client'
 import { getLocal, setLocal } from './state'
 
@@ -14,7 +15,6 @@ export function refreshLocal(redownload: () => Promise<unknown>): Promise<number
 
 /** Send edits made on this device to the Mac (it relays them to S3 under this device's id). */
 export async function pushOutbox(): Promise<number> {
-  const { getDevice } = await import('../lib/device')
   const dev = getDevice()
   let sent = 0
   for (let i = 0; i < 100; i++) {

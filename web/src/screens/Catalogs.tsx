@@ -4,18 +4,11 @@ import { TopBar } from '../components/Shell'
 import { useApp } from '../lib/app'
 import { detectPlatform } from '../lib/device'
 import { ago, bytes } from '../lib/format'
-import { gunzip, local } from '../local/client'
-import { downloadResumable } from '../local/download'
-import { clearLocal, getLocal, onLocal, setLocal, type LocalState } from '../local/state'
+import { local } from '../local/client'
+import { enableOnDevice } from '../local/enable'
+import { refreshLocal } from '../local/refresh'
+import { clearLocal, getLocal, onLocal } from '../local/state'
 
-export async function enableOnDevice(onProgress: (got: number, total: number) => void): Promise<LocalState> {
-  // Ask to keep the data, but never wait on it: some browsers sit on this request (e.g. behind a prompt).
-  try { await Promise.race([navigator.storage?.persist?.(), new Promise((r) => setTimeout(r, 1000))]) } catch { /* best effort */ }
-  const { bytes: gz, headers } = await downloadResumable('/api/catalogs/library', onProgress)
-  const { items } = await local.call<{ items: number }>('importCatalog', 'library', await gunzip(gz.buffer as ArrayBuffer))
-  return setLocal({ enabled: true, downloadedAt: new Date().toISOString(), refreshedAt: new Date().toISOString(),
-                    cursor: Number(headers.get('x-ops-cursor') ?? 0), epoch: headers.get('x-catalog-epoch'), items })
-}
 
 export function Catalogs() {
   const { online, changed } = useApp()
@@ -44,7 +37,6 @@ export function Catalogs() {
     setError(null)
     setBusy('Refreshing…')
     try {
-      const { refreshLocal } = await import('../local/refresh')
       const n = await refreshLocal(() => enableOnDevice(() => {}))
       setBusy(n > 0 ? `Applied ${n} changes.` : n < 0 ? 'Downloaded again (the Mac’s catalog was rebuilt).' : 'Already up to date.')
       setTimeout(() => setBusy(null), 2500)

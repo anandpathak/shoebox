@@ -16,11 +16,13 @@ const open = new Map<string, { raw: Any; db: Db }>()
 function claimStorage(): Promise<boolean> {
   const locks = (navigator as Navigator & { locks?: LockManager }).locks
   if (!locks) return Promise.resolve(true)
+  // Wait a few seconds for a page that just closed to let go. If it's still held after that, take it over:
+  // after a reload some browsers keep the old page's worker alive for a while. If another tab really is
+  // using the storage, opening it below still fails and the app says so.
+  const hold = (resolve: (v: boolean) => void) => () => { resolve(true); return new Promise(() => {}) }
   return new Promise((resolve) => {
-    locks.request('photoctl-on-device', { ifAvailable: true }, (lock) => {
-      resolve(lock !== null)
-      return lock ? new Promise(() => {}) : undefined   // keep it until the worker goes away
-    })
+    locks.request('photoctl-on-device', { signal: AbortSignal.timeout(3000) }, hold(resolve))
+      .catch(() => locks.request('photoctl-on-device', { steal: true }, hold(resolve)).catch(() => resolve(false)))
   })
 }
 
@@ -47,6 +49,7 @@ async function start() {
       pool = null  // no OPFS here: on-device mode isn't available, everything still works online
       poolError = (e as Error).message
       if (!/invalid state|NoModificationAllowed|could not be|transient/i.test(poolError)) return
+      if (attempt === 5) poolError = 'Photoframing is open in another tab or window. Close it to use the on-device catalog here.' 
       await new Promise((r) => setTimeout(r, 300 * (attempt + 1)))
     }
   }

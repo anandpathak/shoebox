@@ -2,7 +2,7 @@ import { expect, test } from './fixtures'
 
 const QUERIES = ['beach', 'gokarna', 'december 2024', 'videos', 'asha', 'lake boat', 'night lights', '2025']
 
-test('offline, search runs on the device and matches what the server returned', async ({ devicePage: page }) => {
+test('offline, search runs on the device and matches what the server returned', async ({ devicePage: page, browserName }) => {
   const online: Record<string, string[]> = {}
   await page.goto('/')
   for (const q of QUERIES) {
@@ -14,9 +14,10 @@ test('offline, search runs on the device and matches what the server returned', 
 
   await page.context().setOffline(true)
   await page.goto('/#/library').catch(() => {})
-  await page.reload().catch(() => {})
+  if (browserName !== 'webkit') await page.reload().catch(() => {})   // WebKit: see fixtures.ts
   await expect(page.getByRole('status').first()).toContainText('on-device catalog', { timeout: 40_000 })
-  await expect(page.locator('.tile').first()).toBeVisible()
+  // after a reload the new page may wait a moment for the old one to hand over the storage
+  await expect(page.locator('.tile').first()).toBeVisible({ timeout: 15_000 })
 
   for (const q of QUERIES) {
     const ids = await page.evaluate(async (query) => {

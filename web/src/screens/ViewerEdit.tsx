@@ -15,7 +15,11 @@ export function Editor({ item, onChanged }: { item: MediaDetail; onChanged: () =
   const [newTag, setNewTag] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [deleted, setDeleted] = useState(false)
-  useEffect(() => { setLocal(item); setTitle(item.title ?? ''); setDesc(item.description ?? ''); setDeleted(!!item.deleted) }, [item])
+  // Only save what the user typed: if the item changes underneath (sync, reconnect), never write the old text back.
+  const [dirty, setDirty] = useState<{ title?: boolean; desc?: boolean }>({})
+  useEffect(() => {
+    setLocal(item); setTitle(item.title ?? ''); setDesc(item.description ?? ''); setDeleted(!!item.deleted); setDirty({})
+  }, [item])
 
   async function run(optimistic: Partial<MediaDetail>, action: () => Promise<unknown>) {
     const before = local
@@ -48,12 +52,18 @@ export function Editor({ item, onChanged }: { item: MediaDetail; onChanged: () =
   return (
     <div className="editor">
       <input className="title-input" type="text" value={title} placeholder={dateLabel(item.taken_at)} aria-label="Title"
-             onChange={(e) => setTitle(e.target.value)}
+             onChange={(e) => { setTitle(e.target.value); setDirty((d) => ({ ...d, title: true })) }}
              onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
-             onBlur={() => { if (title !== (local.title ?? '')) patch({ title: title || null }, { title: title || null }) }} />
+             onBlur={() => {
+               if (dirty.title && title !== (local.title ?? '')) patch({ title: title || null }, { title: title || null })
+               setDirty((d) => ({ ...d, title: false }))
+             }} />
       <textarea className="desc-input" value={desc} placeholder="Add a description" aria-label="Description" rows={2}
-                onChange={(e) => setDesc(e.target.value)}
-                onBlur={() => { if (desc !== (local.description ?? '')) patch({ description: desc || null }, { description: desc || null }) }} />
+                onChange={(e) => { setDesc(e.target.value); setDirty((d) => ({ ...d, desc: true })) }}
+                onBlur={() => {
+                  if (dirty.desc && desc !== (local.description ?? '')) patch({ description: desc || null }, { description: desc || null })
+                  setDirty((d) => ({ ...d, desc: false }))
+                }} />
       <div className="row">
         <button className="btn" aria-pressed={!!local.favorite} onClick={() => patch({ favorite: !local.favorite }, { favorite: local.favorite ? 0 : 1 })}>
           <Icon name="heart" size={18} filled={!!local.favorite} />{local.favorite ? 'Favourite' : 'Add to favourites'}</button>

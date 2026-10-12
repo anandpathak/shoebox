@@ -7,13 +7,13 @@ test('changes made on the Mac reach the on-device catalog with one refresh', asy
 
   // an edit and a newly archived item, made on the Mac after the download
   const first = (await (await page.request.get('/api/search?limit=1')).json()).items[0].photo_id
-  const res = await page.request.patch(`/api/media/${first}`, { data: { title: 'Renamed on the Mac' },
+  const res = await page.request.patch(`/api/media/${first}`, { data: { title: 'Refreshtest renamed' },
                                        headers: { Origin: new URL(page.url()).origin } })
   expect(res.ok()).toBe(true)
 
   await page.getByRole('button', { name: 'Refresh now' }).click()
   await expect(page.getByText(/Applied \d+ changes/)).toBeVisible({ timeout: 20_000 })
-  const hits = await localCall<{ items: { photo_id: string }[] }>(page, 'search', 'library', { q: 'renamed mac' })
+  const hits = await localCall<{ items: { photo_id: string }[] }>(page, 'search', 'library', { q: 'refreshtest' })
   expect(hits.items.map((i) => i.photo_id)).toEqual([first])
   await page.getByRole('button', { name: 'Refresh now' }).click()
   await expect(page.getByText('Already up to date.')).toBeVisible()
