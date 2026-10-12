@@ -172,3 +172,5 @@ input[type="search"], input[type="text"], select { width: 100%; min-width: 0; bo
 .upload-row, .history-row { align-items: flex-start !important; }
 details summary { cursor: pointer; color: var(--danger); }
 .install { margin: 8px 0 12px; border-color: var(--accent); background: var(--accent-soft); }
+
+.note-warn { display: grid; gap: 4px; background: var(--amber-soft); color: var(--amber); border-radius: 10px; padding: 10px 12px; font-size: .85rem; }

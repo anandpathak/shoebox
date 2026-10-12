@@ -54,6 +54,7 @@ export interface MediaDetail extends Omit<MediaItem, 'devices'> {
   camera_make: string | null
   camera_model: string | null
   tz: string | null
+  taken_at_source: string | null
   tags: string[]
   albums: string[]
   sources: Source[]

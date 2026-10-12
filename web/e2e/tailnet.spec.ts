@@ -20,6 +20,10 @@ test('a phone on the tailnet names itself, registers, and its uploads are credit
   await expect(page.getByText('Uploaded')).toBeVisible({ timeout: 30_000 })
   await expect.poll(async () => (await (await page.request.get(`/api/search?device=${me.device_id}`)).json()).items.length,
                     { timeout: 30_000 }).toBe(1)
+  // the viewer says the phone's upload has no location
+  const id = (await (await page.request.get(`/api/search?device=${me.device_id}`)).json()).items[0].photo_id
+  await page.goto(`/#/media/${id}`)
+  await expect(page.getByRole('note').filter({ hasText: 'Metadata incomplete' })).toContainText('No location')
   // the device chip appears in the library filters
   await page.goto('/')
   await expect(page.getByRole('toolbar', { name: 'Filters' }).getByRole('button', { name: "My Pixel" })).toBeVisible()

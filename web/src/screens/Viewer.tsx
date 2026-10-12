@@ -71,6 +71,7 @@ function Details({ item, onChanged }: { item: MediaDetail; onChanged: () => void
   return (
     <aside className="viewer-info">
       <Editor item={item} onChanged={onChanged} />
+      <MetadataNote item={item} />
       <dl className="facts">
         <dt>Taken</dt><dd>{dateLabel(item.taken_at)}</dd>
         {place(item) && <><dt>Place</dt><dd>{item.place_name || place(item)}{map && <> · <a href={map} target="_blank" rel="noreferrer">Map</a></>}</dd></>}
@@ -112,4 +113,19 @@ function OriginalButton({ id }: { id: string }) {
       </span>
     </div>
   )
+}
+
+// Browsers and phone photo pickers can strip location (and sometimes the capture date) from uploads.
+export function metadataNotes(item: Pick<MediaDetail, 'sources' | 'lat' | 'taken_at_source'>): string[] {
+  if (!item.sources.some((s) => s.source_ref.startsWith('upload:'))) return []
+  const notes: string[] = []
+  if (item.lat == null) notes.push('No location: the phone’s photo picker removed it. On iPhone, turn on Options → Location when picking; the native app keeps it automatically.')
+  if (item.taken_at_source === 'last_modified') notes.push('The capture date wasn’t in the file, so this uses when the file was last changed.')
+  return notes
+}
+
+function MetadataNote({ item }: { item: MediaDetail }) {
+  const notes = metadataNotes(item)
+  if (!notes.length) return null
+  return <div className="note-warn" role="note"><strong>Metadata incomplete</strong>{notes.map((n) => <span key={n}>{n}</span>)}</div>
 }

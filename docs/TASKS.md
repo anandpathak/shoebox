@@ -231,8 +231,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [~] **T8.4** Trigger an archive on the Mac from a phone (§9.2): start, watch progress, lock the phone, come back and reattach, cancel.
   *Done when:* this works on both phones end to end, and a second phone sees "already running" with live progress.
   *Note:* Built 2026-10-12. Browser tests as a phone on the tailnet: start a run, reload mid-run and reattach (counted once), a second phone sees 'A run is in progress', and cancel stops early. Fixed along the way: progress double-counted after a reconnect; 'Recent runs' not refreshing after a run; the library layout being wider than phone screens (filter chips and off-screen month sections stretched it, so mobile Chrome zoomed the page out). Each browser project now gets its own seeded server. **Your step:** try it from both real phones.
-- [ ] **T8.5** Upload from a phone (§9.3): photo picker → tus resumable upload → ingest. Test location on/off on iOS, and on Android; show "metadata incomplete" when GPS is missing.
+- [~] **T8.5** Upload from a phone (§9.3): photo picker → tus resumable upload → ingest. Test location on/off on iOS, and on Android; show "metadata incomplete" when GPS is missing.
   *Done when:* photos from both phones appear in the grid with Source = that phone, and the metadata caveats are shown correctly.
+  *Note:* Built 2026-10-12: picker → resumable upload → archive, credited to the phone; the viewer shows 'Metadata incomplete' when the location or capture date was stripped. Covered by the tailnet browser test (an upload without GPS gets the note). **Your step:** upload from a real iPhone (location on and off) and Android phone.
 - [ ] **T8.6** Upload queue when the Mac is unreachable (IndexedDB), resumed automatically.
   *Done when:* uploads queued in airplane mode complete after reconnecting.
 - [ ] **T8.7** (Optional) Web push for "run finished" / "original ready" (iOS 16.4+ installed PWA, Android).
