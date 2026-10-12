@@ -22,10 +22,11 @@
 <body>
 <main>
   <h1>Connect to your Mac</h1>
-  <p>Run <code>photoctl serve --setup-tailscale</code> on the Mac and enter the address it prints. Tailscale must be on for this phone.</p>
+  <p>On the Mac run <code>photoctl serve --lan</code> (same Wi-Fi) or <code>photoctl serve --setup-tailscale</code> (anywhere),
+     and enter the address it prints.</p>
   <form id="f">
     <label for="url">Mac address</label>
-    <input id="url" name="url" type="url" inputmode="url" autocomplete="url" placeholder="https://my-mac.tailnet.ts.net" required>
+    <input id="url" name="url" type="text" inputmode="url" autocapitalize="off" spellcheck="false" autocomplete="url" placeholder="http://192.168.1.11:8765" required>
     <button type="submit">Connect</button>
     <div class="error" id="err" role="alert"></div>
   </form>

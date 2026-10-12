@@ -34,7 +34,7 @@ export function StatusBar() {
         {pendingHere > 0 && <span className="pill">{pendingHere} {pendingHere === 1 ? 'edit' : 'edits'} waiting</span>}</div>
     )
   }
-  const via = health?.via === 'tailscale' ? ' · tailnet' : ''
+  const via = health?.via === 'tailscale' ? ' · tailnet' : health?.via === 'paired' ? ' · Wi-Fi' : ''
   if (localState.preferDevice) {
     return <div className="status" role="status"><i /><span>Searching catalogs on this device</span></div>
   }

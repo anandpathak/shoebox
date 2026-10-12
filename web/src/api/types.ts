@@ -74,7 +74,7 @@ export interface SyncStatus {
 }
 
 export interface Health {
-  ok: boolean; user: string; via: 'token' | 'cookie' | 'tailscale'
+  ok: boolean; user: string; via: 'token' | 'cookie' | 'tailscale' | 'paired'
   device: { device_id: string; name: string; platform: string }; s3: boolean
 }
 

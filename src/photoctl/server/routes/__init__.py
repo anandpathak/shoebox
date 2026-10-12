@@ -32,4 +32,6 @@ def register(app: FastAPI) -> None:
     app.include_router(push.router)
     app.include_router(backupcheck.router)
     app.include_router(native.router)
+    from .. import pairing
+    app.include_router(pairing.router)
     sync.install_background_sync(app)

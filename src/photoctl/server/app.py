@@ -31,6 +31,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.token = get_or_create_token()
     app.state.device = load_device()
     app.state.startup_tasks = []
+    from .pairing import Code
+    app.state.pairing = Code()
 
     @app.middleware("http")
     async def security_headers(request: Request, call_next):

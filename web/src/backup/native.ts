@@ -19,7 +19,7 @@ type Plugin = {
   conditions(): ReturnType<Phone['conditions']>
   addListener(event: 'backgroundRun' | 'uploadFinished', fn: () => void): Promise<{ remove(): void }>
   finishBackground(): Promise<void>
-  configure(o: { origin: string; deviceId: string } & Settings): Promise<void>
+  configure(o: { origin: string; deviceId: string; auth: string | null } & Settings): Promise<void>
 }
 
 function cap(): CapacitorGlobal | undefined {

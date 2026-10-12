@@ -9,7 +9,7 @@ export function RegisterDevice() {
   const [dev, setDev] = useState(getDevice)
   const [name, setName] = useState(dev.name)
   const [error, setError] = useState<string | null>(null)
-  if (!health || health.via !== 'tailscale' || dev.registered) return null
+  if (!health || !isRemote(health.via) || dev.registered) return null
   const register = async () => {
     try {
       await api('/api/devices/register', { method: 'POST', json: { device_id: dev.device_id, name: name.trim(), platform: dev.platform } })
@@ -34,5 +34,8 @@ export function RegisterDevice() {
 
 /** The device id uploads should be credited to: the Mac itself for a browser on the Mac, else this device. */
 export function uploaderId(via: string | undefined, macId: string | undefined): string {
-  return via === 'tailscale' || !macId ? getDevice().device_id : macId
+  return isRemote(via) || !macId ? getDevice().device_id : macId
 }
+
+/** A phone or other computer (over Tailscale, or paired on the same Wi-Fi), not a browser on the Mac. */
+export function isRemote(via: string | undefined): boolean { return via === 'tailscale' || via === 'paired' }

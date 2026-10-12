@@ -1,6 +1,7 @@
 // Runs backup passes one at a time: on app open, on pull-to-refresh / sync, when the OS wakes the app
 // (iOS BGTask, Android WorkManager) and when an upload finishes.
 import { getDevice } from '../lib/device'
+import { pairToken } from '../lib/pairing'
 import { runBackup } from './engine'
 import { retryFailed, status as summarise } from './ledger'
 import { nativePhone, nativePlatform, plugin } from './native'
@@ -36,10 +37,10 @@ export function backupNow(): Promise<Status | null> {
         const device = getDevice()
         const settings = await loadSettings()
         // Background passes (app closed) need the same origin, device and settings.
-        await p.configure({ origin: location.origin, deviceId: device.device_id, ...settings }).catch(() => {})
+        await p.configure({ origin: location.origin, deviceId: device.device_id, auth: pairToken(), ...settings }).catch(() => {})
         s = await runBackup({
           phone: nativePhone(p), load: loadLedger, save: saveLedger, fetch: (...a) => fetch(...a),
-          origin: location.origin, deviceId: device.device_id, platform, settings, onProgress: emit,
+          origin: location.origin, deviceId: device.device_id, platform, settings, onProgress: emit, auth: pairToken(),
         })
       } while (again)
       return s
@@ -51,7 +52,7 @@ export function backupNow(): Promise<Status | null> {
 export async function updateSettings(change: Partial<Settings>): Promise<Settings> {
   const next = { ...(await loadSettings()), ...change }
   await saveSettings(next)
-  await plugin()?.configure({ origin: location.origin, deviceId: getDevice().device_id, ...next }).catch(() => {})
+  await plugin()?.configure({ origin: location.origin, deviceId: getDevice().device_id, auth: pairToken(), ...next }).catch(() => {})
   if (next.enabled) {
     const p = plugin()
     if (p && change.enabled) await nativePhone(p).requestAccess()

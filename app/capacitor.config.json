@@ -3,7 +3,7 @@
   "appName": "Photoframing",
   "webDir": "www",
   "server": {
-    "allowNavigation": ["*.ts.net", "127.0.0.1", "localhost", "10.0.2.2"]
+    "allowNavigation": ["*.ts.net", "*.local", "192.168.*.*", "10.*.*.*", "172.*.*.*", "127.0.0.1", "localhost"]
   },
   "ios": { "contentInset": "never", "limitsNavigationsToAppBoundDomains": false },
   "android": { "allowMixedContent": false }

@@ -254,6 +254,7 @@ struct PassConfig: Codable {
     var screenshots: Bool
     var from: Double?
     var albums: [String]?
+    var auth: String?          // paired over Wi-Fi: the phone's token
 }
 
 extension BackupCore {
@@ -301,7 +302,7 @@ extension BackupCore {
             sem.wait()
             if let sha { hashed.append((a, sha)) }
         }
-        guard !hashed.isEmpty, let missing = check(origin: origin, hashes: hashed.map(\.sha)) else {
+        guard !hashed.isEmpty, let missing = check(origin: origin, auth: c.auth, hashes: hashed.map(\.sha)) else {
             if hashed.count == all.count, let next = ch["token"] as? String { UserDefaults.standard.set(next, forKey: BackupCore.tokenKey) }
             return 0
         }
@@ -311,6 +312,7 @@ extension BackupCore {
             var headers = ["X-Device-Id": c.deviceId, "X-Asset-Id": id, "X-Sha256": sha,
                            "X-Filename": a["filename"] as? String ?? id]
             if let created = a["created"] as? Double { headers["X-Last-Modified"] = String(Int64(created)) }
+            if let auth = c.auth { headers["Authorization"] = "Bearer \(auth)" }
             if (try? upload(assetId: id, url: origin.appendingPathComponent("api/uploads/raw"), headers: headers, wifiOnly: c.wifiOnly)) != nil {
                 queued += 1
                 sent.insert(sha)
@@ -321,10 +323,11 @@ extension BackupCore {
         return queued
     }
 
-    private func check(origin: URL, hashes: [String]) -> Set<String>? {
+    private func check(origin: URL, auth: String?, hashes: [String]) -> Set<String>? {
         var req = URLRequest(url: origin.appendingPathComponent("api/backup/check"))
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let auth { req.setValue("Bearer \(auth)", forHTTPHeaderField: "Authorization") }
         req.httpBody = try? JSONSerialization.data(withJSONObject: ["hashes": Array(Set(hashes))])
         req.timeoutInterval = 20
         let sem = DispatchSemaphore(value: 0)

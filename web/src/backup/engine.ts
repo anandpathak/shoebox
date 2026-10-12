@@ -17,6 +17,7 @@ export interface Context {
   hashPerRun?: number
   inFlight?: number               // uploads handed to the OS at once
   onProgress?: (s: Status) => void
+  auth?: string | null          // paired over Wi-Fi: background uploads can't use the cookie
 }
 
 const CHECK_BATCH = 500
@@ -110,7 +111,7 @@ export async function runBackup(ctx: Context): Promise<Status> {
     try {
       await phone.upload({
         assetId: e.id, url: `${ctx.origin}/api/uploads/raw`, sha256: e.sha256!, wifiOnly: settings.wifiOnly,
-        headers: { 'X-Device-Id': ctx.deviceId, 'X-Asset-Id': e.id, 'X-Sha256': e.sha256!, 'X-Filename': e.filename,
+        headers: { ...(ctx.auth ? { Authorization: `Bearer ${ctx.auth}` } : {}), 'X-Device-Id': ctx.deviceId, 'X-Asset-Id': e.id, 'X-Sha256': e.sha256!, 'X-Filename': e.filename,
                    ...(e.created ? { 'X-Last-Modified': String(e.created) } : {}) },
       })
       slots--

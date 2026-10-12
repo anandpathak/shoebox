@@ -81,7 +81,8 @@ public class BackgroundPassWorker extends Worker {
             shas.add(library.hash(a.getString("id")).getString("sha256"));
         }
         if (!todo.isEmpty() && !(wifiOnly && !wifi)) {
-            Set<String> missing = check(origin, shas);
+            String auth = c.isNull("auth") ? null : c.optString("auth", null);
+            Set<String> missing = check(origin, auth, shas);
             Set<String> sent = new HashSet<>();
             for (int i = 0; i < todo.size(); i++) {
                 JSONObject a = todo.get(i);
@@ -90,6 +91,7 @@ public class BackgroundPassWorker extends Worker {
                 JSONObject h = new JSONObject().put("X-Device-Id", c.getString("deviceId")).put("X-Asset-Id", id)
                         .put("X-Sha256", sha).put("X-Filename", a.optString("filename", id));
                 if (!a.isNull("created")) h.put("X-Last-Modified", String.valueOf(a.getLong("created")));
+                if (auth != null) h.put("Authorization", "Bearer " + auth);
                 UploadWorker.enqueue(ctx, store, id, origin + "/api/uploads/raw", h.toString(), library.file(id), wifiOnly);
             }
         }
@@ -112,13 +114,14 @@ public class BackgroundPassWorker extends Worker {
         return true;
     }
 
-    private static Set<String> check(String origin, List<String> shas) throws Exception {
+    private static Set<String> check(String origin, String auth, List<String> shas) throws Exception {
         HttpURLConnection conn = (HttpURLConnection) new URL(origin + "/api/backup/check").openConnection();
         conn.setRequestMethod("POST");
         conn.setDoOutput(true);
         conn.setConnectTimeout(20_000);
         conn.setReadTimeout(30_000);
         conn.setRequestProperty("Content-Type", "application/json");
+        if (auth != null) conn.setRequestProperty("Authorization", "Bearer " + auth);
         JSONArray list = new JSONArray(new ArrayList<>(new HashSet<>(shas)));
         try (OutputStream out = conn.getOutputStream()) {
             out.write(new JSONObject().put("hashes", list).toString().getBytes(StandardCharsets.UTF_8));

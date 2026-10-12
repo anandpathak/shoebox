@@ -84,7 +84,7 @@ public class PhotoBackupPlugin: CAPPlugin, CAPBridgedPlugin {
                            wifiOnly: call.getBool("wifiOnly") ?? true, videos: call.getBool("videos") ?? true,
                            videosWhileCharging: call.getBool("videosWhileCharging") ?? true,
                            screenshots: call.getBool("screenshots") ?? false, from: call.getDouble("from"),
-                           albums: call.getArray("albums", String.self))
+                           albums: call.getArray("albums", String.self), auth: call.getString("auth"))
         work.async {
             self.core.configure(c)
             call.resolve()

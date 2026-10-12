@@ -420,7 +420,9 @@ def original(photo_id, tier, days, check, dest, bucket, profile):
 @click.option("--print-token", is_flag=True, help="Print the API token (for scripts) and exit.")
 @click.option("--tailscale", "use_tailscale", is_flag=True, help="Check Tailscale and print the address for phones.")
 @click.option("--setup-tailscale", is_flag=True, help="Also run `tailscale serve --bg PORT` if it isn't set up yet.")
-def serve(port, host, library, bucket, profile, print_token, use_tailscale, setup_tailscale):
+@click.option("--lan", is_flag=True,
+              help="Also listen on this Wi-Fi network so paired phones can connect (plain http; home Wi-Fi only).")
+def serve(port, host, library, bucket, profile, print_token, use_tailscale, setup_tailscale, lan):
     """Run the web app and API on this Mac."""
     import uvicorn
 
@@ -432,15 +434,84 @@ def serve(port, host, library, bucket, profile, print_token, use_tailscale, setu
         click.echo(get_or_create_token())
         return
     if host not in ("127.0.0.1", "localhost", "::1"):
-        raise click.UsageError("photoctl only listens on this Mac. Use `tailscale serve` to reach it from phones.")
+        raise click.UsageError("Use --lan to let phones on this Wi-Fi in (they have to be paired), "
+                               "or `tailscale serve` to reach the Mac from anywhere.")
     web = Path(__file__).parent / "web" / "dist"
     settings = Settings.load(library=library, bucket=bucket, profile=profile, port=port,
                              static_dir=web if web.exists() else None)
     if use_tailscale or setup_tailscale:
         _prepare_tailscale(settings, port, setup_tailscale)
+    lan_url = None
+    if lan:
+        from .lan import address
+
+        ip, name = address()
+        if not ip:
+            raise click.ClickException("This Mac isn't on a network (no Wi-Fi/Ethernet address found).")
+        settings.hostnames += [h for h in (ip, name) if h and h not in settings.hostnames]
+        host, lan_url = "0.0.0.0", f"http://{ip}:{port}"
     app = create_app(settings)
     click.echo(f"photoctl is running at http://127.0.0.1:{port}  (Ctrl-C to stop)")
+    if lan_url:
+        _print_pairing(lan_url, app.state.pairing.new())
+        click.echo("Anyone on this Wi-Fi can reach the pairing page, but only paired phones get in. Traffic isn't "
+                   "encrypted: use this on your home Wi-Fi, and Tailscale anywhere else.\n"
+                   "macOS may ask whether Python may accept incoming connections: allow it.\n")
     uvicorn.run(app, host=host, port=port, log_level="warning")
+
+
+def _print_pairing(url: str, code: str) -> None:
+    from .tailnet import qr
+
+    link = f"{url}/?pair={code}"
+    click.echo(f"\nOn a phone on this Wi-Fi, scan the QR code or open {url} and enter the code {code[:4]}-{code[4:]}")
+    click.echo("(valid for 30 minutes; `photoctl pair` makes a new one)\n")
+    click.echo(qr(link))
+
+
+@main.command()
+@click.option("--port", default=8765, show_default=True)
+def pair(port):
+    """Show a new pairing code for a phone on this Wi-Fi (the server must be running with --lan)."""
+    import urllib.error
+    import urllib.request
+
+    from .lan import address
+    from .server.auth import get_or_create_token
+
+    req = urllib.request.Request(f"http://127.0.0.1:{port}/api/pair/code", method="POST",
+                                 headers={"Authorization": f"Bearer {get_or_create_token()}"})
+    try:
+        with urllib.request.urlopen(req, timeout=5) as r:
+            code = json.loads(r.read())["code"]
+    except (urllib.error.URLError, OSError):
+        raise click.ClickException(f"photoctl isn't running on port {port}. Start it with `photoctl serve --lan`.") from None
+    ip, _ = address()
+    _print_pairing(f"http://{ip or '<this-mac-ip>'}:{port}", code)
+
+
+@main.group(invoke_without_command=True)
+@click.pass_context
+def paired(ctx):
+    """Phones paired over Wi-Fi (`serve --lan`)."""
+    if ctx.invoked_subcommand is None:
+        from .server.pairing import load
+
+        rows = list(load().values())
+        for d in rows:
+            click.echo(f"{d.get('name')}\tpaired {d.get('paired_at')}")
+        if not rows:
+            click.echo("No phones paired yet.")
+
+
+@paired.command("revoke")
+@click.argument("name")
+def paired_revoke(name):
+    """Cut a paired phone off (it has to pair again)."""
+    from .server.pairing import revoke
+
+    n = revoke(name)
+    click.echo(f"Removed {n} pairing(s) named {name!r}." if n else f"No paired phone is called {name!r}.")
 
 
 def _prepare_tailscale(settings, port: int, setup: bool) -> None:

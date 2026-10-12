@@ -108,6 +108,18 @@ uv run photoctl serve                              # http://127.0.0.1:8765 on th
 Nothing is exposed to the internet: the address only works for devices in your tailnet, and every
 request carries the Tailscale identity the server checks.
 
+### On the same Wi-Fi, without Tailscale
+
+```sh
+uv run photoctl serve --lan        # prints http://<mac-ip>:8765, a pairing code and a QR code
+uv run photoctl pair               # a new code (they last 30 minutes), while the server runs
+uv run photoctl paired             # paired phones;  `photoctl paired revoke "<name>"` cuts one off
+```
+
+Scan the QR code with the phone (or type the address into the app and enter the code). Each phone gets its own
+token; nothing gets in without pairing. The connection is plain http, so use this on your home Wi-Fi only. Over
+http, browsers turn off offline mode, on-device search and *Install app*; the native app's backup works.
+
 ### Automatic backup from phones (the native app)
 
 A web page can't read the camera roll, so automatic backup needs the iPhone/Android app in [`app/`](app/README.md).

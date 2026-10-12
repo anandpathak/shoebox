@@ -1,6 +1,6 @@
 // The app loads the web UI straight from the Mac, so it's the same app (and the same Tailscale sign-in)
 // as in the browser. Only this start page ships inside the app.
-import { normalise, KEY } from './address.js'
+import { parse, KEY } from './address.js'
 
 const form = document.getElementById('f')
 const input = document.getElementById('url')
@@ -17,7 +17,7 @@ async function reachable(base) {
   } catch { return false } finally { clearTimeout(t) }
 }
 
-function open(base) { location.replace(`${base}/#/library`) }
+function open(base, pair) { location.replace(`${base}/${pair ? `?pair=${encodeURIComponent(pair)}` : ''}#/library`) }
 
 if (saved && !retry) {
   input.value = saved
@@ -27,9 +27,9 @@ if (saved && !retry) {
 form.addEventListener('submit', async (e) => {
   e.preventDefault()
   err.textContent = ''
-  const base = normalise(input.value)
-  if (!base) { err.textContent = 'Use the https://….ts.net address the Mac printed.'; return }
-  if (!(await reachable(base))) { err.textContent = "Can't reach that address. Is Tailscale on for this phone?"; return }
-  localStorage.setItem(KEY, base)
-  open(base)
+  const got = parse(input.value)
+  if (!got) { err.textContent = 'Use the address the Mac printed (https://….ts.net, or http://192.168.… on your Wi-Fi).'; return }
+  if (!(await reachable(got.base))) { err.textContent = "Can't reach that address. Is the phone on the same Wi-Fi (or Tailscale on)?"; return }
+  localStorage.setItem(KEY, got.base)
+  open(got.base, got.pair)
 })

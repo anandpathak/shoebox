@@ -1,6 +1,7 @@
 // App-wide state: which data source is in use, who we are, and connection/sync status.
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { api } from '../api/client'
+import { canPair } from './pairing'
 import type { Health, SyncStatus } from '../api/types'
 import { LocalDataSource, ServerDataSource, type DataSource } from '../data/source'
 import { enableOnDevice } from '../local/enable'
@@ -13,6 +14,7 @@ interface AppState {
   health: Health | null
   online: boolean
   authError: string | null
+  needsPairing: boolean     // a phone on the same Wi-Fi that hasn't been paired yet
   sync: SyncStatus | null
   refreshSync: () => void
   version: number          // bumps after edits/syncs so screens reload
@@ -29,6 +31,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [health, setHealth] = useState<Health | null>(null)
   const [online, setOnline] = useState(true)
   const [authError, setAuthError] = useState<string | null>(null)
+  const [needsPairing, setNeedsPairing] = useState(false)
   const [sync, setSync] = useState<SyncStatus | null>(null)
   const [version, setVersion] = useState(0)
 
@@ -39,10 +42,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let alive = true
     const check = () => api<Health>('/api/health')
-      .then((h) => { if (alive) { setHealth(h); setOnline(true); setAuthError(null) } })
+      .then((h) => { if (alive) { setHealth(h); setOnline(true); setAuthError(null); setNeedsPairing(false) } })
       .catch((e) => {
         if (!alive) return
-        if (e.status === 401 || e.status === 403) setAuthError(e.message)
+        if (e.status === 401 && canPair()) setNeedsPairing(true)
+        else if (e.status === 401 || e.status === 403) setAuthError(e.message)
         else setOnline(false)
       })
     check()
@@ -70,7 +74,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const source: DataSource = haveLocal && (!online || localState.preferDevice) ? device : server
   useEffect(() => { setVersion((v) => v + 1) }, [source])
   return (
-    <Ctx.Provider value={{ source, localState, health, online, authError, sync, refreshSync, version, changed }}>
+    <Ctx.Provider value={{ source, localState, health, online, authError, needsPairing, sync, refreshSync, version, changed }}>
       {children}
     </Ctx.Provider>
   )

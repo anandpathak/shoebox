@@ -4,6 +4,8 @@
   SameSite=Strict cookie when the page is opened from 127.0.0.1. Scripts use `Authorization: Bearer`.
 * Phones: through `tailscale serve`, which proxies from 127.0.0.1 and adds Tailscale-User-Login;
   only logins in config.toml `allowed_logins` get in.
+* Phones on the same Wi-Fi (`serve --lan`): a per-phone token from pairing (server/pairing.py), sent as a
+  cookie by the web app and as `Authorization: Bearer` by the native app's background uploads.
 * DNS-rebinding guard: the Host header must be localhost, 127.0.0.1, *.ts.net or a configured name.
 * CSRF guard: cookie-authenticated writes must carry a same-origin Origin header.
 """
@@ -18,6 +20,7 @@ from dataclasses import dataclass
 from fastapi import HTTPException, Request
 
 from .. import paths
+from . import pairing
 
 COOKIE = "photoctl_token"
 SERVICE = "photoctl"
@@ -54,7 +57,7 @@ def get_or_create_token() -> str:
 @dataclass
 class User:
     name: str
-    via: str  # "token" | "cookie" | "tailscale"
+    via: str  # "token" | "cookie" | "tailscale" | "paired"
 
 
 def host_allowed(request: Request, hostnames: list[str]) -> bool:
@@ -76,14 +79,23 @@ def authenticate(request: Request) -> User:
             raise HTTPException(403, f"{login} isn't allowed. Add it to allowed_logins in ~/.photoctl/config.toml")
         return User(login, "tailscale")
     auth = request.headers.get("authorization", "")
-    if auth.lower().startswith("bearer ") and hmac.compare_digest(auth[7:].strip(), token):
+    bearer = auth[7:].strip() if auth.lower().startswith("bearer ") else ""
+    if bearer and hmac.compare_digest(bearer, token):
         return User("owner", "token")
+    if bearer and (name := pairing.device_for(bearer)):
+        return User(name, "paired")
     cookie = request.cookies.get(COOKIE, "")
     if cookie and hmac.compare_digest(cookie, token):
         if request.method in UNSAFE and not _same_origin(request):
             raise HTTPException(403, "Cross-site request blocked")
         return User("owner", "cookie")
-    raise HTTPException(401, "Sign in by opening the app from this Mac (http://127.0.0.1) or over Tailscale")
+    paired = request.cookies.get(pairing.DEVICE_COOKIE, "")
+    if paired and (name := pairing.device_for(paired)):
+        if request.method in UNSAFE and not _same_origin(request):
+            raise HTTPException(403, "Cross-site request blocked")
+        return User(name, "paired")
+    raise HTTPException(401, "Sign in by opening the app from this Mac (http://127.0.0.1), over Tailscale, "
+                             "or pair this phone (photoctl pair)")
 
 
 def _same_origin(request: Request) -> bool:
