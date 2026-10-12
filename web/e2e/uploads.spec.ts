@@ -29,7 +29,7 @@ test('upload photos from this device', async ({ page }, info) => {
   await page.getByLabel('Choose photos and videos').setInputFiles([
     { name: 'phone-shot.png', mimeType: 'image/png', buffer: png },
   ])
-  await expect(page.getByText('Uploaded')).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText('Uploaded', { exact: true })).toBeVisible({ timeout: 30_000 })
   // a browser on the Mac itself uploads as the Mac (phones on the tailnet upload as themselves: tailnet.spec)
   const mac = (await (await page.request.get('/api/health')).json()).device.device_id
   await expect.poll(async () => (await (await page.request.get(`/api/search?device=${mac}&q=phone`)).json()).items.length,

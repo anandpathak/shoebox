@@ -224,11 +224,13 @@ class InboxProcessor:
                 keep.mkdir(exist_ok=True)
                 os.replace(data, keep / data.name)
                 os.replace(meta, keep / meta.name)
+                data.with_name(data.name + ".sha256").unlink(missing_ok=True)
                 continue
             row = state.get(f"upload:{info['device_id']}:{info['id']}:{info['filename']}")
             if row is not None and row["status"] in ("done", "no_derivative"):
                 data.unlink(missing_ok=True)
                 meta.unlink(missing_ok=True)
+                data.with_name(data.name + ".sha256").unlink(missing_ok=True)
 
     def requeue_local(self) -> int:
         """Server started with S3: send files that were only archived locally through again."""

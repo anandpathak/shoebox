@@ -242,8 +242,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
   *Note:* Built 2026-10-12: VAPID keys and subscriptions in ~/.photoctl (0600); 'Archive finished/cancelled/failed' sent when a run ends; 'Original ready' from the background loop; Sync screen has Turn on / Send a test / Turn off; the service worker shows notifications and opens the right screen. Sending is tested with a mocked push service (expired subscriptions are dropped). **Your step:** turn it on from the installed app on both phones and press 'Send a test'.
 - [ ] **T8.8** Real-device QA checklist (§15) on iPhone Safari + PWA and Android Chrome + PWA.
   *Done when:* every checklist item passes and the results are noted in this file.
-- [ ] **T8.9** Assisted backup in the web app (§13.5): "Back up recent photos" → picker → SHA-256 in the browser (WebCrypto) → `POST /api/backup/check` → upload only the missing ones.
+- [x] **T8.9** Assisted backup in the web app (§13.5): "Back up recent photos" → picker → SHA-256 in the browser (WebCrypto) → `POST /api/backup/check` → upload only the missing ones. ✅ 2026-10-12
   *Done when:* picking 20 photos of which 15 are already archived uploads exactly 5.
+  *Note:* Every pick from the web app now fingerprints files on the device (streaming SHA-256 via hash-wasm, 4 MB slices) and asks POST /api/backup/check; only missing files are queued. Uploads already waiting in the inbox count as in progress. Offline picks queue everything (the archive is content-addressed anyway). Browser test: 2 picked, 1 already archived, 1 uploaded.
 
 ---
 

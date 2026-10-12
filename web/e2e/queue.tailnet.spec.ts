@@ -13,7 +13,7 @@ test('uploads picked while the Mac is unreachable wait, then go when it is back'
   await page.reload().catch(() => {})                     // still offline: the shell comes from the service worker
   await context.setOffline(false)
   await page.goto('/#/uploads')
-  await expect(page.getByText('Uploaded')).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText('Uploaded', { exact: true })).toBeVisible({ timeout: 30_000 })
   await expect.poll(async () => (await (await page.request.get('/api/search?q=offline')).json()).items.length,
                     { timeout: 30_000 }).toBe(1)
 })

@@ -4,6 +4,7 @@ import { TopBar } from '../components/Shell'
 import { useApp } from '../lib/app'
 import { uploaderId } from '../components/RegisterDevice'
 import { ago, bytes } from '../lib/format'
+import { sha256File } from '../lib/hash'
 import { enqueue, list, processQueue, subscribe, type Progress, type Queued } from '../lib/uploadQueue'
 
 interface RunInfo {
@@ -139,6 +140,7 @@ function DeviceUploads({ deviceId, onDone }: { deviceId: string; onDone: () => v
   const { online } = useApp()
   const [queued, setQueued] = useState<Queued[]>([])
   const [progress, setProgress] = useState<Progress>({})
+  const [checking, setChecking] = useState<string | null>(null)
   const input = useRef<HTMLInputElement>(null)
   const reload = useCallback(() => { list().then(setQueued).catch(() => {}) }, [])
   useEffect(() => subscribe(setProgress), [])
@@ -146,15 +148,40 @@ function DeviceUploads({ deviceId, onDone }: { deviceId: string; onDone: () => v
   const run = useCallback(async () => { if (await processQueue()) { reload(); setTimeout(onDone, 1500) } }, [onDone, reload])
   useEffect(() => { if (online) run() }, [online, run])
 
+  // Online: fingerprint each file on the phone and send only what the archive doesn't have yet.
+  // Offline: queue everything (the archive is content-addressed, so a duplicate is never stored twice).
   const pick = async (files: FileList | null) => {
     if (!files?.length) return
-    await enqueue(Array.from(files), deviceId)
-    reload()
-    if (online) run()
+    let todo = Array.from(files)
+    if (online) {
+      try {
+        const hashes: string[] = []
+        for (const [i, f] of todo.entries()) {
+          setChecking(`Checking ${i + 1} of ${todo.length}…`)
+          hashes.push(await sha256File(f))
+        }
+        const missing = new Set<string>()
+        for (let i = 0; i < hashes.length; i += 500) {
+          const r = await api<{ missing: string[] }>('/api/backup/check', { method: 'POST', json: { hashes: hashes.slice(i, i + 500) } })
+          r.missing.forEach((h) => missing.add(h))
+        }
+        const skipped = todo.length - todo.filter((_, i) => missing.has(hashes[i])).length
+        todo = todo.filter((_, i) => missing.has(hashes[i]))
+        setChecking(skipped ? `${skipped} already backed up · ${todo.length} to upload` : null)
+      } catch {
+        setChecking(null)                       // couldn't check: just upload them all
+      }
+    }
+    if (todo.length) {
+      await enqueue(todo, deviceId)
+      reload()
+      if (online) run()
+    }
   }
   const rows = [
-    ...queued.map((q) => ({ id: q.id, name: q.name, size: q.size, ...(progress[q.id] ?? { sent: 0, status: 'waiting' as const }) })),
-    ...Object.entries(progress).filter(([id, p]) => p.status === 'done' && !queued.some((q) => q.id === id))
+    ...queued.filter((q) => progress[q.id]?.status !== 'done')
+      .map((q) => ({ id: q.id, name: q.name, size: q.size, ...(progress[q.id] ?? { sent: 0, status: 'waiting' as const }) })),
+    ...Object.entries(progress).filter(([, p]) => p.status === 'done')
       .map(([id, p]) => ({ id, name: doneNames.get(id) ?? 'Uploaded file', size: p.sent, ...p })),
   ]
   for (const q of queued) doneNames.set(q.id, q.name)
@@ -167,6 +194,7 @@ function DeviceUploads({ deviceId, onDone }: { deviceId: string; onDone: () => v
       <input ref={input} type="file" accept="image/*,video/*" multiple hidden onChange={(e) => { pick(e.target.files); e.target.value = '' }}
              aria-label="Choose photos and videos" />
       <div className="row"><button className="btn primary" onClick={() => input.current?.click()}>Choose photos and videos</button></div>
+      {checking && <p className="small" role="status">{checking}</p>}
       {rows.length > 0 && (
         <div className="list">
           {rows.map((r) => (

@@ -17,7 +17,7 @@ test('a phone on the tailnet names itself, registers, and its uploads are credit
   await page.goto('/#/uploads')
   const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAAEUlEQVR42mNkYPhfz8DAwMAAAA4mAgHtbmYOAAAAAElFTkSuQmCC', 'base64')
   await page.getByLabel('Choose photos and videos').setInputFiles([{ name: 'from-pixel.png', mimeType: 'image/png', buffer: png }])
-  await expect(page.getByText('Uploaded')).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText('Uploaded', { exact: true })).toBeVisible({ timeout: 30_000 })
   await expect.poll(async () => (await (await page.request.get(`/api/search?device=${me.device_id}`)).json()).items.length,
                     { timeout: 30_000 }).toBe(1)
   // the viewer says the phone's upload has no location
