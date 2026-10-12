@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import * as tus from 'tus-js-client'
 import { api, ApiError } from '../api/client'
 import { TopBar } from '../components/Shell'
 import { useApp } from '../lib/app'
 import { uploaderId } from '../components/RegisterDevice'
 import { ago, bytes } from '../lib/format'
+import { enqueue, list, processQueue, subscribe, type Progress, type Queued } from '../lib/uploadQueue'
 
 interface RunInfo {
   run_id: string; kind?: string; label?: string; status: 'running' | 'done' | 'failed' | 'cancelled'
@@ -135,49 +135,49 @@ function LiveRun({ run, onUpdate, onFinished }: { run: RunInfo; onUpdate: (r: Ru
   )
 }
 
-interface UploadRow { name: string; size: number; sent: number; status: 'uploading' | 'done' | 'error' | 'paused'; error?: string }
-
 function DeviceUploads({ deviceId, onDone }: { deviceId: string; onDone: () => void }) {
-  const [rows, setRows] = useState<UploadRow[]>([])
+  const { online } = useApp()
+  const [queued, setQueued] = useState<Queued[]>([])
+  const [progress, setProgress] = useState<Progress>({})
   const input = useRef<HTMLInputElement>(null)
-  const start = (files: FileList | null) => {
+  const reload = useCallback(() => { list().then(setQueued).catch(() => {}) }, [])
+  useEffect(() => subscribe(setProgress), [])
+  useEffect(reload, [reload, progress])
+  const run = useCallback(async () => { if (await processQueue()) { reload(); setTimeout(onDone, 1500) } }, [onDone, reload])
+  useEffect(() => { if (online) run() }, [online, run])
+
+  const pick = async (files: FileList | null) => {
     if (!files?.length) return
-    const list = Array.from(files)
-    setRows((r) => [...list.map((f) => ({ name: f.name, size: f.size, sent: 0, status: 'uploading' as const })), ...r])
-    let left = list.length
-    list.forEach((file) => {
-      const update = (patch: Partial<UploadRow>) => setRows((rs) => rs.map((x) => (x.name === file.name && x.size === file.size ? { ...x, ...patch } : x)))
-      const up = new tus.Upload(file, {
-        endpoint: '/api/uploads/files',
-        chunkSize: 8 * 1024 * 1024,
-        retryDelays: [0, 1000, 3000, 5000, 10000, 20000],
-        removeFingerprintOnSuccess: true,
-        metadata: { filename: file.name, filetype: file.type, device_id: deviceId, lastModified: String(file.lastModified) },
-        onProgress: (sent) => update({ sent }),
-        onSuccess: () => { update({ status: 'done', sent: file.size }); if (--left === 0) setTimeout(onDone, 1500) },
-        onError: (err) => { update({ status: 'error', error: err.message }); --left },
-      })
-      up.findPreviousUploads().then((prev) => { if (prev.length) up.resumeFromPreviousUpload(prev[0]); up.start() })
-    })
+    await enqueue(Array.from(files), deviceId)
+    reload()
+    if (online) run()
   }
+  const rows = [
+    ...queued.map((q) => ({ id: q.id, name: q.name, size: q.size, ...(progress[q.id] ?? { sent: 0, status: 'waiting' as const }) })),
+    ...Object.entries(progress).filter(([id, p]) => p.status === 'done' && !queued.some((q) => q.id === id))
+      .map(([id, p]) => ({ id, name: doneNames.get(id) ?? 'Uploaded file', size: p.sent, ...p })),
+  ]
+  for (const q of queued) doneNames.set(q.id, q.name)
   return (
     <section className="card">
       <h2>Upload from this device</h2>
       <p className="muted small">Pick photos and videos. Large files upload in 8 MB pieces and carry on after a dropped connection.
+        If your Mac can't be reached they wait here and upload by themselves later.
         Some phones remove the location from shared photos; those are flagged so you know.</p>
-      <input ref={input} type="file" accept="image/*,video/*" multiple hidden onChange={(e) => { start(e.target.files); e.target.value = '' }}
+      <input ref={input} type="file" accept="image/*,video/*" multiple hidden onChange={(e) => { pick(e.target.files); e.target.value = '' }}
              aria-label="Choose photos and videos" />
       <div className="row"><button className="btn primary" onClick={() => input.current?.click()}>Choose photos and videos</button></div>
       {rows.length > 0 && (
         <div className="list">
-          {rows.map((r, i) => (
-            <div key={`${r.name}-${i}`} className="upload-row">
+          {rows.map((r) => (
+            <div key={r.id} className="upload-row">
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div className="small" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
                 <div className="progress thin"><span style={{ width: `${r.size ? (r.sent / r.size) * 100 : 0}%` }} /></div>
               </div>
-              <span className={r.status === 'error' ? 'pill' : 'muted small'} title={r.error}>
-                {r.status === 'done' ? 'Uploaded' : r.status === 'error' ? 'Failed' : `${bytes(r.sent)} / ${bytes(r.size)}`}</span>
+              <span className="muted small" title={r.error}>
+                {r.status === 'done' ? 'Uploaded' : r.status === 'uploading' ? `${bytes(r.sent)} / ${bytes(r.size)}`
+                  : online ? 'Waiting…' : 'Waiting for your Mac'}</span>
             </div>
           ))}
         </div>
@@ -185,6 +185,8 @@ function DeviceUploads({ deviceId, onDone }: { deviceId: string; onDone: () => v
     </section>
   )
 }
+
+const doneNames = new Map<string, string>()
 
 function History({ runs, onRetry, onError }: { runs: RunInfo[]; onRetry: (r: RunInfo) => void; onError: (e: string) => void }) {
   if (!runs.length) return null

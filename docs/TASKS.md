@@ -234,8 +234,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [~] **T8.5** Upload from a phone (§9.3): photo picker → tus resumable upload → ingest. Test location on/off on iOS, and on Android; show "metadata incomplete" when GPS is missing.
   *Done when:* photos from both phones appear in the grid with Source = that phone, and the metadata caveats are shown correctly.
   *Note:* Built 2026-10-12: picker → resumable upload → archive, credited to the phone; the viewer shows 'Metadata incomplete' when the location or capture date was stripped. Covered by the tailnet browser test (an upload without GPS gets the note). **Your step:** upload from a real iPhone (location on and off) and Android phone.
-- [ ] **T8.6** Upload queue when the Mac is unreachable (IndexedDB), resumed automatically.
+- [x] **T8.6** Upload queue when the Mac is unreachable (IndexedDB), resumed automatically. ✅ 2026-10-12
   *Done when:* uploads queued in airplane mode complete after reconnecting.
+  *Note:* Files wait in IndexedDB (they survive closing the tab) and upload by themselves when the Mac is reachable again; tus fingerprints resume half-sent files. Browser test: pick while offline, reload, reconnect, uploaded.
 - [ ] **T8.7** (Optional) Web push for "run finished" / "original ready" (iOS 16.4+ installed PWA, Android).
   *Done when:* a notification arrives on both phones.
 - [ ] **T8.8** Real-device QA checklist (§15) on iPhone Safari + PWA and Android Chrome + PWA.
