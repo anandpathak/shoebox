@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The app only talks to your Mac: over Tailscale (https://<mac>.<tailnet>.ts.net) or, after pairing,
-     over your home Wi-Fi with plain http (`photoctl serve --lan`). Android can't limit cleartext to private IP
+     over your home Wi-Fi with plain http (photoctl serve with the lan option). Android can't limit cleartext to private IP
      ranges, so it's allowed; the start page only accepts ts.net, private-network and .local addresses. -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="true" />
