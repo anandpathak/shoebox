@@ -309,17 +309,34 @@ def devices(bucket, profile):
 @click.option("--out", type=click.Path(path_type=Path), default=Path("library"), show_default=True,
               help="Where local copies live, to show their paths.")
 @click.option("--json", "as_json", is_flag=True, help="Print JSON.")
+@click.option("--best", is_flag=True, help="Plain-English search, best matches first (needs the 'ai' extra).")
 def search(text, person, place, tag, album, date_from, date_to, media_type, favorite, device, hidden, limit,
-           catalogs, out, as_json):
-    """Search the library: words, places, people, dates ("beach december 2024"), type and device."""
+           catalogs, out, as_json, best):
+    """Search the library: words, places, people, dates ("beach december 2024"), type and device.
+
+    With --best, describe what you're after: photoctl search --best "kids playing in the snow"."""
     from .catalog import open_catalog
     from .catalog.query import search as run_search
     from .catalog.query import search_catalogs
 
     filters = dict(person=person, place=place, tag=tag, album=album, date_from=date_from, date_to=date_to,
                    media_type=media_type, favorite=favorite, device=device, include_hidden=hidden)
-    res = (search_catalogs(list(catalogs), text, limit=limit, **filters) if catalogs
-           else run_search(open_catalog(), text, limit=limit, **filters))
+    if best and text and not catalogs:
+        from .analyze import ai
+        from .analyze.smart import smart_search
+        from .analyze.vectors import INDEX, open_vectors
+
+        if not ai.available():
+            raise click.ClickException("--best needs the AI extras: uv sync --extra ai, then photoctl analyze")
+        index = INDEX.load(open_vectors(), ai.settings()["search_model"])
+        if not index.ids:
+            raise click.ClickException("No photos have been analysed for plain-English search yet: run photoctl analyze")
+        emb = ai.embedder()
+        res = smart_search(open_catalog(), text, embed_text=emb.text, probability=emb.probability, index=index,
+                           limit=limit, **filters)
+    else:
+        res = (search_catalogs(list(catalogs), text, limit=limit, **filters) if catalogs
+               else run_search(open_catalog(), text, limit=limit, **filters))
     for item in res["items"]:
         local = out / (item["compressed_key"] or "")
         item["local_path"] = str(local) if item["compressed_key"] and local.exists() else None
@@ -546,7 +563,8 @@ def _prepare_tailscale(settings, port: int, setup: bool) -> None:
               help="Where the compressed copies are.")
 @click.option("--limit", type=int, default=None, help="Analyse at most this many items.")
 @click.option("--redo", is_flag=True, help="Analyse everything again (keeps names you've given).")
-def analyze(library, limit, redo):
+@click.option("--no-ai", is_flag=True, help="Only labels and faces; skip captions and plain-English search vectors.")
+def analyze(library, limit, redo, no_ai):
     """Label photos (beach, landscape, food…) and find faces, so they can be searched.
 
     Runs on this Mac only: Apple Vision for labels, OpenCV for faces (models are downloaded once).
@@ -558,18 +576,45 @@ def analyze(library, limit, redo):
     from .device import load_device
 
     conn, fdb = open_catalog(), open_faces()
+    device_id = load_device().device_id
     todo = len(pending(conn, fdb, redo=redo)[:limit])
-    if not todo:
-        click.echo("Everything is analysed already.")
-        return
-    with click.progressbar(length=todo, label=f"Analysing {todo} items") as bar:
-        counts = analyze_pending(conn, library, load_device().device_id, limit=limit, redo=redo, fdb=fdb,
-                                 on_item=lambda _: bar.update(1))
-    click.echo(f"Analysed {counts['analyzed']}, skipped {counts['skipped']} (no local copy), failed {counts['failed']}; "
-               f"{counts['tags']} labels, {counts['faces']} faces.")
+    if todo:
+        with click.progressbar(length=todo, label=f"Labels and faces: {todo} items") as bar:
+            counts = analyze_pending(conn, library, device_id, limit=limit, redo=redo, fdb=fdb,
+                                     on_item=lambda _: bar.update(1))
+        click.echo(f"Analysed {counts['analyzed']}, skipped {counts['skipped']} (no local copy), "
+                   f"failed {counts['failed']}; {counts['tags']} labels, {counts['faces']} faces.")
+    else:
+        click.echo("Labels and faces: everything is analysed already.")
+    _analyze_ai(conn, library, device_id, limit, no_ai)
     groups = fdb.execute("SELECT COUNT(DISTINCT cluster) FROM faces WHERE status = 'new'").fetchone()[0]
     if groups:
         click.echo(f"{groups} groups of faces are waiting for a name: open the app → People → Who's this?")
+
+
+def _analyze_ai(conn, library, device_id, limit, no_ai) -> None:
+    from .analyze import ai
+    from .analyze.ai_run import analyze_ai, todo
+    from .analyze.vectors import open_vectors
+
+    if no_ai:
+        return
+    if not ai.available():
+        click.echo("Captions and plain-English search need the AI extras: uv sync --extra ai")
+        return
+    cfg, vdb = ai.settings(), open_vectors()
+    n = len(todo(conn, vdb, search_model=cfg["search_model"], caption_model=cfg["caption_model"])[:limit])
+    if not n:
+        click.echo("Captions and search: everything is done already.")
+        return
+    click.echo("Loading AI models (the first time downloads about 2 GB)…")
+    emb, cap = ai.embedder(), ai.captioner()
+    with click.progressbar(length=n, label=f"Captions and search: {n} items") as bar:
+        counts = analyze_ai(conn, library, device_id, embed_images=emb.images, search_model=cfg["search_model"],
+                            caption=cap.caption, caption_model=cfg["caption_model"], limit=limit, vdb=vdb,
+                            on_item=lambda _: bar.update(1))
+    click.echo(f"Described {counts['captioned']}, ready for plain-English search {counts['embedded']}, "
+               f"skipped {counts['skipped']}, failed {counts['failed']}.")
 
 
 @main.command()

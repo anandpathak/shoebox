@@ -88,6 +88,23 @@ uv run photoctl faces          # groups of faces still waiting for a name
   aren't synced, published or backed up. Only the names you confirm are.
 - Turn background analysis off with `analysis = false` under `[server]` in `~/.photoctl/config.toml`.
 
+#### Plain-English search and captions (optional AI extras)
+
+```sh
+uv sync --extra ai                    # PyTorch + transformers, about 1 GB
+uv run photoctl analyze               # also writes captions and search vectors (first run downloads ~2 GB of models)
+uv run photoctl search --best "kids playing in the snow"
+```
+
+- **Plain-English search** (SigLIP 2): describe what you're after, e.g. *"birthday cake with candles"*, *"Asha at
+  the beach in 2024"*. Names of people and dates become filters; the rest is matched by meaning. In the app,
+  typed searches show **Best matches** first; **Newest first** switches back to plain keyword order. This
+  needs the Mac (it turns your words into the same kind of vector); phones searching offline use keywords.
+- **Captions** (Florence-2): a sentence about each photo (*"A brown dog running on a sandy beach"*). Captions
+  sync and are part of keyword search on every device, offline too. Edit one in the viewer and yours is kept.
+- Both run on the Mac's GPU. Photo vectors stay in `~/.photoctl/embeddings.sqlite` on this Mac.
+- Different models: `[analysis] search_model = "…"` / `caption_model = "…"` in `config.toml` (Hugging Face ids).
+
 ### Database backups
 
 At the end of every archive run, `state.sqlite`, `catalog.sqlite`, `device.json` and `config.toml` are backed up to

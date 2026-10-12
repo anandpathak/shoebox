@@ -375,7 +375,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T15.4** `photoctl analyze`, `photoctl faces`; background worker after archive runs / phone uploads; API.
 - [x] **T15.5** People → *Who's this?* (face groups, name with suggestions, *Not a person*, progress); e2e test.
 - [ ] **T15.6** Text in photos (OCR, Vision `VNRecognizeTextRequest`) searchable: needs a synced text field.
-- [ ] **T15.7** Optional sentence captions ("two people on a beach at sunset") from a local vision model (e.g. via Ollama); off by default.
+- [x] **T15.7** Captions with Florence-2 (optional `ai` extra): new op `media.caption` (import priority, user edits win), catalog v4, part of keyword search everywhere; editable in the viewer.
+- [x] **T15.10** Plain-English search with SigLIP 2: vectors on the Mac, `/api/search/smart` and `photoctl search --best`; names/dates become filters; *Best matches* / *Newest first* in the app.
+- [ ] **T15.11** Check caption quality and the search threshold (`MIN_PROBABILITY`) on a real library.
 - [ ] **T15.8** Viewer: show face boxes with names; *not them* from the photo.
 - [ ] **T15.9** Tune thresholds on a real library (AUTO_MATCH 0.50, JOIN_CLUSTER 0.42, label confidence 0.3).
   *Done when:* checked on your own photos: few wrong auto-tags, groups mostly one person each.
