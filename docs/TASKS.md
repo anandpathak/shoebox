@@ -297,12 +297,15 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 
 ## M11 — Multi-device end to end (Mac + iPhone + Android)
 
-- [ ] **T11.1** Install guide for a second Mac: clone, `uv sync`, AWS creds, `photoctl sync` bootstrap.
+- [~] **T11.1** Install guide for a second Mac: clone, `uv sync`, AWS creds, `photoctl sync` bootstrap.
   *Done when:* the second Mac shows the full library without running any archive.
-- [ ] **T11.2** Live test: archive on the Mac (triggered from Android) while editing on the iPhone offline → reconnect → sync all → `sync verify` converged; the §5 scenarios checked by hand.
+  *Note:* Guide written in the README (A second Mac): clone, uv sync, aws login, `photoctl sync` bootstraps from the snapshot, `sync verify`. The bootstrap path is covered by tests/test_snapshot.py. **Your step:** follow it on the second Mac.
+- [~] **T11.2** Live test: archive on the Mac (triggered from Android) while editing on the iPhone offline → reconnect → sync all → `sync verify` converged; the §5 scenarios checked by hand.
   *Done when:* every §5 scenario is green, with notes in this file.
-- [ ] **T11.3** Recovery drill: `photoctl recover` onto a wiped Mac, and clear the PWA data on one phone → both bootstrap → checksums match → a re-run of `archive` uploads 0 bytes.
+  *Note:* Automated stand-ins: tests/test_multiprocess_sync.py (two processes archiving and editing concurrently), the conflict vectors in Python and TypeScript, and the phone browser tests (offline edits vs a later Mac edit). **Your step:** the live run across Mac + iPhone + Android, recording each §5 scenario here.
+- [~] **T11.3** Recovery drill: `photoctl recover` onto a wiped Mac, and clear the PWA data on one phone → both bootstrap → checksums match → a re-run of `archive` uploads 0 bytes.
   *Done when:* both are recovered in < 15 min, with timings noted here.
+  *Note:* Automated stand-ins: `photoctl recover` onto a wiped home (tests/test_archive_cli.py), catalog rebuild from S3, and 'Remove downloaded data' then 'Use on this device' in the browser tests. **Your step:** time the drill on a real wiped Mac and phone.
 
 ---
 

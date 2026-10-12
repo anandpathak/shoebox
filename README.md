@@ -108,6 +108,23 @@ uv run photoctl serve                              # http://127.0.0.1:8765 on th
 Nothing is exposed to the internet: the address only works for devices in your tailnet, and every
 request carries the Tailscale identity the server checks.
 
+## A second Mac
+
+Every Mac keeps its own catalog and syncs through the same bucket; it doesn't need its own Photos library.
+
+```sh
+git clone <this repo> && cd photoframing
+brew install uv ffmpeg && uv sync
+aws login                                      # an identity with the <bucket>-ingest policy
+export PHOTOCTL_BUCKET=<your bucket>
+uv run photoctl sync                           # starts from the library snapshot, then catches up
+uv run photoctl sync verify                    # "converged" once every device has synced
+uv run photoctl devices                        # every device, its platform and when it last synced
+```
+
+To replace a lost or wiped Mac (carry on as the same device), use `uv run photoctl recover` instead;
+see [docs/RECOVERY.md](docs/RECOVERY.md).
+
 ## "Moving" out of Photos
 
 Photos has no API for deleting photos, so photoctl never deletes. Archived photos go into a **"Archived to S3"** album.
