@@ -269,8 +269,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T9.6** Offline edits: on-device outbox → `POST /api/sync/ops` when back online. ✅ 2026-10-12
   *Done when:* a title edited offline on the phone appears on the Mac after reconnecting, and a concurrent edit resolves per §5.
   *Note:* Edits on the on-device catalog become ops with this device's own id and clock, apply locally, queue in the on-device outbox, and go to the Mac through POST /api/sync/ops before each refresh (the device registers itself if needed). The status line shows 'N edits waiting'. Browser test (Chrome + WebKit): offline title + favourite edits, then a later title edit on the Mac; after reconnecting both sides show the Mac's title and the phone's favourite.
-- [ ] **T9.7** Offline images: service-worker thumbnail cache, "Download thumbnails for offline" packs by year/album, "Save offline" for compressed copies; storage usage + "Remove downloaded data".
+- [x] **T9.7** Offline images: service-worker thumbnail cache, "Download thumbnails for offline" packs by year/album, "Save offline" for compressed copies; storage usage + "Remove downloaded data". ✅ 2026-10-12
   *Done when:* in airplane mode the grid shows thumbnails for a downloaded year, and remove frees the storage.
+  *Note:* Catalogs → Photos offline downloads a year's thumbnails into the service-worker cache; the viewer's 'Save offline' keeps a compressed copy (served from the device when offline); Remove downloaded data clears both. Browser test: offline, a downloaded year's thumbnail and a saved photo display. Also fixed a race in the server's upload inbox (a file arriving as the processor stopped waited for the next upload), with a regression test that fails on the old code.
 
 ---
 

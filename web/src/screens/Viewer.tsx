@@ -6,6 +6,7 @@ import { useApp } from '../lib/app'
 import { bytes, dateLabel, duration, place } from '../lib/format'
 import { neighbours } from '../lib/listCache'
 import { go, type Route } from '../lib/router'
+import { isSaved, saveOffline, unsaveOffline } from '../local/offline'
 import { Editor } from './ViewerEdit'
 
 export function Viewer({ route }: { route: Route }) {
@@ -85,11 +86,24 @@ function Details({ item, onChanged }: { item: MediaDetail; onChanged: () => void
       <div className="row">
         {item.compressed_key && <a className="btn primary" href={source.compressedUrl(item.photo_id, true)} download>
           <Icon name="download" size={18} />Download {item.media_type === 'video' ? 'video' : 'photo'}</a>}
+        <SaveOfflineButton id={item.photo_id} />
         <OriginalButton id={item.photo_id} />
       </div>
       <p className="mono muted">{item.photo_id}</p>
     </aside>
   )
+}
+
+function SaveOfflineButton({ id }: { id: string }) {
+  const [saved, setSaved] = useState<boolean | null>(null)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => { isSaved(id).then(setSaved).catch(() => setSaved(null)) }, [id])
+  if (saved === null || typeof caches === 'undefined') return null
+  const toggle = async () => {
+    setBusy(true)
+    try { if (saved) await unsaveOffline(id); else await saveOffline(id); setSaved(!saved) } catch { /* shown via state */ } finally { setBusy(false) }
+  }
+  return <button className="btn" aria-pressed={saved} disabled={busy} onClick={toggle}>{saved ? 'Saved offline' : 'Save offline'}</button>
 }
 
 function OriginalButton({ id }: { id: string }) {

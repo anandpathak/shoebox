@@ -135,3 +135,27 @@ def test_with_s3_inbox_is_cleared_after_upload(authed, bucket):
     while time.time() < end and not any(bucket.head(k)["ContentLength"] == len(big) for k in bucket.list_keys("raw/")):
         time.sleep(0.3)
     assert any(bucket.head(k)["ContentLength"] == len(big) for k in bucket.list_keys("raw/"))
+
+
+def test_inbox_never_misses_a_file_that_lands_while_it_is_stopping(authed, monkeypatch):
+    """Regression: a kick arriving as the processor decided the inbox was empty used to be lost."""
+    import threading
+
+    client, app = authed
+    inbox = app.state.inbox
+    real_pending = inbox.pending
+    calls = {"n": 0}
+    arrived = threading.Event()
+
+    def pending_with_a_late_arrival():
+        calls["n"] += 1
+        if calls["n"] == 1:                      # first look: empty… and a file lands right then
+            threading.Thread(target=lambda: (inbox.kick(), arrived.set())).start()
+            arrived.wait(2)
+            return []
+        return real_pending()
+    monkeypatch.setattr(inbox, "pending", pending_with_a_late_arrival)
+    data = jpeg_with_exif()
+    url = create(client, data, "late.jpg")
+    patch(client, url, 0, data)
+    wait_archived(client, 1)

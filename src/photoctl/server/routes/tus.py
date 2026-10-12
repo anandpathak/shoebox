@@ -156,6 +156,7 @@ class InboxProcessor:
         self.app = app
         self._wake = threading.Event()
         self._thread: threading.Thread | None = None
+        self._lock = threading.Lock()        # guards starting/stopping the thread so no wake-up is lost
         self.last_run_id: str | None = None
 
     def pending(self) -> list[tuple[Path, dict]]:
@@ -174,10 +175,11 @@ class InboxProcessor:
                             for _, i in self.pending()], "last_run_id": self.last_run_id}
 
     def kick(self) -> None:
-        self._wake.set()
-        if self._thread is None or not self._thread.is_alive():
-            self._thread = threading.Thread(target=self._loop, name="inbox", daemon=True)
-            self._thread.start()
+        with self._lock:
+            self._wake.set()
+            if self._thread is None:
+                self._thread = threading.Thread(target=self._loop, name="inbox", daemon=True)
+                self._thread.start()
 
     def _loop(self) -> None:
         from datetime import datetime, timezone
@@ -191,7 +193,11 @@ class InboxProcessor:
             self._wake.clear()
             batch = self.pending()
             if not batch:
-                return
+                with self._lock:
+                    if self._wake.is_set():      # a file arrived while we were checking: go round again
+                        continue
+                    self._thread = None
+                    return
             items = []
             for data, info in batch:
                 lm = info.get("last_modified")

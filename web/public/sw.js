@@ -40,6 +40,11 @@ self.addEventListener('fetch', (event) => {
     }))
     return
   }
+  // Compressed copies saved for offline ("Save offline" in the viewer): served from the device when present.
+  if (/^\/api\/media\/[^/]+\/compressed$/.test(url.pathname) && !url.search) {
+    event.respondWith(caches.open('saved-v1').then(async (cache) => (await cache.match(url.pathname)) || fetch(req)))
+    return
+  }
   if (url.pathname.startsWith('/api/')) return                     // live data: network only
 
   if (req.mode === 'navigate') {                                    // the app page: network first

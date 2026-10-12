@@ -6,6 +6,7 @@ import { detectPlatform } from '../lib/device'
 import { ago, bytes } from '../lib/format'
 import { local } from '../local/client'
 import { enableOnDevice } from '../local/enable'
+import { clearOfflineImages, downloadThumbs, savedCount } from '../local/offline'
 import { refreshLocal } from '../local/refresh'
 import { clearLocal, getLocal, onLocal } from '../local/state'
 
@@ -45,7 +46,7 @@ export function Catalogs() {
   }
   const remove = async () => {
     await local.call('remove', 'library').catch(() => {})
-    try { await caches.delete('thumbs-v1') } catch { /* ignore */ }
+    try { await clearOfflineImages() } catch { /* ignore */ }
     clearLocal()
     changed()
   }
@@ -81,7 +82,38 @@ export function Catalogs() {
           {busy && <p className="small" role="status">{busy}</p>}
           {usage.quota ? <p className="muted small">Storage used by this app: {bytes(usage.usage)} of {bytes(usage.quota)} available.</p> : null}
         </section>
+        <OfflineImages onChange={() => navigator.storage?.estimate?.().then(setUsage).catch(() => {})} />
       </div>
     </>
+  )
+}
+
+function OfflineImages({ onChange }: { onChange: () => void }) {
+  const { online } = useApp()
+  const this_year = new Date().getFullYear()
+  const [year, setYear] = useState(String(this_year))
+  const [status, setStatus] = useState<string | null>(null)
+  const [saved, setSaved] = useState(0)
+  useEffect(() => { savedCount().then(setSaved).catch(() => {}) }, [status])
+  const go = async () => {
+    try {
+      const n = await downloadThumbs(year, (d, t) => setStatus(`Downloading thumbnails… ${d} of ${t}`))
+      setStatus(n ? `Thumbnails for ${year} are on this device (${n}).` : `No photos from ${year}.`)
+      onChange()
+    } catch (e) { setStatus((e as Error).message) }
+  }
+  return (
+    <section className="card">
+      <h2>Photos offline</h2>
+      <p className="muted small">Thumbnails you've scrolled past are kept automatically. Download a whole year to browse it
+        offline. To keep a full-size copy, use <b>Save offline</b> in the viewer ({saved} saved).</p>
+      <div className="row">
+        <select value={year} onChange={(e) => setYear(e.target.value)} aria-label="Year to download">
+          {Array.from({ length: 30 }, (_, i) => String(this_year - i)).map((y) => <option key={y}>{y}</option>)}
+        </select>
+        <button className="btn" disabled={!online} onClick={go}>Download thumbnails</button>
+      </div>
+      {status && <p className="small" role="status">{status}</p>}
+    </section>
   )
 }
