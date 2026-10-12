@@ -12,9 +12,28 @@ export function refreshLocal(redownload: () => Promise<unknown>): Promise<number
   return running
 }
 
+/** Send edits made on this device to the Mac (it relays them to S3 under this device's id). */
+export async function pushOutbox(): Promise<number> {
+  const { getDevice } = await import('../lib/device')
+  const dev = getDevice()
+  let sent = 0
+  for (let i = 0; i < 100; i++) {
+    const ops = await local.call<Op[]>('outbox', 'library', 500)
+    if (!ops.length) break
+    if (!dev.registered) {
+      await api('/api/devices/register', { method: 'POST', json: { device_id: dev.device_id, name: dev.name, platform: dev.platform } })
+    }
+    await api('/api/sync/ops', { method: 'POST', json: { device_id: dev.device_id, ops } })
+    await local.call('clearOutbox', 'library', ops.map((o) => o.op_id))
+    sent += ops.length
+  }
+  return sent
+}
+
 async function run(redownload: () => Promise<unknown>): Promise<number> {
   const st = getLocal()
   if (!st.enabled) return 0
+  await pushOutbox()
   let cursor = st.cursor
   let applied = 0
   for (let page = 0; page < 200; page++) {

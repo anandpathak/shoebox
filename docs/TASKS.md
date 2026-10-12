@@ -266,8 +266,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T9.5** Incremental refresh: `GET /api/sync/ops?since=` → TS `apply_ops`; re-download the snapshot if too far behind. ✅ 2026-10-12
   *Done when:* an archive on the Mac shows up on the phone's on-device catalog within one refresh.
   *Note:* Pulls GET /api/sync/ops?since=<cursor>&epoch=… and applies with the TypeScript rules; runs on start, every 60 s and after edits; 'Refresh now' on the Catalogs screen; a 410 re-downloads the catalog. Browser test: an edit made on the Mac shows in on-device search after one refresh (Chrome and WebKit). Found and fixed in WebKit testing: a start-up race in the worker (a quick tap failed with 'storage isn't available'), storage not handed back when a page closes, and an uncapped persistent-storage request; a second tab now explains why it can't open the on-device catalog.
-- [ ] **T9.6** Offline edits: on-device outbox → `POST /api/sync/ops` when back online.
+- [x] **T9.6** Offline edits: on-device outbox → `POST /api/sync/ops` when back online. ✅ 2026-10-12
   *Done when:* a title edited offline on the phone appears on the Mac after reconnecting, and a concurrent edit resolves per §5.
+  *Note:* Edits on the on-device catalog become ops with this device's own id and clock, apply locally, queue in the on-device outbox, and go to the Mac through POST /api/sync/ops before each refresh (the device registers itself if needed). The status line shows 'N edits waiting'. Browser test (Chrome + WebKit): offline title + favourite edits, then a later title edit on the Mac; after reconnecting both sides show the Mac's title and the phone's favourite.
 - [ ] **T9.7** Offline images: service-worker thumbnail cache, "Download thumbnails for offline" packs by year/album, "Save offline" for compressed copies; storage usage + "Remove downloaded data".
   *Done when:* in airplane mode the grid shows thumbnails for a downloaded year, and remove frees the storage.
 

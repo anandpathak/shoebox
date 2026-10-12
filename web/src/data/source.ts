@@ -72,17 +72,36 @@ export class ServerDataSource implements DataSource {
   }
 }
 
-/** The library on this device (on-device catalog in OPFS). Read-only until offline edits land. */
+/** The library on this device (on-device catalog in OPFS). Edits become ops queued for the Mac. */
 export class LocalDataSource implements DataSource {
   readonly kind = 'device' as const
-  readonly canEdit = false
+  readonly canEdit = true
   readonly edit: Editor
   private server = new ServerDataSource()
   private name: string
   constructor(name = 'library') {
     this.name = name
-    const no = () => Promise.reject(new Error('Editing offline isn’t available yet'))
-    this.edit = { patch: no, addTag: no, removeTag: no, remove: no, restore: no, renamePerson: no, mergePerson: no }
+    const emit = async (items: [string, Record<string, unknown>][]) => {
+      const { getDevice } = await import('../lib/device')
+      return this.call('emit', getDevice().device_id, items)
+    }
+    const norm = (s: string) => s.split(/\s+/).filter(Boolean).join(' ')
+    this.edit = {
+      patch: async (id, p) => {
+        await emit(Object.entries(p).map(([field, value]) => ['media.set', { photo_id: id, field, value: value ?? null }]))
+        return this.media(id)
+      },
+      addTag: async (id, tag) => { await emit([['tag.add', { photo_id: id, tag }]]); return this.media(id) },
+      removeTag: async (id, tag) => {
+        const seen = await this.call<string[]>('liveAdds', 'media_tags', 'tag', id, norm(tag).toLowerCase())
+        if (seen.length) await emit([['tag.remove', { photo_id: id, tag, observed_add_ops: seen }]])
+        return this.media(id)
+      },
+      remove: async (id) => { await emit([['media.delete', { photo_id: id }]]) },
+      restore: async (id) => { await emit([['media.restore', { photo_id: id }]]); return this.media(id) },
+      renamePerson: async (pid, name) => { await emit([['person.set', { person_id: pid, field: 'name', value: name }]]) },
+      mergePerson: async (pid, into) => { await emit([['person.merge', { from: pid, into }]]) },
+    }
   }
   private call<T>(op: string, ...args: unknown[]) {
     return import('../local/client').then(({ local }) => local.call<T>(op, this.name, ...args))
