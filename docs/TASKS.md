@@ -228,8 +228,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [~] **T8.3** Phone device registration (§9.4): generate a `device_id`, ask for a name, detect the platform → `POST /api/devices/register`.
   *Done when:* both phones appear in the devices list as `ios` / `android`.
   *Note:* Built 2026-10-11. Browser tests simulate a Pixel reaching the Mac through tailscale serve: it names itself, registers as android, and its uploads are credited to it. A browser on the Mac itself counts as the Mac. **Your step:** open the app on both real phones once.
-- [ ] **T8.4** Trigger an archive on the Mac from a phone (§9.2): start, watch progress, lock the phone, come back and reattach, cancel.
+- [~] **T8.4** Trigger an archive on the Mac from a phone (§9.2): start, watch progress, lock the phone, come back and reattach, cancel.
   *Done when:* this works on both phones end to end, and a second phone sees "already running" with live progress.
+  *Note:* Built 2026-10-12. Browser tests as a phone on the tailnet: start a run, reload mid-run and reattach (counted once), a second phone sees 'A run is in progress', and cancel stops early. Fixed along the way: progress double-counted after a reconnect; 'Recent runs' not refreshing after a run; the library layout being wider than phone screens (filter chips and off-screen month sections stretched it, so mobile Chrome zoomed the page out). Each browser project now gets its own seeded server. **Your step:** try it from both real phones.
 - [ ] **T8.5** Upload from a phone (§9.3): photo picker → tus resumable upload → ingest. Test location on/off on iOS, and on Android; show "metadata incomplete" when GPS is missing.
   *Done when:* photos from both phones appear in the grid with Source = that phone, and the metadata caveats are shown correctly.
 - [ ] **T8.6** Upload queue when the Mac is unreachable (IndexedDB), resumed automatically.

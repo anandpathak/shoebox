@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 test('sync screen: devices, sync now, converged, backups', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop', 'writes to a shared server')
   await page.goto('/#/sync')
-  const devices = page.locator('.card', { hasText: 'Devices' })
+  const devices = page.locator('.card', { has: page.getByRole('heading', { name: 'Devices', exact: true }) })
   await expect(devices).toContainText('Pixel 8')
   await expect(devices).toContainText('Android')
   await expect(devices).toContainText('iPhone / iPad')

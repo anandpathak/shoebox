@@ -32,6 +32,7 @@ h1 { font-size: 1.5rem; } h2 { font-size: 1.15rem; }
 .main { flex: 1; min-width: 0; padding: 0 var(--gutter) calc(var(--tab-h) + 24px + env(safe-area-inset-bottom, 0px)); }
 .topbar { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 92%, transparent);
   backdrop-filter: blur(10px); padding: calc(env(safe-area-inset-top, 0px) + 10px) var(--gutter) 10px; display: grid; gap: 8px; }
+.topbar > *, .searchbar > *, .stack > *, .card > * { min-width: 0; }   /* let scrollers scroll instead of widening the page */
 .topbar-row { display: flex; align-items: center; justify-content: space-between; gap: 4px 12px; min-width: 0; flex-wrap: wrap; }
 .topbar-row .status { flex: 1 1 100%; order: 2; }
 @media (min-width: 600px) { .topbar-row .status { flex: 0 1 auto; order: 0; } }

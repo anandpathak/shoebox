@@ -91,14 +91,17 @@ function AppleCard({ mac, busy, onStarted, onError }: { mac: string; busy: boole
 function LiveRun({ run, onUpdate, onFinished }: { run: RunInfo; onUpdate: (r: RunInfo) => void; onFinished: () => void }) {
   const [state, setState] = useState(run)
   const finished = useRef(false)
-  useEffect(() => { setState(run); finished.current = run.status !== 'running' }, [run])
+  // reset only when a different run is shown; status updates for this run come back through `run` too
+  useEffect(() => { setState(run); finished.current = run.status !== 'running' }, [run.run_id]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (run.status !== 'running') return
+    if (finished.current) return
     const es = new EventSource(`/api/runs/${run.run_id}/events`)
     es.onmessage = (m) => {
       const e = JSON.parse(m.data)
       setState((s) => {
         const next = { ...s }
+        // every (re)connection replays the run from its first line: start counting afresh
+        if (e.event === 'accepted') { next.processed = 0; next.counts = {}; next.messages = [] }
         if (e.event === 'start') next.todo = e.todo
         if (e.event === 'item') {
           next.processed = (s.processed ?? 0) + 1
@@ -111,7 +114,7 @@ function LiveRun({ run, onUpdate, onFinished }: { run: RunInfo; onUpdate: (r: Ru
     }
     es.addEventListener('close', () => { es.close(); if (!finished.current) { finished.current = true; onFinished() } })
     return () => es.close()
-  }, [run.run_id, run.status, onFinished])
+  }, [run.run_id]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { onUpdate(state) }, [state.status]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const pct = state.todo ? Math.round((state.processed / state.todo) * 100) : 0

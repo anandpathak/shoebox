@@ -16,7 +16,8 @@ test('dry run, then archive from (fake) Apple Photos with live progress', async 
   await expect(page.getByRole('heading', { name: 'Finished' })).toBeVisible({ timeout: 60_000 })
   await expect(page.getByText(/8 of 8 done/)).toBeVisible()
   await expect(page.getByText(/Backed up databases/)).toBeVisible({ timeout: 30_000 })
-  await expect(page.getByRole('heading', { name: 'Recent runs' })).toBeVisible()
+  // history refreshes when the live stream closes, a few seconds after the run ends
+  await expect(page.getByRole('heading', { name: 'Recent runs' })).toBeVisible({ timeout: 15_000 })
   const r = await (await page.request.get('/api/search?q=garden')).json()
   expect(r.items.length).toBe(8)
 })
@@ -29,7 +30,8 @@ test('upload photos from this device', async ({ page }, info) => {
     { name: 'phone-shot.png', mimeType: 'image/png', buffer: png },
   ])
   await expect(page.getByText('Uploaded')).toBeVisible({ timeout: 30_000 })
-  const device = await page.evaluate(() => JSON.parse(localStorage.getItem('photoctl.device')!).device_id)
-  await expect.poll(async () => (await (await page.request.get(`/api/search?device=${device}`)).json()).items.length,
+  // a browser on the Mac itself uploads as the Mac (phones on the tailnet upload as themselves: tailnet.spec)
+  const mac = (await (await page.request.get('/api/health')).json()).device.device_id
+  await expect.poll(async () => (await (await page.request.get(`/api/search?device=${mac}&q=phone`)).json()).items.length,
                     { timeout: 30_000 }).toBe(1)
 })

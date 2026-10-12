@@ -31,7 +31,7 @@ export function Grid({ items, source, onOpen, onEnd, loading, done }: {
   return (
     <div className="months">
       {groupByMonth(items).map((g) => (
-        <section key={g.key} className="month" style={{ containIntrinsicSize: `auto ${Math.ceil(g.items.length / 3) * 130}px` }}>
+        <section key={g.key} className="month" style={{ containIntrinsicBlockSize: `auto ${Math.ceil(g.items.length / 3) * 130}px` }}>
           <h2 className="month-title">{monthLabel(g.key)} <span className="muted small">{g.items.length}</span></h2>
           <div className="grid">{g.items.map((it) => <Tile key={it.photo_id} item={it} source={source} onOpen={onOpen} />)}</div>
         </section>

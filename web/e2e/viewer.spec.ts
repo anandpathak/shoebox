@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test'
 
 test('open a photo, step through, close', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#/library?type=photo')              // a known photo list, whatever other tests added
+  await expect(page).toHaveURL(/type=photo/)
+  await expect(page.locator('.tile').first()).toBeVisible()
   const firstId = await page.locator('.tile').first().getAttribute('data-id')
   await page.locator('.tile').first().click()
   const viewer = page.getByRole('dialog', { name: 'Photo viewer' })
@@ -17,6 +19,7 @@ test('open a photo, step through, close', async ({ page }) => {
   await expect(page).not.toHaveURL(new RegExp(`media/${firstId}`))
   await page.keyboard.press('ArrowLeft')
   await expect(page).toHaveURL(new RegExp(`media/${firstId}`))
+  await expect(viewer.locator('.facts')).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(viewer).toBeHidden()
   await expect(page.locator('.tile').first()).toBeVisible()

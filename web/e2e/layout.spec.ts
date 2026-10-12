@@ -5,8 +5,14 @@ test('shell fits the screen and shows navigation and status', async ({ page }, i
   await expect(page.getByRole('status')).toContainText('Online via')
   const nav = page.getByRole('navigation', { name: 'Sections' })
   for (const label of ['Library', 'People', 'Sync']) await expect(nav.getByRole('link', { name: label })).toBeVisible()
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)
-  expect(overflow).toBeLessThanOrEqual(0)
+  await expect(page.locator('.tile').first()).toBeVisible()
+  await page.locator('.sentinel').scrollIntoViewIfNeeded()     // more months, some of them skipped by content-visibility
+  await page.waitForTimeout(500)
+  // On phones an over-wide element makes Chrome widen the whole layout viewport, so compare with the real screen.
+  const widths = await page.evaluate(() => ({ doc: document.documentElement.scrollWidth, inner: innerWidth }))
+  const screenWidth = page.viewportSize()!.width
+  expect(widths.inner).toBe(screenWidth)
+  expect(widths.doc).toBeLessThanOrEqual(screenWidth)
   const box = await nav.boundingBox()
   if (info.project.name === 'desktop') expect(box!.x).toBe(0)                          // sidebar on the left
   else expect(box!.y + box!.height).toBeGreaterThan(page.viewportSize()!.height - 5)   // tab bar at the bottom

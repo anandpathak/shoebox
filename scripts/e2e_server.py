@@ -122,6 +122,15 @@ def fake_photos_library(home: Path, n: int = 8) -> None:
                                      intrash=False, hidden=False, json=lambda a=apple: a))
     archiver.select_photos = lambda sel: items
     archiver.add_to_album = lambda *a, **k: None
+    real = archiver.process
+    delay = float(os.environ.get("E2E_ITEM_DELAY", "0.4"))   # slow enough for tests to see a run in progress
+
+    def slow(item, opts):
+        import time
+
+        time.sleep(delay)
+        return real(item, opts)
+    archiver.process = slow
 
 
 def start_mock_s3(home: Path, upload_originals: bool) -> str:
