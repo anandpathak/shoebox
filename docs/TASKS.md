@@ -313,7 +313,7 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 
 - [ ] **T12.1** Capacitor wrapper around `web/`: iOS + Android projects, app ids, icons; the web UI runs unchanged inside it.
   *Done when:* the app runs on both phones and talks to the Mac over Tailscale.
-- [ ] **T12.2** Server side: `POST /api/backup/check` (hashes → missing), `GET /api/backup/status`, the upload endpoint accepts `source_ref = ios:<localIdentifier>` / `android:<MediaStore id>`, emits `media.upsert` + `media.source` with the phone's `device_id`, and the raw upload uses `If-None-Match`.
+- [x] **T12.2** Server side: `POST /api/backup/check` (hashes → missing), `GET /api/backup/status`, the upload endpoint accepts `source_ref = ios:<localIdentifier>` / `android:<MediaStore id>`, emits `media.upsert` + `media.source` with the phone's `device_id`, and the raw upload uses `If-None-Match`. ✅ 2026-10-12
   *Done when:* a script acting as a phone backs up 10 files, and re-sending them uploads nothing.
 - [ ] **T12.3** On-phone backup ledger (SQLite): `assets` + `cursor` tables (§13.4); handles edited assets (re-hash, new item linked to the same local id).
   *Done when:* unit tests cover new, unchanged, edited and deleted assets.

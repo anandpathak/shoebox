@@ -202,7 +202,8 @@ class InboxProcessor:
             for data, info in batch:
                 lm = info.get("last_modified")
                 when = datetime.fromtimestamp(int(lm) / 1000, tz=timezone.utc) if lm and str(lm).isdigit() else None
-                items.append(FileItem(str(data), info["filename"], info["device_id"], info["id"], last_modified=when))
+                items.append(FileItem(str(data), info["filename"], info["device_id"], info["id"], last_modified=when,
+                                      asset_ref=info.get("asset_ref")))
             try:
                 run = self.app.state.runs.start("upload", f"{len(items)} uploaded file(s)", options_for_app(self.app),
                                                 items=items, device=self.app.state.device)
@@ -232,7 +233,7 @@ class InboxProcessor:
                 os.replace(meta, keep / meta.name)
                 data.with_name(data.name + ".sha256").unlink(missing_ok=True)
                 continue
-            row = state.get(f"upload:{info['device_id']}:{info['id']}:{info['filename']}")
+            row = state.get(info.get("asset_ref") or f"upload:{info['device_id']}:{info['id']}:{info['filename']}")
             if row is not None and row["status"] in ("done", "no_derivative"):
                 data.unlink(missing_ok=True)
                 meta.unlink(missing_ok=True)

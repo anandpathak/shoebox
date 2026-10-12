@@ -114,6 +114,7 @@ class FileItem:
     upload_id: str
     last_modified: datetime | None = None
     source_type: str = "upload"
+    asset_ref: str | None = None            # "ios:<localIdentifier>" / "android:<MediaStore id>" from the native app
 
     def __post_init__(self):
         p = Path(self.path)
@@ -125,14 +126,18 @@ class FileItem:
         self.date_source = "file" if meta["taken_at"] else "last_modified" if self.last_modified else None
         self.uti_original = mimetypes.guess_type(self.original_filename)[0]
         self.has_raw, self.path_raw, self.live_photo, self.path_live_photo = False, None, False, None
+        if self.asset_ref:  # the catalog records source "<type>:<ref>", so this becomes ios:<id> / android:<id>
+            self.source_type = self.asset_ref.split(":", 1)[0]
 
     @property
     def ref(self) -> str:
+        if self.asset_ref:
+            return self.asset_ref.split(":", 1)[1]
         return f"{self.device_id}:{self.upload_id}:{self.original_filename}"
 
     @property
     def source_ref(self) -> str:
-        return f"upload:{self.ref}"
+        return f"{self.source_type}:{self.ref}"
 
     @property
     def source_device_id(self) -> str:
@@ -145,7 +150,8 @@ class FileItem:
     @property
     def extra_metadata(self) -> dict:
         missing = [k for k, v in (("capture date", self._meta["taken_at"]), ("location", self._meta["lat"])) if v is None]
-        return {"metadata_fidelity": "browser", "metadata_incomplete": bool(missing), "metadata_missing": missing,
+        return {"metadata_fidelity": "native" if self.asset_ref else "browser", "metadata_incomplete": bool(missing),
+                "metadata_missing": missing,
                 "uploaded_by": self.device_id, "taken_at_source": self.date_source}
 
     def json(self) -> str:
