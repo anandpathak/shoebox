@@ -8,6 +8,7 @@ ext {
     androidxCoreVersion = '1.15.0'
     androidxFragmentVersion = '1.8.4'
     coreSplashScreenVersion = '1.0.1'
+    androidxWorkVersion = '2.10.0'
     androidxWebkitVersion = '1.12.1'
     junitVersion = '4.13.2'
     androidxJunitVersion = '1.2.1'

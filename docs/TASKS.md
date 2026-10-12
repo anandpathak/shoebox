@@ -319,7 +319,7 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
   *Done when:* unit tests cover new, unchanged, edited and deleted assets.
 - [x] **T12.4** iOS plugin: PhotoKit permission (full / limited reported), persistent change token (`fetchPersistentChanges`), original resources incl. Live Photo video and iCloud download, streaming SHA-256. ✅ 2026-10-12
   *Done when:* on an iPhone, 5 new photos + 1 video are found without a full rescan, with GPS intact.
-- [ ] **T12.5** Android plugin: MediaStore generation query, `READ_MEDIA_IMAGES/VIDEO`, `ACCESS_MEDIA_LOCATION` + `setRequireOriginal`, streaming SHA-256; Android 14 "selected photos" reported.
+- [x] **T12.5** Android plugin: MediaStore generation query, `READ_MEDIA_IMAGES/VIDEO`, `ACCESS_MEDIA_LOCATION` + `setRequireOriginal`, streaming SHA-256; Android 14 "selected photos" reported. ✅ 2026-10-12
   *Done when:* on an Android phone, 5 new photos + 1 video are found, with GPS intact.
 - [ ] **T12.6** Upload engine: batch check → resumable uploads with retries; iOS background `URLSession`; Android WorkManager with a foreground notification for long uploads.
   *Done when:* force-quitting the app mid-video resumes the upload later without starting over.
