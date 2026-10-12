@@ -25,7 +25,8 @@ def images():
 def test_search_vectors_rank_the_right_picture(images, monkeypatch):
     from photoctl.analyze import ai
 
-    monkeypatch.setattr(ai, "_cache", lambda: os.environ.get("HF_HOME", ai._cache()))
+    if os.environ.get("HF_HOME"):                       # use an existing download instead of ~/.photoctl/models
+        monkeypatch.setattr(ai, "_cache", lambda: os.environ["HF_HOME"])
     emb = ai.Embedder()
     names = list(images)
     vecs = emb.images([images[n] for n in names])
@@ -42,7 +43,8 @@ def test_search_vectors_rank_the_right_picture(images, monkeypatch):
 def test_captions_describe_the_picture(images, monkeypatch):
     from photoctl.analyze import ai
 
-    monkeypatch.setattr(ai, "_cache", lambda: os.environ.get("HF_HOME", ai._cache()))
+    if os.environ.get("HF_HOME"):                       # use an existing download instead of ~/.photoctl/models
+        monkeypatch.setattr(ai, "_cache", lambda: os.environ["HF_HOME"])
     cap = ai.Captioner()
     for n, im in images.items():
         text = cap.caption(im)

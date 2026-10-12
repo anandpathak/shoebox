@@ -150,3 +150,12 @@ def test_vectors_stay_on_this_mac(lib):
 
     assert oct(os.stat(paths.home() / "embeddings.sqlite").st_mode & 0o777) == "0o600"
     assert conn.execute("SELECT name FROM sqlite_master WHERE name = 'vectors'").fetchone() is None
+
+
+def test_caption_tidying():
+    from photoctl.analyze.ai import tidy
+
+    assert tidy("The image shows a dog on a beach. It is sunny. There are three boats and a man in a") == \
+        "A dog on a beach. It is sunny."
+    assert tidy("In this image we can see a cake") == "A cake."
+    assert tidy("") == ""

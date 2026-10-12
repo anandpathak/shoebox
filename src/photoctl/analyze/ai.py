@@ -115,20 +115,27 @@ class Captioner:
     def caption(self, im: Image.Image) -> str:
         with self.lock, self.torch.no_grad():
             inputs = self.processor(text=CAPTION_TASK, images=im, return_tensors="pt").to(self.device, self.dtype)
-            ids = self.model.generate(**inputs, max_new_tokens=80, num_beams=3)
+            ids = self.model.generate(**inputs, max_new_tokens=50, num_beams=3)
             text = self.processor.batch_decode(ids, skip_special_tokens=False)[0]
             out = self.processor.post_process_generation(text, task=CAPTION_TASK, image_size=im.size)
         return tidy(out.get(CAPTION_TASK, "") if isinstance(out, dict) else str(out))
 
 
+MAX_SENTENCES = 2      # detailed captions drift into made-up detail as they go on; keep the start
+
+
 def tidy(text: str) -> str:
-    """'The image shows a dog on a beach.' → 'A dog on a beach.'"""
+    """'The image shows a dog on a beach. …' → 'A dog on a beach.' (first sentences only, no unfinished one)"""
     t = " ".join(text.replace("<pad>", "").split()).strip()
     for lead in ("The image shows ", "The image is ", "In this image we can see ", "In this image, we can see ",
                  "This image shows ", "In this picture we can see ", "The picture shows "):
         if t.lower().startswith(lead.lower()):
             t = t[len(lead):]
             break
+    sentences = [x.strip() for x in t.replace("! ", ". ").split(". ") if x.strip()]
+    if len(sentences) > 1 and not t.rstrip().endswith((".", "!", "?")):
+        sentences = sentences[:-1]                      # cut off mid-sentence by the token limit
+    t = ". ".join(sentences[:MAX_SENTENCES]).rstrip(".") + "." if sentences else ""
     return (t[:1].upper() + t[1:])[:2000] if t else ""
 
 

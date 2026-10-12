@@ -377,8 +377,12 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [ ] **T15.6** Text in photos (OCR, Vision `VNRecognizeTextRequest`) searchable: needs a synced text field.
 - [x] **T15.7** Captions with Florence-2 (optional `ai` extra): new op `media.caption` (import priority, user edits win), catalog v4, part of keyword search everywhere; editable in the viewer.
 - [x] **T15.10** Plain-English search with SigLIP 2: vectors on the Mac, `/api/search/smart` and `photoctl search --best`; names/dates become filters; *Best matches* / *Newest first* in the app.
-- [ ] **T15.11** Check caption quality and the search threshold (`MIN_PROBABILITY`) on a real library.
-- [ ] **T15.8** Viewer: show face boxes with names; *not them* from the photo.
+- [~] **T15.11** Check caption quality and the search threshold (`MIN_PROBABILITY`) on a real library.
+  Checked on sample photos (2026-10-12, this Mac): SigLIP 2 picked the right picture for every query (right 0.014–0.136,
+  wrong 0.0, threshold 0.001). Florence-2 captions were accurate on real photos; long captions drifted into invented detail on a
+  synthetic picture, so only the first two sentences are kept. Speed: 0.05 s/photo search vectors, 0.58 s/photo captions,
+  0.14 s per query, 6.5 s model load. Still to do: your own library.
+- [x] **T15.8** Viewer: faces in the photo with names; *Not <name>* undoes a match; unknown faces can be named there.
 - [ ] **T15.9** Tune thresholds on a real library (AUTO_MATCH 0.50, JOIN_CLUSTER 0.42, label confidence 0.3).
   *Done when:* checked on your own photos: few wrong auto-tags, groups mostly one person each.
 

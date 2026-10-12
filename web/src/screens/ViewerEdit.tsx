@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { MediaDetail } from '../api/types'
 import { Icon } from '../components/Icon'
+import { PhotoFaces } from '../components/PhotoFaces'
 import type { MediaPatch } from '../data/source'
 import { useApp } from '../lib/app'
 import { dateLabel } from '../lib/format'
@@ -74,6 +75,7 @@ export function Editor({ item, onChanged }: { item: MediaDetail; onChanged: () =
           <Icon name="trash" size={18} />Remove</button>
       </div>
       {local.people.length > 0 && <div className="row">{local.people.map((p) => <span key={p.person_id} className="tag person">{p.name}</span>)}</div>}
+      {source.kind === 'server' && <PhotoFaces photoId={item.photo_id} onChanged={onChanged} />}
       <div className="row tags" aria-label="Tags">
         {local.tags.map((t) => (
           <span key={t} className="tag">{t}
