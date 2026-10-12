@@ -445,6 +445,16 @@ Settings (per phone): Wi-Fi only (default on), only while charging (default on f
 
 **On-phone backup ledger** (SQLite in the app, the phone's version of `state.sqlite`): `assets(local_id PK, sha256, photo_id, size, modified_at, status: pending|hashed|uploading|done|skipped_dup|failed, error, attempts)` + `cursor(change_token | media_generation)`. Edited photos (new modification date) are re-hashed. If the bytes changed, the edit is backed up as a new item linked to the same `local_id`.
 
+### 13.4a As built
+- The decisions (ledger, settings, retries, check, dedup) are TypeScript in `web/src/backup/`, shared by both phones
+  and unit-tested; the native plugins (`app/ios/App/App/BackupCore.swift`, `app/android/.../backup/`) only list,
+  hash and upload. The ledger is kept in IndexedDB, not SQLite.
+- Uploads are whole files to `POST /api/uploads/raw` (headers: device, asset id, SHA-256, filename), so the OS
+  background queues can send them; the server checks the SHA-256 on arrival. An interrupted file starts again.
+- While the app is closed, a short native pass (iOS BGTasks, Android WorkManager every 6 h and on new media) uses
+  the settings the app last passed in (`configure`) to find new items, check and queue them. The ledger catches up
+  next time the app opens; the Mac's check means nothing is sent twice.
+
 ### 13.5 Web app (PWA) assisted backup
 - "Back up recent photos" → photo picker (multi-select) → the browser hashes each file with WebCrypto → `POST /api/backup/check` → uploads only the missing ones.
 - The browser metadata limits from §9.3 apply (GPS may be stripped), so these items are flagged "metadata incomplete", and the native app is recommended in the UI.

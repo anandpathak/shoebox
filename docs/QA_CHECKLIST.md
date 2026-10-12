@@ -62,6 +62,25 @@ Record results in the table at the bottom (✓ / ✗ + a note).
 - [ ] Sync → Notifications → Turn on (iPhone: from the installed app) → Send a test: a notification arrives.
 - [ ] Start an archive run from the Mac, close the app: *Archive finished* arrives when it's done; tapping it opens Uploads.
 
+## 9. The native app: automatic backup
+Build and install from `app/` (see app/README.md), with Tailscale on.
+- [ ] The start page accepts the `https://<mac>.<tailnet>.ts.net` address and opens the library.
+- [ ] Sync → Back up this phone → *Back up automatically*: the photo permission prompt appears.
+      iPhone: choose *Limited* once and check the card warns; then allow full access.
+      Android 14: choose *Select photos* once and check the card warns; then *Allow all*. Allow *location in photos*.
+- [ ] Take 5 photos and 1 video. *Back up now*: the count goes to *Backed up N of N*. They appear in the Library
+      with the phone as their source and **with their location**.
+- [ ] Photos already archived from the Mac's Photos library (iCloud Photos) are counted as backed up without uploading
+      (watch the Mac's inbox stay empty).
+- [ ] Edit a photo (crop): it's backed up again as a new item. Favourite one: nothing is sent.
+- [ ] Wi-Fi only: on mobile data the card says *waiting for Wi-Fi*; on Wi-Fi it carries on.
+- [ ] Start a large video upload, switch to another app and lock the phone: it finishes (iOS background transfer /
+      Android notification *Backing up to your Mac*).
+- [ ] Close the app, take a photo, leave the phone on charge and Wi-Fi overnight: next morning it's in the Library
+      without opening the app.
+- [ ] iPhone: a photo only in iCloud (*Optimise iPhone storage*) is downloaded and backed up on Wi-Fi.
+- [ ] Turn the Mac off: the card says *waiting for your Mac*; turn it on: it catches up by itself.
+
 ## Results
 
 | Date | Device / OS / browser | Sections passed | Problems |

@@ -311,30 +311,39 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 
 ## M12 — Automatic backup from iPhone and Android (§13)
 
-- [x] **T12.1** Capacitor wrapper around `web/`: iOS + Android projects, app ids, icons; the web UI runs unchanged inside it. ✅ 2026-10-12
+- [~] **T12.1** Capacitor wrapper around `web/`: iOS + Android projects, app ids, icons; the web UI runs unchanged inside it. ✅ 2026-10-12
   *Done when:* the app runs on both phones and talks to the Mac over Tailscale.
+  Status: code written and committed, **not built here** (no Xcode / Android SDK on the dev Mac). Needs: `cd app && npx cap sync && npx cap open ios|android`, build, then the *Done when* check on a real phone (docs/QA_CHECKLIST.md §9).
 - [x] **T12.2** Server side: `POST /api/backup/check` (hashes → missing), `GET /api/backup/status`, the upload endpoint accepts `source_ref = ios:<localIdentifier>` / `android:<MediaStore id>`, emits `media.upsert` + `media.source` with the phone's `device_id`, and the raw upload uses `If-None-Match`. ✅ 2026-10-12
   *Done when:* a script acting as a phone backs up 10 files, and re-sending them uploads nothing.
 - [x] **T12.3** On-phone backup ledger (SQLite): `assets` + `cursor` tables (§13.4); handles edited assets (re-hash, new item linked to the same local id). ✅ 2026-10-12
   *Done when:* unit tests cover new, unchanged, edited and deleted assets.
-- [x] **T12.4** iOS plugin: PhotoKit permission (full / limited reported), persistent change token (`fetchPersistentChanges`), original resources incl. Live Photo video and iCloud download, streaming SHA-256. ✅ 2026-10-12
+  Done as: the ledger is kept in IndexedDB on the phone (`web/src/backup/store.ts`) rather than SQLite, because the engine runs in the web view; losing it only costs re-hashing (the Mac's check stops re-uploads). Tests: `web/src/backup/engine.test.ts`.
+- [~] **T12.4** iOS plugin: PhotoKit permission (full / limited reported), persistent change token (`fetchPersistentChanges`), original resources incl. Live Photo video and iCloud download, streaming SHA-256. ✅ 2026-10-12
   *Done when:* on an iPhone, 5 new photos + 1 video are found without a full rescan, with GPS intact.
-- [x] **T12.5** Android plugin: MediaStore generation query, `READ_MEDIA_IMAGES/VIDEO`, `ACCESS_MEDIA_LOCATION` + `setRequireOriginal`, streaming SHA-256; Android 14 "selected photos" reported. ✅ 2026-10-12
+  Status: code written and committed, **not built here** (no Xcode / Android SDK on the dev Mac). Needs: `cd app && npx cap sync && npx cap open ios|android`, build, then the *Done when* check on a real phone (docs/QA_CHECKLIST.md §9).
+- [~] **T12.5** Android plugin: MediaStore generation query, `READ_MEDIA_IMAGES/VIDEO`, `ACCESS_MEDIA_LOCATION` + `setRequireOriginal`, streaming SHA-256; Android 14 "selected photos" reported. ✅ 2026-10-12
   *Done when:* on an Android phone, 5 new photos + 1 video are found, with GPS intact.
-- [x] **T12.6** Upload engine: batch check → resumable uploads with retries; iOS background `URLSession`; Android WorkManager with a foreground notification for long uploads.
+  Status: code written and committed, **not built here** (no Xcode / Android SDK on the dev Mac). Needs: `cd app && npx cap sync && npx cap open ios|android`, build, then the *Done when* check on a real phone (docs/QA_CHECKLIST.md §9).
+- [~] **T12.6** Upload engine: batch check → resumable uploads with retries; iOS background `URLSession`; Android WorkManager with a foreground notification for long uploads.
   Done as: engine in `web/src/backup/engine.ts` (batch check, back-off retries, 422 → re-hash); each file goes up whole as one background request to `POST /api/uploads/raw` (iOS background `URLSession`, Android WorkManager + foreground notification above 50 MB) instead of tus, because OS background transfer queues take a plain file upload. An interrupted file is re-sent from the start.
   *Done when:* force-quitting the app mid-video resumes the upload later without starting over.
-- [x] **T12.7** Triggers: on app open, pull-to-refresh and every sync; iOS `BGProcessingTask` + `BGAppRefreshTask`; Android periodic WorkManager (6 h) + MediaStore content trigger. ✅ 2026-10-12
+  Not met yet: an interrupted upload starts the file again (OS background queues send a plain file). Resuming mid-file needs tus/chunked uploads from native code; worth it only if big videos often fail. Same build caveat as T12.4/T12.5.
+- [~] **T12.7** Triggers: on app open, pull-to-refresh and every sync; iOS `BGProcessingTask` + `BGAppRefreshTask`; Android periodic WorkManager (6 h) + MediaStore content trigger. ✅ 2026-10-12
   *Done when:* a photo taken with the app closed is backed up overnight on both phones (charging + Wi-Fi).
+  Status: code written and committed, **not built here** (no Xcode / Android SDK on the dev Mac). Needs: `cd app && npx cap sync && npx cap open ios|android`, build, then the *Done when* check on a real phone (docs/QA_CHECKLIST.md §9).
 - [x] **T12.8** Backup settings + UI: Wi-Fi only, while charging, videos, screenshots, albums, from date; "Backed up X of Y · N waiting"; "on this phone only" badge in the grid.
   Done as: *Back up this phone* card on the Sync screen (native app only): on/off, Wi-Fi only, videos, videos while charging, screenshots, iCloud originals (iPhone), start date, *Back up now*, *Retry failed*, status line and limited-access warnings. Album choice exists in the engine but has no UI yet. The grid shows the archive, not the camera roll, so there's no "on this phone only" badge; the card's "N to go" count covers it. E2E: `web/e2e/backup.tailnet.spec.ts` (fake plugin, real engine and server).
   *Done when:* the settings are respected on both platforms and the counts match the ledger.
 - [ ] **T12.9** (Optional) "Free up space": after verified backup, offer to delete those items using the OS confirmation (`PHAssetChangeRequest.deleteAssets` / `MediaStore.createDeleteRequest`). Off by default.
   *Done when:* the OS confirmation is always shown, and only verified items are offered.
-- [ ] **T12.10** Tests: simulator/emulator fixture camera rolls (new, edited, duplicate, iCloud-only, Live Photo, large video); dedup against photos already archived from the Mac's Apple Photos.
+  Not started on purpose: deleting from the phone needs a stricter server answer (original verified in S3, not only catalogued, and never for `archived-locally` items) and testing on real phones. Pick it up when the rest of M12 has been used for a while.
+- [~] **T12.10** Tests: simulator/emulator fixture camera rolls (new, edited, duplicate, iCloud-only, Live Photo, large video); dedup against photos already archived from the Mac's Apple Photos.
   *Done when:* only missing items upload in every scenario, on both platforms.
+  Done here: engine tests with fixture camera rolls (new, unchanged, edited, duplicate, deleted, iCloud-only, Live Photo video, large library, video while charging, Mac unreachable, retries, file changed in transit); end-to-end test with a fake plugin against the real server (`web/e2e/backup.tailnet.spec.ts`), including dedup; server tests `tests/test_api_native.py`. Still to do: the same scenarios on an iOS simulator and an Android emulator.
 - [ ] **T12.11** TestFlight / Play internal testing builds for family phones.
   *Done when:* the app installs from TestFlight and from Play internal testing.
+  User step: needs an Apple developer account (TestFlight) and a Google Play developer account.
 
 ---
 

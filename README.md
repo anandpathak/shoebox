@@ -108,6 +108,16 @@ uv run photoctl serve                              # http://127.0.0.1:8765 on th
 Nothing is exposed to the internet: the address only works for devices in your tailnet, and every
 request carries the Tailscale identity the server checks.
 
+### Automatic backup from phones (the native app)
+
+A web page can't read the camera roll, so automatic backup needs the iPhone/Android app in [`app/`](app/README.md).
+It's the same web app, loaded from your Mac over Tailscale, plus a plugin that lists new photos and videos, hashes
+them on the phone, asks the Mac which ones it doesn't have (`POST /api/backup/check`), and uploads only those
+(`POST /api/uploads/raw`, sent by iOS/Android in the background). Turn it on under **Sync → Back up this phone**.
+
+The native projects need Xcode (iPhone) or Android Studio (Android) to build; see [app/README.md](app/README.md).
+Without the app, phones can still pick photos by hand under **Uploads**.
+
 ## A second Mac
 
 Every Mac keeps its own catalog and syncs through the same bucket; it doesn't need its own Photos library.

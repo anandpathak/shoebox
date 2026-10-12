@@ -267,3 +267,42 @@ describe('uploads queued while the app was closed', () => {
     expect(phone.queue.size).toBe(0)
   })
 })
+
+describe('camera-roll fixtures', () => {
+  it('iCloud-only originals wait for Wi-Fi, or are left alone when iCloud downloads are off', async () => {
+    const { phone, run, ctx, ledger } = setup()
+    phone.add('cloud', 'cc', { cloudOnly: true })
+    phone.conds = { wifi: false, charging: true, online: true }
+    let s = await run()
+    expect(s).toMatchObject({ waiting: 1, waitingFor: 'wifi' })
+    expect(phone.hashed).toEqual([])                       // not downloaded over mobile data
+    ctx.settings = { ...ctx.settings, iCloudDownloads: false }
+    phone.conds = { wifi: true, charging: true, online: true }
+    s = await run()
+    expect(ledger().entries.cloud.reason).toMatch(/iCloud downloads are off/)
+    ctx.settings = { ...ctx.settings, iCloudDownloads: true }
+    await run()
+    expect(phone.hashed).toEqual(['cloud'])
+  })
+
+  it("a Live Photo's video is backed up as its own item", async () => {
+    const { phone, mac, run } = setup()
+    phone.add('L1', 'still')
+    phone.add('L1/live', 'motion', { kind: 'video' })
+    await run(); phone.deliver(mac)
+    expect((await run()).backedUp).toBe(2)
+    expect(mac.received.sort()).toEqual(['L1', 'L1/live'])
+  })
+
+  it('a large library is hashed a batch at a time', async () => {
+    const { phone, run, ctx } = setup()
+    for (let i = 0; i < 25; i++) phone.add(`p${i}`, `h${i}`)
+    ctx.hashPerRun = 10
+    ctx.inFlight = 100
+    await run()
+    expect(phone.hashed.length).toBe(10)
+    await run(); await run()
+    expect(phone.hashed.length).toBe(25)
+    expect(phone.queue.size).toBe(25)
+  })
+})
