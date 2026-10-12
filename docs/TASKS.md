@@ -315,7 +315,7 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
   *Done when:* the app runs on both phones and talks to the Mac over Tailscale.
 - [x] **T12.2** Server side: `POST /api/backup/check` (hashes → missing), `GET /api/backup/status`, the upload endpoint accepts `source_ref = ios:<localIdentifier>` / `android:<MediaStore id>`, emits `media.upsert` + `media.source` with the phone's `device_id`, and the raw upload uses `If-None-Match`. ✅ 2026-10-12
   *Done when:* a script acting as a phone backs up 10 files, and re-sending them uploads nothing.
-- [ ] **T12.3** On-phone backup ledger (SQLite): `assets` + `cursor` tables (§13.4); handles edited assets (re-hash, new item linked to the same local id).
+- [x] **T12.3** On-phone backup ledger (SQLite): `assets` + `cursor` tables (§13.4); handles edited assets (re-hash, new item linked to the same local id). ✅ 2026-10-12
   *Done when:* unit tests cover new, unchanged, edited and deleted assets.
 - [ ] **T12.4** iOS plugin: PhotoKit permission (full / limited reported), persistent change token (`fetchPersistentChanges`), original resources incl. Live Photo video and iCloud download, streaming SHA-256.
   *Done when:* on an iPhone, 5 new photos + 1 video are found without a full rescan, with GPS intact.
