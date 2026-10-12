@@ -83,7 +83,7 @@ uv run photoctl faces          # groups of faces still waiting for a name
 - **Faces** are found with OpenCV (two small open models, downloaded once into `~/.photoctl/models`). Similar
   faces are grouped; in the app go to **People → Who's this?** and type a name once. Every photo of that
   person, now and later, can then be searched by name. Faces you named in Apple Photos are learnt
-  automatically. *Not a person* hides a group; on a photo, *not them* undoes a wrong match.
+  automatically. *Not a person* hides a group. A wrong match: open the photo and remove that person from it.
 - Face fingerprints are biometric data, so they stay in `~/.photoctl/faces.sqlite` on this Mac only: they
   aren't synced, published or backed up. Only the names you confirm are.
 - Turn background analysis off with `analysis = false` under `[server]` in `~/.photoctl/config.toml`.
