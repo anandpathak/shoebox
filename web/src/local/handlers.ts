@@ -1,4 +1,6 @@
 // Operations the on-device worker offers. Each gets the storage env first.
+import { applyOps, type Op } from './apply'
+import { validate } from './ops'
 import { mediaDetail, search, type SearchOptions } from './query'
 import { QUERIES } from './sql'
 import type { Env } from './worker'
@@ -31,6 +33,9 @@ export const handlers = {
   },
   devices(env: Env, name: string) {
     return env.db(name).all(QUERIES.devices)
+  },
+  applyOps(env: Env, name: string, ops: Op[]) {
+    return applyOps(env.db(name), ops, validate)
   },
   remove(env: Env, name: string) {
     env.remove(name)

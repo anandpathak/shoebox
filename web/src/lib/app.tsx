@@ -53,6 +53,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [refreshSync])
 
   const changed = useCallback(() => { setVersion((v) => v + 1); refreshSync() }, [refreshSync])
+
+  // Keep the on-device catalog current while the Mac is reachable.
+  useEffect(() => {
+    if (!online || !localState.enabled) return
+    let stop = false
+    const tick = () => import('../local/refresh').then(({ refreshLocal }) =>
+      refreshLocal(() => import('../screens/Catalogs').then((m) => m.enableOnDevice(() => {}))))
+      .catch(() => {})
+    tick()
+    const t = setInterval(() => { if (!stop) tick() }, 60_000)
+    return () => { stop = true; clearInterval(t) }
+  }, [online, localState.enabled, version])
   // Can't reach the Mac but the catalog is on this device: search and browse from it.
   const source: DataSource = !online && localState.enabled ? device : server
   useEffect(() => { setVersion((v) => v + 1) }, [source])

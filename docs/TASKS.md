@@ -263,8 +263,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T9.4** TypeScript `apply_ops` + HLC passing **every** `spec/sync_vectors` vector (run in CI with Node + sqlite-wasm). ✅ 2026-10-12
   *Done when:* the TS and Python results are identical for all vectors.
   *Note:* web/src/local/apply.ts + hlc.ts + ops.ts (Ajv against spec/ops.schema.json). All 20 spec/sync_vectors pass in the same 4 delivery orders as Python (vitest + sqlite-wasm in Node), plus HLC tests. field_hlc and op bodies are serialised exactly like Python's sorted, compact JSON.
-- [ ] **T9.5** Incremental refresh: `GET /api/sync/ops?since=` → TS `apply_ops`; re-download the snapshot if too far behind.
+- [x] **T9.5** Incremental refresh: `GET /api/sync/ops?since=` → TS `apply_ops`; re-download the snapshot if too far behind. ✅ 2026-10-12
   *Done when:* an archive on the Mac shows up on the phone's on-device catalog within one refresh.
+  *Note:* Pulls GET /api/sync/ops?since=<cursor>&epoch=… and applies with the TypeScript rules; runs on start, every 60 s and after edits; 'Refresh now' on the Catalogs screen; a 410 re-downloads the catalog. Browser test: an edit made on the Mac shows in on-device search after one refresh (Chrome and WebKit). Found and fixed in WebKit testing: a start-up race in the worker (a quick tap failed with 'storage isn't available'), storage not handed back when a page closes, and an uncapped persistent-storage request; a second tab now explains why it can't open the on-device catalog.
 - [ ] **T9.6** Offline edits: on-device outbox → `POST /api/sync/ops` when back online.
   *Done when:* a title edited offline on the phone appears on the Mac after reconnecting, and a concurrent edit resolves per §5.
 - [ ] **T9.7** Offline images: service-worker thumbnail cache, "Download thumbnails for offline" packs by year/album, "Save offline" for compressed copies; storage usage + "Remove downloaded data".
