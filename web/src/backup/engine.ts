@@ -86,8 +86,10 @@ export async function runBackup(ctx: Context): Promise<Status> {
       res.missing.forEach((h) => missing.add(h))
       const entries = { ...ledger.entries }
       for (const e of batch) {
-        if (archived.has(e.sha256!)) entries[e.id] = { ...e, state: 'done', how: e.how ?? 'already', doneSha256: e.sha256, reason: undefined }
-        else if (inProgress.has(e.sha256!)) entries[e.id] = { ...e, nextTry: now() + 5 * 60_000, reason: 'The Mac is archiving it' }
+        // in_progress: the Mac has received the file and is archiving it (failures stay in its inbox for retry)
+        if (archived.has(e.sha256!) || inProgress.has(e.sha256!)) {
+          entries[e.id] = { ...e, state: 'done', how: e.how ?? 'already', doneSha256: e.sha256, reason: undefined }
+        }
       }
       ledger = { ...ledger, entries }
     }

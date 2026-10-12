@@ -3,6 +3,7 @@ import { api } from '../api/client'
 import type { BackupList, Device } from '../api/types'
 import { InstallHint } from '../components/InstallHint'
 import { Notifications } from '../components/Notifications'
+import { PhoneBackup } from '../components/PhoneBackup'
 import { TopBar } from '../components/Shell'
 import { useApp } from '../lib/app'
 import { ago, bytes } from '../lib/format'
@@ -90,6 +91,7 @@ export function Sync() {
           </div>
         </section>
 
+        <PhoneBackup />
         <Notifications />
         {s3 && (
           <section className="card">

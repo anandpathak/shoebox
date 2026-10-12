@@ -176,3 +176,9 @@ details summary { cursor: pointer; color: var(--danger); }
 .note-warn { display: grid; gap: 4px; background: var(--amber-soft); color: var(--amber); border-radius: 10px; padding: 10px 12px; font-size: .85rem; }
 .catalog-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .catalog-row input[type=checkbox] { width: 20px; height: 20px; }
+
+/* Phone backup settings */
+.check { display: flex; align-items: center; gap: 10px; min-height: 40px; font-size: .95rem; }
+.check input { width: 20px; height: 20px; flex: none; }
+.check.strong { font-weight: 600; }
+.checks { display: grid; gap: 2px; margin: 8px 0; }

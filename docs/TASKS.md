@@ -326,7 +326,8 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
   *Done when:* force-quitting the app mid-video resumes the upload later without starting over.
 - [x] **T12.7** Triggers: on app open, pull-to-refresh and every sync; iOS `BGProcessingTask` + `BGAppRefreshTask`; Android periodic WorkManager (6 h) + MediaStore content trigger. ✅ 2026-10-12
   *Done when:* a photo taken with the app closed is backed up overnight on both phones (charging + Wi-Fi).
-- [ ] **T12.8** Backup settings + UI: Wi-Fi only, while charging, videos, screenshots, albums, from date; "Backed up X of Y · N waiting"; "on this phone only" badge in the grid.
+- [x] **T12.8** Backup settings + UI: Wi-Fi only, while charging, videos, screenshots, albums, from date; "Backed up X of Y · N waiting"; "on this phone only" badge in the grid.
+  Done as: *Back up this phone* card on the Sync screen (native app only): on/off, Wi-Fi only, videos, videos while charging, screenshots, iCloud originals (iPhone), start date, *Back up now*, *Retry failed*, status line and limited-access warnings. Album choice exists in the engine but has no UI yet. The grid shows the archive, not the camera roll, so there's no "on this phone only" badge; the card's "N to go" count covers it. E2E: `web/e2e/backup.tailnet.spec.ts` (fake plugin, real engine and server).
   *Done when:* the settings are respected on both platforms and the counts match the ledger.
 - [ ] **T12.9** (Optional) "Free up space": after verified backup, offer to delete those items using the OS confirmation (`PHAssetChangeRequest.deleteAssets` / `MediaStore.createDeleteRequest`). Off by default.
   *Done when:* the OS confirmation is always shown, and only verified items are offered.
