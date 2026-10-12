@@ -21,6 +21,7 @@ class MediaPatch(BaseModel):
     description: str | None = Field(None, max_length=5000)
     favorite: bool | None = None
     hidden: bool | None = None
+    caption: str | None = Field(None, max_length=2000)    # replaces the generated one, and wins over later ones
 
 
 class Label(BaseModel):

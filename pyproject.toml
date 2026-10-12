@@ -24,6 +24,12 @@ dependencies = [
 [project.scripts]
 photoctl = "photoctl.cli:main"
 
+[project.optional-dependencies]
+ai = [
+    "torch>=2.14.1",
+    "transformers>=5.19.0",
+]
+
 [build-system]
 requires = ["uv_build>=0.12.23,<0.13.0"]
 build-backend = "uv_build"

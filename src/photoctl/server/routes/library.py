@@ -31,6 +31,35 @@ def api_search(q: str | None = None, person: str | None = None, place: str | Non
         raise HTTPException(400, f"Couldn't run that search: {e}") from None
 
 
+@router.get("/search/smart")
+def api_smart_search(q: str, person: str | None = None, place: str | None = None, tag: str | None = None,
+                     album: str | None = None, date_from: str | None = Query(None, alias="from"),
+                     date_to: str | None = Query(None, alias="to"), type: str | None = Query(None, pattern="^(photo|video)$"),
+                     fav: bool | None = None, device: str | None = None, hidden: bool = False,
+                     limit: int = Query(120, ge=1, le=500), conn: sqlite3.Connection = Depends(db)):
+    """Plain-English search ("kids playing in snow"), best matches first. Falls back to keyword search
+    when the AI extras aren't installed or no photo has been analysed yet."""
+    from ...analyze import ai
+    from ...analyze.smart import smart_search
+    from ...analyze.vectors import INDEX, open_vectors
+
+    filters = dict(person=person, place=place, tag=tag, album=album, date_from=date_from, date_to=date_to,
+                   media_type=type, favorite=fav, device=device, include_hidden=hidden)
+    vdb = open_vectors()
+    try:
+        model = ai.settings()["search_model"]
+        index = INDEX.load(vdb, model)
+        if not ai.available() or not index.ids:
+            return {**search(conn, q, **filters, limit=limit), "mode": "keywords"}
+        emb = ai.embedder()
+        return smart_search(conn, q, embed_text=emb.text, probability=emb.probability, index=index, limit=limit,
+                            **filters)
+    except (ValueError, sqlite3.OperationalError) as e:
+        raise HTTPException(400, f"Couldn't run that search: {e}") from None
+    finally:
+        vdb.close()
+
+
 @router.get("/media/{photo_id}")
 def api_media(photo_id: str, conn: sqlite3.Connection = Depends(db)):
     item = media_detail(conn, photo_id)

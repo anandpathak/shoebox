@@ -11,7 +11,7 @@
     "hlc": { "$ref": "#/$defs/hlc" },
     "device_id": { "$ref": "#/$defs/id" },
     "kind": { "enum": [
-      "media.upsert", "media.source", "media.set", "media.delete", "media.restore",
+      "media.upsert", "media.source", "media.set", "media.caption", "media.delete", "media.restore",
       "tag.add", "tag.remove", "album.add", "album.remove",
       "person.create", "person.set", "person.merge", "media.person.add", "media.person.remove",
       "device.register", "device.set"
@@ -31,8 +31,12 @@
       "then": { "properties": { "body": { "type": "object", "required": ["photo_id", "field", "value"],
         "additionalProperties": false, "properties": {
           "photo_id": { "$ref": "#/$defs/photo_id" },
-          "field": { "enum": ["title", "description", "favorite", "hidden"] },
+          "field": { "enum": ["title", "description", "favorite", "hidden", "caption"] },
           "value": { "type": ["string", "integer", "boolean", "null"] } } } } } },
+    { "if": { "properties": { "kind": { "const": "media.caption" } } },
+      "then": { "properties": { "body": { "type": "object", "required": ["photo_id", "caption"], "additionalProperties": false,
+        "properties": { "photo_id": { "$ref": "#/$defs/photo_id" }, "caption": { "type": "string", "maxLength": 2000 },
+          "model": { "type": "string", "maxLength": 100 } } } } } },
     { "if": { "properties": { "kind": { "enum": ["media.delete", "media.restore"] } } },
       "then": { "properties": { "body": { "type": "object", "required": ["photo_id"], "additionalProperties": false,
         "properties": { "photo_id": { "$ref": "#/$defs/photo_id" } } } } } },

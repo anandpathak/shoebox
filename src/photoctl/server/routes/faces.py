@@ -37,7 +37,19 @@ def status(request: Request, conn: sqlite3.Connection = Depends(db), fdb=Depends
     done = fdb.execute("SELECT COUNT(*) FROM analyzed WHERE version >= ?", (VERSION,)).fetchone()[0]
     faces = dict(fdb.execute("SELECT status, COUNT(*) FROM faces GROUP BY status").fetchall())
     worker = request.app.state.analysis
+    from ...analyze import ai
+    from ...analyze.vectors import open_vectors
+
+    vdb = open_vectors()
+    try:
+        cfg = ai.settings()
+        vectors = vdb.execute("SELECT COUNT(*) FROM vectors WHERE model = ?", (cfg["search_model"],)).fetchone()[0]
+    finally:
+        vdb.close()
+    captions = conn.execute("SELECT COUNT(*) FROM media WHERE deleted = 0 AND caption IS NOT NULL").fetchone()[0]
     return {"enabled": worker.enabled, "total": total, "analyzed": min(done, total), "faces": faces,
+            "ai": {"installed": ai.available(), "search_ready": vectors, "captions": captions,
+                   "step": worker.state.get("step")},
             "unnamed_groups": fdb.execute("SELECT COUNT(DISTINCT cluster) FROM faces WHERE status = 'new'").fetchone()[0],
             **{k: worker.state[k] for k in ("running", "last_error")}}
 

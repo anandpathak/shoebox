@@ -6,7 +6,7 @@ import type { HLC } from './hlc'
 
 const ENTITY: Record<string, [string, (b: Record<string, any>) => string]> = { // eslint-disable-line @typescript-eslint/no-explicit-any
   'media.upsert': ['media', (b) => b.record.photo_id], 'media.source': ['media', (b) => b.photo_id],
-  'media.set': ['media', (b) => b.photo_id], 'media.delete': ['media', (b) => b.photo_id], 'media.restore': ['media', (b) => b.photo_id],
+  'media.set': ['media', (b) => b.photo_id], 'media.caption': ['media', (b) => b.photo_id], 'media.delete': ['media', (b) => b.photo_id], 'media.restore': ['media', (b) => b.photo_id],
   'tag.add': ['media', (b) => b.photo_id], 'tag.remove': ['media', (b) => b.photo_id],
   'album.add': ['media', (b) => b.photo_id], 'album.remove': ['media', (b) => b.photo_id],
   'media.person.add': ['media', (b) => b.photo_id], 'media.person.remove': ['media', (b) => b.photo_id],

@@ -42,10 +42,34 @@ def schema_version(conn: sqlite3.Connection) -> int:
     return int(row[0]) if row else 0
 
 
+def _db_file(conn: sqlite3.Connection) -> str | None:
+    row = conn.execute("PRAGMA database_list").fetchone()
+    return row[2] if row and row[2] else None
+
+
 def migrate(conn: sqlite3.Connection) -> int:
     current = schema_version(conn)
     if current > SCHEMA_VERSION:
         raise RuntimeError(f"catalog schema v{current} is newer than this photoctl (v{SCHEMA_VERSION}); upgrade photoctl")
+    if current == SCHEMA_VERSION:
+        return current
+    # Several connections (threads or processes) may open the catalog at once: one migrates, the rest wait.
+    # executescript() commits as it starts, so an SQLite transaction can't hold them off; a file lock can.
+    db_file = _db_file(conn)
+    if db_file is None:
+        return _apply(conn)
+    import fcntl
+
+    with open(db_file + ".migrate-lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        try:
+            return _apply(conn)
+        finally:
+            fcntl.flock(lock, fcntl.LOCK_UN)
+
+
+def _apply(conn: sqlite3.Connection) -> int:
+    current = schema_version(conn)
     for version, sql in sorted(_migrations().items()):
         if version <= current:
             continue

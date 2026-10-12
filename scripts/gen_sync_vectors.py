@@ -232,6 +232,24 @@ def vectors():
              a.op("tag.add", {"photo_id": P1, "tag": "mountain", "source": "vision"}))],
         {"tags": {P1: ["landscape"]}, "sources": {P1: {"landscape": "vision", "asha": "face"}},
          "photo_people": {P1: ["Asha"]}, "fts": {"landscape": [P1], "asha": [P1], "mountain": []}})
+    # 22
+    a, b = Dev("MAC", 1_700_000_000_000), Dev("PHONE", 1_700_000_000_000)
+    up = a.op("media.upsert", {"record": rec()})
+    gen1 = a.op("media.caption", {"photo_id": P1, "caption": "A dog running on a beach", "model": "florence-2-base"})
+    b.see(up, gen1)
+    mine = b.op("media.set", {"photo_id": P1, "field": "caption", "value": "Bruno at Kudle beach"})
+    a.see(mine)
+    gen2 = a.op("media.caption", {"photo_id": P1, "caption": "A brown dog on the sand"}, advance=1000)
+    add("caption_generated_vs_edited", "Generated captions are searchable; a caption the user wrote beats any "
+        "generated one, even a later one.",
+        [up, gen1, mine, gen2], {"media": {P1: {"caption": "Bruno at Kudle beach"}},
+                                 "fts": {"bruno": [P1], "brown": []}})
+    a = Dev("MAC", 1_700_000_000_000)
+    add("caption_newer_generated_wins", "Without an edit, the newest generated caption wins.",
+        [a.op("media.upsert", {"record": rec()}),
+         a.op("media.caption", {"photo_id": P1, "caption": "A dog running on a beach"}),
+         a.op("media.caption", {"photo_id": P1, "caption": "A brown dog on the sand"})],
+        {"media": {P1: {"caption": "A brown dog on the sand"}}, "fts": {"brown": [P1], "running": []}})
     return V
 
 

@@ -19,6 +19,7 @@ ENTITY_KEY = {
     "media.upsert": ("media", lambda b: b["record"]["photo_id"]),
     "media.source": ("media", lambda b: b["photo_id"]),
     "media.set": ("media", lambda b: b["photo_id"]),
+    "media.caption": ("media", lambda b: b["photo_id"]),
     "media.delete": ("media", lambda b: b["photo_id"]),
     "media.restore": ("media", lambda b: b["photo_id"]),
     "tag.add": ("media", lambda b: b["photo_id"]),

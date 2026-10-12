@@ -146,6 +146,15 @@ def _media_set(ctx: _Ctx, op: dict) -> None:
     ctx.touched.add(b["photo_id"])
 
 
+def _media_caption(ctx: _Ctx, op: dict) -> None:
+    """A generated caption: import priority, so a caption the user wrote (media.set) always wins."""
+    b = op["body"]
+    if not _media_exists(ctx, b["photo_id"]):
+        return _defer(ctx, op, b["photo_id"])
+    _lww_row(ctx, "media", "photo_id", b["photo_id"], {"caption": b["caption"]}, _ver(IMPORT, op["hlc"]))
+    ctx.touched.add(b["photo_id"])
+
+
 def _media_deleted(ctx: _Ctx, op: dict) -> None:
     pid = op["body"]["photo_id"]
     if not _media_exists(ctx, pid):
@@ -213,6 +222,7 @@ HANDLERS = {
     "media.upsert": _media_upsert,
     "media.source": _media_source,
     "media.set": _media_set,
+    "media.caption": _media_caption,
     "media.delete": _media_deleted,
     "media.restore": _media_deleted,
     "tag.add": _set_add("media_tags", "tag", lower=True),

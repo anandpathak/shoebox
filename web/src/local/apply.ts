@@ -102,6 +102,14 @@ function mediaSet(ctx: Ctx, op: Op) {
   ctx.touched.add(b.photo_id)
 }
 
+/** A generated caption: import priority, so a caption the user wrote (media.set) always wins. */
+function mediaCaption(ctx: Ctx, op: Op) {
+  const b = op.body
+  if (!mediaExists(ctx, b.photo_id)) return defer(ctx, op, b.photo_id)
+  lwwRow(ctx, 'media', 'photo_id', b.photo_id, { caption: b.caption }, ver(IMPORT, op.hlc))
+  ctx.touched.add(b.photo_id)
+}
+
 function mediaDeleted(ctx: Ctx, op: Op) {
   const pid = op.body.photo_id
   if (!mediaExists(ctx, pid)) return defer(ctx, op, pid)
@@ -154,7 +162,7 @@ function device(ctx: Ctx, op: Op) {
 }
 
 const HANDLERS: Record<string, (ctx: Ctx, op: Op) => void> = {
-  'media.upsert': mediaUpsert, 'media.source': mediaSource, 'media.set': mediaSet,
+  'media.upsert': mediaUpsert, 'media.source': mediaSource, 'media.set': mediaSet, 'media.caption': mediaCaption,
   'media.delete': mediaDeleted, 'media.restore': mediaDeleted,
   'tag.add': setAdd('media_tags', 'tag', true), 'tag.remove': setRemove,
   'album.add': setAdd('media_albums', 'album', false), 'album.remove': setRemove,

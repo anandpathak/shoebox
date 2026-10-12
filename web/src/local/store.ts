@@ -79,5 +79,5 @@ export function refreshFts(db: Db, photoId: string) {
     .filter((n): n is string => !!n).sort()
   const placeText = [m.place_name, m.place_locality, m.place_city, m.place_region, m.place_country].filter(Boolean).join(' ')
   db.run('INSERT INTO media_fts (photo_id, title, description, tags, people, place, orig_name, albums) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [photoId, m.title ?? '', m.description ?? '', tags.join(' '), people.join(' '), placeText, m.orig_name ?? '', albums.join(' ')])
+    [photoId, m.title ?? '', [m.description, m.caption].filter(Boolean).join(' '), tags.join(' '), people.join(' '), placeText, m.orig_name ?? '', albums.join(' ')])
 }
