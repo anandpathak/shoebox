@@ -21,6 +21,7 @@ import java.io.OutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -103,7 +104,7 @@ public final class MediaLibrary {
                     String bucket = c.isNull(Build.VERSION.SDK_INT >= 30 ? 7 : 6) ? null : c.getString(Build.VERSION.SDK_INT >= 30 ? 7 : 6);
                     // generation_modified grows with every edit; it is what "edited" compares on Android 11+.
                     a.put("modified", Build.VERSION.SDK_INT >= 30 ? c.getLong(8) : modifiedSec * 1000);
-                    a.put("screenshot", path.toLowerCase().contains("screenshots") || "Screenshots".equalsIgnoreCase(bucket));
+                    a.put("screenshot", path.toLowerCase(Locale.ROOT).contains("screenshots") || "Screenshots".equalsIgnoreCase(bucket));
                     JSONArray albums = new JSONArray();
                     if (bucket != null) albums.put(bucket);
                     a.put("albums", albums);

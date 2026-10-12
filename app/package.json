@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@capacitor/android": "^7.6.9",
+    "@capacitor/barcode-scanner": "^2.2.6",
     "@capacitor/core": "^7.6.9",
     "@capacitor/ios": "^7.6.9"
   },

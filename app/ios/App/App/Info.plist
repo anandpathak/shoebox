@@ -29,6 +29,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Photoframing uses the camera to scan the QR code your Mac shows when connecting.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Photoframing connects to your Mac on this Wi-Fi to back up and browse your photos.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

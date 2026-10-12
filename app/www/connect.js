@@ -1,35 +1,74 @@
-// The app loads the web UI straight from the Mac, so it's the same app (and the same Tailscale sign-in)
-// as in the browser. Only this start page ships inside the app.
+// The app loads the web UI straight from the Mac, so it's the same app (and the same sign-in) as in the
+// browser. Only this start page ships inside the app.
 import { parse, KEY } from './address.js'
 
-const form = document.getElementById('f')
-const input = document.getElementById('url')
-const err = document.getElementById('err')
+const $ = (id) => document.getElementById(id)
+const form = $('f'), input = $('url'), err = $('err'), status = $('status'), scanBtn = $('scan')
+const scanner = globalThis.Capacitor?.Plugins?.CapacitorBarcodeScanner
+const QR_CODE = 0                                             // CapacitorBarcodeScannerTypeHint.QR_CODE
 const saved = localStorage.getItem(KEY)
-const retry = new URLSearchParams(location.search).has('change')
+const changing = new URLSearchParams(location.search).has('change')
 
 async function reachable(base) {
   const ctl = new AbortController()
   const t = setTimeout(() => ctl.abort(), 6000)
   try {
-    const r = await fetch(`${base}/api/health`, { signal: ctl.signal, credentials: 'include' })
-    return r.ok || r.status === 401 || r.status === 403   // the Mac answered; sign-in is the web app's business
+    // This page isn't on the Mac's origin, so the answer is opaque (no CORS); any answer means it's reachable.
+    // Sign-in and pairing are the web app's job once it's open.
+    await fetch(`${base}/api/health`, { signal: ctl.signal, mode: 'no-cors', cache: 'no-store' })
+    return true
   } catch { return false } finally { clearTimeout(t) }
 }
 
-function open(base, pair) { location.replace(`${base}/${pair ? `?pair=${encodeURIComponent(pair)}` : ''}#/library`) }
-
-if (saved && !retry) {
-  input.value = saved
-  reachable(saved).then((ok) => ok ? open(saved) : (err.textContent = "Can't reach your Mac. Is Tailscale on?"))
+function open(base, pair) {
+  location.replace(`${base}/${pair ? `?pair=${encodeURIComponent(pair)}` : ''}#/library`)
 }
 
-form.addEventListener('submit', async (e) => {
-  e.preventDefault()
+async function connect(text) {
   err.textContent = ''
-  const got = parse(input.value)
-  if (!got) { err.textContent = 'Use the address the Mac printed (https://….ts.net, or http://192.168.… on your Wi-Fi).'; return }
-  if (!(await reachable(got.base))) { err.textContent = "Can't reach that address. Is the phone on the same Wi-Fi (or Tailscale on)?"; return }
+  const got = parse(text)
+  if (!got) {
+    err.textContent = "That isn't an address of your Mac. Use the one it printed: http://192.168.…:8765 on Wi-Fi, or https://….ts.net."
+    return
+  }
+  status.textContent = `Connecting to ${got.base.replace(/^https?:\/\//, '')}…`
+  if (!(await reachable(got.base))) {
+    status.textContent = ''
+    err.textContent = "Can't reach your Mac. Is photoctl running, and is this phone on the same Wi-Fi (or Tailscale on)?"
+    return
+  }
   localStorage.setItem(KEY, got.base)
   open(got.base, got.pair)
-})
+}
+
+if (scanner) {
+  scanBtn.hidden = false
+  $('or').hidden = false
+  scanBtn.addEventListener('click', async () => {
+    err.textContent = ''
+    try {
+      const { ScanResult } = await scanner.scanBarcode({
+        hint: QR_CODE, scanInstructions: 'Point at the QR code photoctl shows on the Mac', scanButton: false,
+      })
+      if (ScanResult) { input.value = ScanResult.replace(/\?pair=.*/, ''); await connect(ScanResult) }
+    } catch (e) {
+      const msg = String(e?.message ?? e)
+      if (!/cancel/i.test(msg)) err.textContent = /permission|denied/i.test(msg)
+        ? 'Camera access is off for Photoframing. Allow it in Settings, or type the address below.'
+        : `Couldn't scan: ${msg}`
+    }
+  })
+}
+
+form.addEventListener('submit', (e) => { e.preventDefault(); void connect(input.value) })
+
+if (saved) {
+  input.value = saved.replace(/^https?:\/\//, '')
+  if (!changing) {
+    status.textContent = `Connecting to ${input.value}…`
+    reachable(saved).then((ok) => {
+      if (ok) open(saved)
+      else { status.textContent = ''; err.textContent = "Can't reach your Mac. Is photoctl running, and is this phone on the same Wi-Fi (or Tailscale on)?" }
+    })
+  }
+}

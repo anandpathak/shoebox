@@ -5,31 +5,63 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Photoframing</title>
 <style>
-  :root { --bg: #f6f4ef; --fg: #1d1b16; --muted: #6b665c; --accent: #c8553d; --card: #fff; --line: #e3ded3; }
-  @media (prefers-color-scheme: dark) { :root { --bg: #15140f; --fg: #f1ede4; --muted: #a29c8f; --card: #201e18; --line: #34312a; } }
+  :root { --bg: #edf1f2; --fg: #14211f; --muted: #5d6b69; --accent: #0b7681; --card: #fff; --line: #d5dfe0; --err: #b2412e; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0f1716; --fg: #e8efee; --muted: #9aabaa; --card: #172221; --line: #2a3a39; --accent: #3fb0ba; --err: #ef8a76; } }
   * { box-sizing: border-box; }
   body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--fg); display: grid; place-items: center;
-         font: 16px/1.45 -apple-system, system-ui, Roboto, sans-serif; padding: env(safe-area-inset-top) 16px 16px; }
-  main { width: 100%; max-width: 420px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 24px; }
+         font: 16px/1.45 -apple-system, system-ui, Roboto, sans-serif;
+         padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px); }
+  main { width: 100%; max-width: 420px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; margin-bottom: 20px; }
+  .brand svg { width: 36px; height: 36px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
   h1 { font-size: 22px; margin: 0 0 6px; }
-  p { color: var(--muted); margin: 0 0 18px; }
-  label { font-weight: 600; display: block; margin-bottom: 6px; }
-  input { width: 100%; font: inherit; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
-  button { margin-top: 14px; width: 100%; font: inherit; font-weight: 600; padding: 12px; border: 0; border-radius: 10px; background: var(--accent); color: #fff; }
-  .error { color: var(--accent); margin-top: 12px; min-height: 1.4em; }
+  p { color: var(--muted); margin: 0 0 16px; font-size: 15px; }
+  code { font-size: 13px; background: var(--bg); padding: 1px 5px; border-radius: 5px; }
+  button { font: inherit; font-weight: 600; border-radius: 12px; cursor: pointer; }
+  .scan { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px; border: 0;
+          background: var(--accent); color: #fff; font-size: 17px; }
+  .scan svg { width: 24px; height: 24px; }
+  .or { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; margin: 18px 0; }
+  .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  label { font-weight: 600; display: block; margin-bottom: 6px; font-size: 15px; }
+  .row { display: flex; gap: 8px; }
+  input { flex: 1; min-width: 0; font: inherit; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
+  .connect { padding: 12px 16px; border: 1px solid var(--accent); background: transparent; color: var(--accent); }
+  .hint { font-size: 13px; margin: 8px 0 0; }
+  .error { color: var(--err); margin-top: 14px; min-height: 1.4em; font-size: 15px; }
+  .status { color: var(--muted); margin-top: 14px; font-size: 15px; }
+  [hidden] { display: none !important; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Connect to your Mac</h1>
-  <p>On the Mac run <code>photoctl serve --lan</code> (same Wi-Fi) or <code>photoctl serve --setup-tailscale</code> (anywhere),
-     and enter the address it prints.</p>
-  <form id="f">
-    <label for="url">Mac address</label>
-    <input id="url" name="url" type="text" inputmode="url" autocapitalize="off" spellcheck="false" autocomplete="url" placeholder="http://192.168.1.11:8765" required>
-    <button type="submit">Connect</button>
+  <div class="brand">
+    <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="3" width="42" height="42" rx="9" fill="#0b7681"/><rect x="10" y="10" width="28" height="28" rx="3" fill="#d3eaec"/><circle cx="18.5" cy="19" r="3.4" fill="#0b7681"/><path d="M10 38 L20.5 26 L27 32.5 L31.5 28.5 L38 38 Z" fill="#0b7681"/></svg>
+    Photoframing
+  </div>
+  <section class="card">
+    <h1>Connect to your Mac</h1>
+    <p>On the Mac, run <code>photoctl serve --lan</code> (same Wi-Fi) or <code>photoctl serve --setup-tailscale</code>
+       (anywhere). It shows a QR code.</p>
+    <button class="scan" id="scan" type="button" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M7 12h10"/></svg>
+      Scan QR code
+    </button>
+    <div class="or" id="or" hidden>or type the address</div>
+    <form id="f">
+      <label for="url">Mac address</label>
+      <div class="row">
+        <input id="url" name="url" type="text" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false"
+               placeholder="192.168.1.11:8765" required>
+        <button class="connect" type="submit">Connect</button>
+      </div>
+      <p class="hint">The address the Mac printed, e.g. <code>192.168.1.11:8765</code> or <code>my-mac.tail1234.ts.net</code>.
+        On Wi-Fi you'll be asked for the pairing code next.</p>
+    </form>
+    <div class="status" id="status" role="status"></div>
     <div class="error" id="err" role="alert"></div>
-  </form>
+  </section>
 </main>
 <script type="module" src="connect.js"></script>
 </body>

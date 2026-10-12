@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { ago } from '../lib/format'
 import { loadSettings } from '../backup/store'
 import { available, backupNow, currentStatus, retryFailedNow, subscribe, updateSettings } from '../backup/runner'
-import { nativePlatform } from '../backup/native'
+import { nativePlatform, startPageUrl } from '../backup/native'
 import type { Settings, Status } from '../backup/types'
 
 const WAITING: Record<NonNullable<Status['waitingFor']>, string> = {
@@ -83,6 +83,9 @@ export function PhoneBackup() {
           </label>
         </>
       )}
+      <div className="row">
+        <button className="btn" onClick={() => { location.href = startPageUrl()! }}>Connect to a different Mac</button>
+      </div>
     </section>
   )
 }

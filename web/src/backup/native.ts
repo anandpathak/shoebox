@@ -49,3 +49,10 @@ export function nativePhone(p: Plugin): Phone {
     conditions: () => p.conditions(),
   }
 }
+
+/** Back to the app's own start page (to scan or type another Mac's address). */
+export function startPageUrl(): string | null {
+  const p = nativePlatform()
+  if (!p) return null
+  return `${p === 'ios' ? 'capacitor://localhost' : 'https://localhost'}/index.html?change=1`
+}
