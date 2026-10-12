@@ -1,0 +1,20 @@
+{
+  "name": "photoframing-app",
+  "private": true,
+  "version": "0.1.0",
+  "description": "iPhone/Android shell around the photoframing web app, plus automatic camera-roll backup",
+  "scripts": {
+    "sync": "cap sync",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.6.9",
+    "@capacitor/core": "^7.6.9",
+    "@capacitor/ios": "^7.6.9"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.6.9",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}

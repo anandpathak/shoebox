@@ -311,7 +311,7 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 
 ## M12 — Automatic backup from iPhone and Android (§13)
 
-- [ ] **T12.1** Capacitor wrapper around `web/`: iOS + Android projects, app ids, icons; the web UI runs unchanged inside it.
+- [x] **T12.1** Capacitor wrapper around `web/`: iOS + Android projects, app ids, icons; the web UI runs unchanged inside it. ✅ 2026-10-12
   *Done when:* the app runs on both phones and talks to the Mac over Tailscale.
 - [x] **T12.2** Server side: `POST /api/backup/check` (hashes → missing), `GET /api/backup/status`, the upload endpoint accepts `source_ref = ios:<localIdentifier>` / `android:<MediaStore id>`, emits `media.upsert` + `media.source` with the phone's `device_id`, and the raw upload uses `If-None-Match`. ✅ 2026-10-12
   *Done when:* a script acting as a phone backs up 10 files, and re-sending them uploads nothing.

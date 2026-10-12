@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Photoframing</title>
+<style>
+  :root { --bg: #f6f4ef; --fg: #1d1b16; --muted: #6b665c; --accent: #c8553d; --card: #fff; --line: #e3ded3; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #15140f; --fg: #f1ede4; --muted: #a29c8f; --card: #201e18; --line: #34312a; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--fg); display: grid; place-items: center;
+         font: 16px/1.45 -apple-system, system-ui, Roboto, sans-serif; padding: env(safe-area-inset-top) 16px 16px; }
+  main { width: 100%; max-width: 420px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 24px; }
+  h1 { font-size: 22px; margin: 0 0 6px; }
+  p { color: var(--muted); margin: 0 0 18px; }
+  label { font-weight: 600; display: block; margin-bottom: 6px; }
+  input { width: 100%; font: inherit; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
+  button { margin-top: 14px; width: 100%; font: inherit; font-weight: 600; padding: 12px; border: 0; border-radius: 10px; background: var(--accent); color: #fff; }
+  .error { color: var(--accent); margin-top: 12px; min-height: 1.4em; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Connect to your Mac</h1>
+  <p>Run <code>photoctl serve --setup-tailscale</code> on the Mac and enter the address it prints. Tailscale must be on for this phone.</p>
+  <form id="f">
+    <label for="url">Mac address</label>
+    <input id="url" name="url" type="url" inputmode="url" autocomplete="url" placeholder="https://my-mac.tailnet.ts.net" required>
+    <button type="submit">Connect</button>
+    <div class="error" id="err" role="alert"></div>
+  </form>
+</main>
+<script type="module" src="connect.js"></script>
+</body>
+</html>

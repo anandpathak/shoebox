@@ -1,10 +1,14 @@
-"""Draw the app icons (web/public/icons/*.png) — a framed photo: teal frame, pale sky, sun, hills."""
+"""Draw the app icons — a framed photo: teal frame, pale sky, sun, hills.
+
+Writes web/public/icons/*.png and, when the native projects exist, the iPhone/Android app icons and
+splash screens under app/ios and app/android (PNGs are git-ignored, so run this after cloning)."""
 
 from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-OUT = Path(__file__).resolve().parent.parent / "web" / "public" / "icons"
+ROOT = Path(__file__).resolve().parent.parent
+OUT = ROOT / "web" / "public" / "icons"
 TEAL, PALE, BG = (11, 118, 129), (211, 234, 236), (237, 241, 242)
 
 
@@ -34,3 +38,35 @@ for size in (192, 512):
     draw(size, True).save(OUT / f"maskable-{size}.png", optimize=True)
 draw(180, True).save(OUT / "apple-touch-icon.png", optimize=True)   # iOS adds its own rounding
 print("icons written to", OUT)
+
+
+def splash(w: int, h: int) -> Image.Image:
+    im = Image.new("RGB", (w, h), BG)
+    icon = draw(int(min(w, h) * 0.3), False)
+    im.paste(icon, ((w - icon.width) // 2, (h - icon.height) // 2))
+    return im
+
+
+ios = ROOT / "app" / "ios" / "App" / "App" / "Assets.xcassets"
+if ios.exists():
+    draw(1024, True).save(ios / "AppIcon.appiconset" / "AppIcon-512@2x.png", optimize=True)  # no alpha allowed
+    for name in ("splash-2732x2732.png", "splash-2732x2732-1.png", "splash-2732x2732-2.png"):
+        splash(2732, 2732).save(ios / "Splash.imageset" / name, optimize=True)
+    print("iOS icons written")
+res = ROOT / "app" / "android" / "app" / "src" / "main" / "res"
+if res.exists():
+    for density, size in {"mdpi": 48, "hdpi": 72, "xhdpi": 96, "xxhdpi": 144, "xxxhdpi": 192}.items():
+        folder = res / f"mipmap-{density}"
+        folder.mkdir(exist_ok=True)
+        draw(size, False).save(folder / "ic_launcher.png", optimize=True)
+        draw(size, False).save(folder / "ic_launcher_round.png", optimize=True)
+        draw(size * 9 // 4, True).save(folder / "ic_launcher_foreground.png", optimize=True)  # adaptive: 108dp layer
+    splashes = {"drawable": (480, 320)}
+    for density, (w, h) in {"mdpi": (320, 480), "hdpi": (480, 800), "xhdpi": (720, 1280),
+                            "xxhdpi": (960, 1600), "xxxhdpi": (1280, 1920)}.items():
+        splashes[f"drawable-port-{density}"] = (w, h)
+        splashes[f"drawable-land-{density}"] = (h, w)
+    for folder, (w, h) in splashes.items():
+        (res / folder).mkdir(exist_ok=True)
+        splash(w, h).save(res / folder / "splash.png", optimize=True)
+    print("Android icons written")
