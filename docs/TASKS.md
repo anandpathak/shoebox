@@ -317,7 +317,7 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
   *Done when:* a script acting as a phone backs up 10 files, and re-sending them uploads nothing.
 - [x] **T12.3** On-phone backup ledger (SQLite): `assets` + `cursor` tables (§13.4); handles edited assets (re-hash, new item linked to the same local id). ✅ 2026-10-12
   *Done when:* unit tests cover new, unchanged, edited and deleted assets.
-- [ ] **T12.4** iOS plugin: PhotoKit permission (full / limited reported), persistent change token (`fetchPersistentChanges`), original resources incl. Live Photo video and iCloud download, streaming SHA-256.
+- [x] **T12.4** iOS plugin: PhotoKit permission (full / limited reported), persistent change token (`fetchPersistentChanges`), original resources incl. Live Photo video and iCloud download, streaming SHA-256. ✅ 2026-10-12
   *Done when:* on an iPhone, 5 new photos + 1 video are found without a full rescan, with GPS intact.
 - [ ] **T12.5** Android plugin: MediaStore generation query, `READ_MEDIA_IMAGES/VIDEO`, `ACCESS_MEDIA_LOCATION` + `setRequireOriginal`, streaming SHA-256; Android 14 "selected photos" reported.
   *Done when:* on an Android phone, 5 new photos + 1 video are found, with GPS intact.
