@@ -5,9 +5,12 @@ import { defineConfig } from 'vite'
 // Dev: `PHOTOCTL_TOKEN=$(uv run photoctl serve --print-token) npm run dev` with `photoctl serve` running.
 export default defineConfig({
   plugins: [react()],
+  optimizeDeps: { exclude: ['@sqlite.org/sqlite-wasm'] },
+  worker: { format: 'es' },
   build: { outDir: '../src/photoctl/web/dist', emptyOutDir: true, sourcemap: false },
   server: {
     host: '127.0.0.1',
+    fs: { allow: ['..'] },
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:8765',
