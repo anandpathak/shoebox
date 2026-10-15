@@ -1,7 +1,7 @@
 # Sync conformance vectors
 
 Each `*.json` file is one scenario for `apply_ops` (LOCAL_APP_PLAN.md §5). Every implementation
-(Python in `src/photoctl/catalog/apply.py`, TypeScript in the web/mobile app) must pass all of them.
+(Python in `src/shoebox/catalog/apply.py`, TypeScript in the web/mobile app) must pass all of them.
 
 ```jsonc
 {

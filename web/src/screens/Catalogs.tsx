@@ -75,7 +75,7 @@ export function Catalogs() {
             your Mac or a network. Edits made offline are sent when you're back.</p>
           {available === false && <p className="warn small">{reason?.includes('another tab') ? reason
             : "This browser can't keep the catalog here (Private Browsing doesn't allow it)."}</p>}
-          {iosNotInstalled && !state.enabled && <p className="warn small">On iPhone, add Photoframing to your Home Screen first: Safari
+          {iosNotInstalled && !state.enabled && <p className="warn small">On iPhone, add Shoebox to your Home Screen first: Safari
             removes data from sites that aren't installed after 7 days without use.</p>}
           {state.enabled ? (
             <>

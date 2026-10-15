@@ -56,9 +56,9 @@ export function PhoneBackup() {
           <p className="small" role="status" data-testid="backup-status">{statusLine(status)}</p>
           {status.enabled && status.access === 'limited' && (
             <p className="warn small">Only the photos you allowed are backed up. To back up everything, allow full access in
-              {ios ? ' Settings → Photoframing → Photos.' : ' Settings → Apps → Photoframing → Permissions.'}</p>)}
+              {ios ? ' Settings → Shoebox → Photos.' : ' Settings → Apps → Shoebox → Permissions.'}</p>)}
           {status.enabled && (status.access === 'denied' || status.access === 'not-determined') && (
-            <p className="warn small">Photo access is off for Photoframing. Turn it on in the phone's Settings.</p>)}
+            <p className="warn small">Photo access is off for Shoebox. Turn it on in the phone's Settings.</p>)}
           {status.lastError && <p className="error small">{status.lastError}</p>}
           {status.lastRun && <p className="muted small">Last checked {ago(new Date(status.lastRun).toISOString())}
             {status.skipped ? ` · ${status.skipped.toLocaleString()} left out by the settings below` : ''}</p>}

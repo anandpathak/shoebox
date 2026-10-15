@@ -6,9 +6,9 @@ import copy
 import hashlib
 import sqlite3
 
-from photoctl.catalog import open_catalog
-from photoctl.catalog.ops import make_op
-from photoctl.hlc import HLC
+from shoebox.catalog import open_catalog
+from shoebox.catalog.ops import make_op
+from shoebox.hlc import HLC
 
 
 def pid_for(n: int) -> str:

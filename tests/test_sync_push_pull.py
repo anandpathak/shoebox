@@ -1,12 +1,12 @@
 import sqlite3
 
 from opkit import record
-from photoctl.catalog import open_catalog
-from photoctl.catalog.checksum import checksum
-from photoctl.catalog.ops import Emitter
-from photoctl.catalog.store import upsert_record
-from photoctl.device import Device
-from photoctl.sync import OPS_PREFIX, batch_key, decode_batch, encode_batch, pull, push
+from shoebox.catalog import open_catalog
+from shoebox.catalog.checksum import checksum
+from shoebox.catalog.ops import Emitter
+from shoebox.catalog.store import upsert_record
+from shoebox.device import Device
+from shoebox.sync import OPS_PREFIX, batch_key, decode_batch, encode_batch, pull, push
 
 MAC = Device("01MACMACMACMACMACMACMACMAC", "Mac", "macos", "x")
 MINI = Device("01MINIMINIMINIMINIMINIMINI", "Mini", "macos", "x")
@@ -35,7 +35,7 @@ def test_crash_after_upload_before_outbox_clear_loses_nothing(bucket, tmp_path, 
     push(a, bucket)
     # simulate: the next push uploaded but crashed before clearing its outbox
     upsert_record(a, record(sidecar, 2), MAC)
-    from photoctl.sync import pending_ops
+    from shoebox.sync import pending_ops
     ops = pending_ops(a, MAC.device_id)
     bucket.put_bytes(batch_key(MAC.device_id, ops[0]["hlc"]), encode_batch(ops[:1]))
     res = push(a, bucket)  # first batch exists with 1 op: cleared, rest pushed in a new batch

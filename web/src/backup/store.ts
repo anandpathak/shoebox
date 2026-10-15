@@ -3,7 +3,7 @@
 import { emptyLedger } from './ledger'
 import { DEFAULT_SETTINGS, type Ledger, type Settings } from './types'
 
-const DB = 'photoctl-backup'
+const DB = 'shoebox-backup'
 const STORE = 'kv'
 
 function open(): Promise<IDBDatabase> {

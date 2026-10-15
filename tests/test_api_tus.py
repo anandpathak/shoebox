@@ -89,7 +89,7 @@ def test_without_s3_the_upload_is_kept_not_deleted(authed):
     data = jpeg_with_exif()
     patch(client, create(client, data, "keep.jpg"), 0, data)
     wait_archived(client, 1)
-    from photoctl import paths
+    from shoebox import paths
     kept = list(paths.inbox_dir().glob("*/archived-locally/*__keep.jpg"))
     assert len(kept) == 1 and kept[0].read_bytes() == data
 
@@ -113,7 +113,7 @@ def test_with_s3_inbox_is_cleared_after_upload(authed, bucket):
     data = jpeg_with_exif()
     patch(client, create(client, data, "to-s3.jpg"), 0, data)
     wait_archived(client, 1)
-    from photoctl import paths
+    from shoebox import paths
     end = time.time() + 10
     while list(paths.inbox_dir().glob("*/*__to-s3.jpg")) and time.time() < end:
         time.sleep(0.2)

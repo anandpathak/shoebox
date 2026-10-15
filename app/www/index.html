@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Photoframing</title>
+<title>Shoebox</title>
 <style>
   :root { --bg: #edf1f2; --fg: #14211f; --muted: #5d6b69; --accent: #0b7681; --card: #fff; --line: #d5dfe0; --err: #b2412e; }
   @media (prefers-color-scheme: dark) { :root { --bg: #0f1716; --fg: #e8efee; --muted: #9aabaa; --card: #172221; --line: #2a3a39; --accent: #3fb0ba; --err: #ef8a76; } }
@@ -38,11 +38,11 @@
 <main>
   <div class="brand">
     <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="3" width="42" height="42" rx="9" fill="#0b7681"/><rect x="10" y="10" width="28" height="28" rx="3" fill="#d3eaec"/><circle cx="18.5" cy="19" r="3.4" fill="#0b7681"/><path d="M10 38 L20.5 26 L27 32.5 L31.5 28.5 L38 38 Z" fill="#0b7681"/></svg>
-    Photoframing
+    Shoebox
   </div>
   <section class="card">
     <h1>Connect to your Mac</h1>
-    <p>On the Mac, run <code>photoctl serve --lan</code> (same Wi-Fi) or <code>photoctl serve --setup-tailscale</code>
+    <p>On the Mac, run <code>shoebox serve --lan</code> (same Wi-Fi) or <code>shoebox serve --setup-tailscale</code>
        (anywhere). It shows a QR code.</p>
     <button class="scan" id="scan" type="button" hidden>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M7 12h10"/></svg>

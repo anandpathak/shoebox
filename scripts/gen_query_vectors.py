@@ -1,5 +1,5 @@
 """Write spec/query_vectors.json: parse_query/build_fts input → expected output, hand-written.
-The Python (photoctl.catalog.query) and TypeScript implementations must both match every case."""
+The Python (shoebox.catalog.query) and TypeScript implementations must both match every case."""
 
 import json
 from pathlib import Path

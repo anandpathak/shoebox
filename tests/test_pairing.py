@@ -8,8 +8,8 @@ LAN = "192.168.1.11"
 
 @pytest.fixture
 def lan(tmp_path):
-    from photoctl.server.app import create_app
-    from photoctl.server.config import Settings
+    from shoebox.server.app import create_app
+    from shoebox.server.config import Settings
 
     app = create_app(Settings(library=tmp_path / "library", hostnames=[LAN, "my-mac.local"]))
     phone = TestClient(app, base_url=f"http://{LAN}:8765", client=("192.168.1.50", 40000))
@@ -36,7 +36,7 @@ def test_pairing_gives_a_token_that_works_as_cookie_and_bearer(lan):
     assert other.get("/api/health", headers={"Authorization": f"Bearer {token}"}).json()["user"] == "Pixel"
     assert [d["name"] for d in mac.get("/api/pair/devices").json()] == ["Pixel"]
     # the stored file has no tokens in it
-    from photoctl import paths
+    from shoebox import paths
     assert token not in (paths.home() / "paired_devices.json").read_text()
 
 
@@ -66,7 +66,7 @@ def test_expired_code(lan, monkeypatch):
 
 
 def test_revoke(lan):
-    from photoctl.server.pairing import revoke
+    from shoebox.server.pairing import revoke
 
     _, phone, mac = lan
     phone.post("/api/pair", json={"code": mac.post("/api/pair/code").json()["code"], "name": "Old phone"})

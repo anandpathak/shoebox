@@ -46,7 +46,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "archive" {
   bucket     = aws_s3_bucket.archive.id
   depends_on = [aws_s3_bucket_versioning.archive]
 
-  # raw/ needs no transition rule: photoctl uploads originals straight to DEEP_ARCHIVE.
+  # raw/ needs no transition rule: shoebox uploads originals straight to DEEP_ARCHIVE.
 
   rule {
     id     = "compressed-to-ia"
@@ -73,7 +73,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "archive" {
     }
   }
 
-  # Database backups (photoctl db backup). Objects are tagged by photoctl: retention=daily for each
+  # Database backups (shoebox db backup). Objects are tagged by shoebox: retention=daily for each
   # backup, retention=monthly for the first backup of each month.
   rule {
     id     = "backups-daily"
@@ -143,7 +143,7 @@ resource "aws_s3_bucket_policy" "archive" {
   depends_on = [aws_s3_bucket_public_access_block.archive]
 }
 
-# Least-privilege policy for whoever runs `photoctl`: read/write/restore, but no delete.
+# Least-privilege policy for whoever runs `shoebox`: read/write/restore, but no delete.
 # Attach it to your SSO permission set, IAM user or role.
 data "aws_iam_policy_document" "ingest" {
   statement {
@@ -171,6 +171,6 @@ data "aws_iam_policy_document" "ingest" {
 
 resource "aws_iam_policy" "ingest" {
   name        = "${aws_s3_bucket.archive.id}-ingest"
-  description = "photoctl: upload/read/restore in the photo archive bucket; no deletes."
+  description = "photoctl: upload/read/restore in the photo archive bucket; no deletes."   # wording kept: changing it would replace the policy
   policy      = data.aws_iam_policy_document.ingest.json
 }

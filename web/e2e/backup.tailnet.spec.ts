@@ -76,7 +76,7 @@ test('the phone app backs up its camera roll automatically, once per photo', asy
   const sent = await page.evaluate(() => [...(globalThis as unknown as { fakePhone: { uploads: Map<string, unknown> } }).fakePhone.uploads.keys()])
   expect(sent).toEqual([])                                     // finished uploads are tidied away
 
-  const device = await page.evaluate(() => JSON.parse(localStorage.getItem('photoctl.device')!).device_id as string)
+  const device = await page.evaluate(() => JSON.parse(localStorage.getItem('shoebox.device')!).device_id as string)
   await expect.poll(async () => (await (await page.request.get(`/api/backup/status?device=${device}`)).json()).archived,
                     { timeout: 30_000 }).toBe(2)
   const items = (await (await page.request.get(`/api/search?device=${device}`)).json()).items

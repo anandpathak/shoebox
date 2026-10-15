@@ -49,7 +49,7 @@ export function WhoIsThis({ people, onChanged }: { people: Person[]; onChanged: 
       </div>
       {status.last_error && <p className="error small">Analysis stopped: {status.last_error}</p>}
       {!status.enabled && status.analyzed < status.total &&
-        <p className="muted small">Photo analysis is off on this Mac. Run <code>photoctl analyze</code> there to label photos and find faces.</p>}
+        <p className="muted small">Photo analysis is off on this Mac. Run <code>shoebox analyze</code> there to label photos and find faces.</p>}
       {groups.length === 0
         ? <p className="muted small">{Object.values(status.faces).some((n) => n > 0) ? 'Every face found so far has a name.'
             : 'Faces appear here once the Mac has looked at your photos.'}</p>

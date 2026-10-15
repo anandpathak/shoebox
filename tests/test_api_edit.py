@@ -11,7 +11,7 @@ def authed(api, sidecar, device):
 
 
 def outbox_kinds(conn_factory=None):
-    from photoctl.catalog import open_catalog
+    from shoebox.catalog import open_catalog
     conn = open_catalog()
     return [r[0] for r in conn.execute("SELECT o.kind FROM outbox x JOIN ops o USING (op_id) ORDER BY o.hlc")]
 
@@ -67,9 +67,9 @@ def test_writes_from_the_browser_need_same_origin(api, sidecar, device):
 
 
 def test_api_edit_reaches_another_device(authed, bucket, tmp_path, device):
-    from photoctl.catalog import open_catalog
-    from photoctl.device import Device
-    from photoctl.sync import pull, sync_once
+    from shoebox.catalog import open_catalog
+    from shoebox.device import Device
+    from shoebox.sync import pull, sync_once
 
     client, ids, _ = authed
     client.patch(f"/api/media/{ids[0]}", json={"title": "From the app"})

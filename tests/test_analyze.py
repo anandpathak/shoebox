@@ -8,13 +8,13 @@ import pytest
 
 from conftest import make_jpeg
 from opkit import record
-from photoctl.analyze import labels as L
-from photoctl.analyze.faces import Face
-from photoctl.analyze.facedb import clusters, ignore_faces, name_faces, open_faces, rematch, unname_face
-from photoctl.analyze.run import analyze_pending
-from photoctl.catalog import open_catalog
-from photoctl.catalog.ops import Emitter
-from photoctl.catalog.store import upsert_record
+from shoebox.analyze import labels as L
+from shoebox.analyze.faces import Face
+from shoebox.analyze.facedb import clusters, ignore_faces, name_faces, open_faces, rematch, unname_face
+from shoebox.analyze.run import analyze_pending
+from shoebox.catalog import open_catalog
+from shoebox.catalog.ops import Emitter
+from shoebox.catalog.store import upsert_record
 
 rng = np.random.default_rng(7)
 
@@ -62,7 +62,7 @@ def lib(tmp_path, sidecar, device, monkeypatch):
         fakes.text[rec["photo_id"]] = text
         return rec["photo_id"]
 
-    from photoctl.analyze import image, run
+    from shoebox.analyze import image, run
 
     real_load = image.load
 
@@ -192,7 +192,7 @@ def test_photos_without_a_local_copy_are_skipped(lib, tmp_path):
 
 def test_face_data_stays_private(lib):
     conn, fdb, add, analyze, emit = lib
-    from photoctl import paths
+    from shoebox import paths
 
     assert oct(os.stat(paths.home() / "faces.sqlite").st_mode & 0o777) == "0o600"
     assert conn.execute("SELECT name FROM sqlite_master WHERE name = 'faces'").fetchone() is None   # not in the catalog
@@ -209,7 +209,7 @@ def test_text_in_the_picture_is_searchable(lib):
 
 def test_a_failed_photo_is_retried_a_few_times(lib):
     conn, fdb, add, analyze, emit = lib
-    from photoctl.analyze import run
+    from shoebox.analyze import run
 
     p = add(1, labels=[("beach", 0.9)])
     calls = []
@@ -238,7 +238,7 @@ def test_a_failed_photo_is_retried_a_few_times(lib):
 
 
 def test_stray_letters_are_not_text():
-    from photoctl.analyze.vision import useful_text
+    from shoebox.analyze.vision import useful_text
 
     assert useful_text("A") == "" and useful_text("NIKE") == ""
     assert useful_text("Tax  Invoice") == "Tax Invoice"
@@ -248,7 +248,7 @@ def test_stray_letters_are_not_text():
 def test_real_vision_reads_a_receipt():
     from PIL import Image, ImageDraw, ImageFont
 
-    from photoctl.analyze.vision import read_text
+    from shoebox.analyze.vision import read_text
 
     im = Image.new("RGB", (900, 500), "white")
     d = ImageDraw.Draw(im)
@@ -266,7 +266,7 @@ def test_real_vision_reads_a_receipt():
 def test_real_vision_labels_and_vocabulary():
     from PIL import Image, ImageDraw
 
-    from photoctl.analyze.vision import classify, known_labels
+    from shoebox.analyze.vision import classify, known_labels
 
     known = known_labels()
     unknown = {s for sources in L.DERIVED.values() for s in sources} - known

@@ -45,16 +45,16 @@ def test_two_processes_converge(run, s3_server, tmp_path, monkeypatch):
     for i, dev in enumerate(DEVICES):
         home = tmp_path / dev
         procs.append(subprocess.Popen([sys.executable, str(WORKER), dev, str(run * 10 + i), str(tmp_path / f"{dev}.json")],
-                                      env={**env, "PHOTOCTL_HOME": str(home)}, stderr=subprocess.PIPE, text=True))
+                                      env={**env, "SHOEBOX_HOME": str(home)}, stderr=subprocess.PIPE, text=True))
     for p in procs:
         assert p.wait(timeout=120) == 0, p.stderr.read()
 
     # a final round so each side has the other's last batch
-    from photoctl.catalog import open_catalog
-    from photoctl.catalog.checksum import checksum
-    from photoctl.device import Device
-    from photoctl.s3 import Bucket
-    from photoctl.sync import sync_once
+    from shoebox.catalog import open_catalog
+    from shoebox.catalog.checksum import checksum
+    from shoebox.device import Device
+    from shoebox.s3 import Bucket
+    from shoebox.sync import sync_once
 
     bucket = Bucket("multi-proc", client=s3)
     sums = []

@@ -45,9 +45,9 @@ test('a catalog shared again after it was downloaded is marked as stale, and Upd
   await expect(iphone.getByText('newer version available')).toHaveCount(0)
   // pretend this copy was downloaded from an older share
   await page.evaluate(() => {
-    const st = JSON.parse(localStorage.getItem('photoctl.local')!)
+    const st = JSON.parse(localStorage.getItem('shoebox.local')!)
     st.devices['01E2EIPHONE000000000000000'].createdAt = '2000-01-01T00:00:00+00:00'
-    localStorage.setItem('photoctl.local', JSON.stringify(st))
+    localStorage.setItem('shoebox.local', JSON.stringify(st))
   })
   await page.reload()
   await expect(iphone.getByText('newer version available')).toBeVisible()

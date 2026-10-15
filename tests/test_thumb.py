@@ -1,7 +1,7 @@
 from PIL import Image
 
 from conftest import make_jpeg
-from photoctl.derive import make_thumb
+from shoebox.derive import make_thumb
 
 
 def test_thumb_is_small_and_has_no_exif(tmp_path):

@@ -1,9 +1,9 @@
 from click.testing import CliRunner
 
 from opkit import Dev, fresh, record
-from photoctl import cli
-from photoctl.catalog.apply import apply_ops
-from photoctl.catalog.checksum import checksum
+from shoebox import cli
+from shoebox.catalog.apply import apply_ops
+from shoebox.catalog.checksum import checksum
 
 
 def test_same_ops_same_checksum_regardless_of_order_and_batching(tmp_path, sidecar):

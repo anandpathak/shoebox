@@ -7,10 +7,10 @@ import pytest
 
 from apikit import seed
 from opkit import record
-from photoctl.catalog import open_catalog
-from photoctl.catalog.store import upsert_record
-from photoctl.device import Device
-from photoctl.publish import publish_catalog
+from shoebox.catalog import open_catalog
+from shoebox.catalog.store import upsert_record
+from shoebox.device import Device
+from shoebox.publish import publish_catalog
 
 PIXEL = Device("01PIXELPIXELPIXELPIXELPIXE", "Pixel 8", "android", "x")
 

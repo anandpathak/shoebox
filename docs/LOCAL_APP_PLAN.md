@@ -4,7 +4,7 @@
 
 This doc covers seven things:
 
-1. Every `photoctl archive` run also writes a **queryable SQLite catalog**.
+1. Every `shoebox archive` run also writes a **queryable SQLite catalog**.
 2. A **local app** (browser UI served from the Mac) lets you search, view thumbnails, download compressed copies, request originals, and start an upload.
 3. **The same website works on iPhone (Safari) and Android (Chrome).** You open it on the phone over a private Tailscale link, search, view, and **trigger archive runs on the Mac** or **upload photos from the phone**. (§9)
 4. **On-device mode:** once a phone (or any device) has downloaded the SQLite file, the app runs search **locally in the browser** (SQLite compiled to WebAssembly), even when the Mac is off or there's no network. (§10)
@@ -36,7 +36,7 @@ This doc covers seven things:
 ```
  Device A (Mac, has Apple Photos)              Device B (2nd Mac / later: phone)
  ┌──────────────────────────────┐              ┌──────────────────────────────┐
- │ photoctl CLI / App "Upload"  │              │ App (search, edit, upload)   │
+ │ shoebox CLI / App "Upload"  │              │ App (search, edit, upload)   │
  │   ingest → derive → upload   │              │                              │
  │   emit ops ─┐                │              │   emit ops ─┐                │
  │             ▼                │              │             ▼                │
@@ -73,7 +73,7 @@ This doc covers seven things:
 
 ---
 
-## 3. Data model (`~/.photoctl/catalog.sqlite`)
+## 3. Data model (`~/.shoebox/catalog.sqlite`)
 
 The catalog is separate from `state.sqlite`. **`state.sqlite` stays device-local**: it maps "Apple Photos UUID on *this* Mac → upload status" and is never synced. **`catalog.sqlite` is the synced, queryable library.**
 
@@ -178,7 +178,7 @@ Each op is one JSON line. Ops are batched into `sync/ops/<device_id>/<first_hlc>
 | The same op is pulled twice | `ops.op_id` primary key, so apply is idempotent. | No duplicates. |
 | Ops arrive out of order | Apply is commutative because of the per-field HLC checks and OR-sets. A full replay sorted by HLC gives the same state. | Same final state on every device. |
 
-**Fallback:** `photoctl catalog rebuild` replays `snapshot + all ops` from S3 into a fresh DB. If two devices ever disagree, run `photoctl sync verify`, which compares a deterministic checksum over sorted rows.
+**Fallback:** `shoebox catalog rebuild` replays `snapshot + all ops` from S3 into a fresh DB. If two devices ever disagree, run `shoebox sync verify`, which compares a deterministic checksum over sorted rows.
 
 ---
 
@@ -186,7 +186,7 @@ Each op is one JSON line. Ops are batched into `sync/ops/<device_id>/<first_hlc>
 
 ### 6.1 On one device (CLI and app on the same Mac)
 - **SQLite WAL** with `busy_timeout=5000`: many readers and one writer. All writes go through `catalog.apply_ops()` in short transactions.
-- **Ingest lock:** `~/.photoctl/ingest.lock` held with `fcntl.flock(LOCK_EX | LOCK_NB)` for the length of an archive run. If you start a second run from the CLI or the app's Upload button, it fails fast with "an upload is already running (pid N, started HH:MM)". The app shows live progress by tailing `~/.photoctl/runs/<run_id>.jsonl`.
+- **Ingest lock:** `~/.shoebox/ingest.lock` held with `fcntl.flock(LOCK_EX | LOCK_NB)` for the length of an archive run. If you start a second run from the CLI or the app's Upload button, it fails fast with "an upload is already running (pid N, started HH:MM)". The app shows live progress by tailing `~/.shoebox/runs/<run_id>.jsonl`.
 - **Sync lock:** one sync loop per device, using the same `flock` pattern on `sync.lock`.
 
 ### 6.2 Across devices (S3 conditional writes; no DynamoDB needed)
@@ -225,7 +225,7 @@ Cost at family scale: a few hundred LIST/GET per day, well under $0.01/month.
 
 ## 8. App (served by the Mac)
 
-**Shape:** `photoctl serve` runs a FastAPI server bound to `127.0.0.1:8765` and serves a single-page UI (Vite + React + TypeScript, built into `photoctl/web/dist`). The UI talks only to the JSON API when online, and to an on-device SQLite copy when offline (P6). Phones reach the server through Tailscale (§9).
+**Shape:** `shoebox serve` runs a FastAPI server bound to `127.0.0.1:8765` and serves a single-page UI (Vite + React + TypeScript, built into `shoebox/web/dist`). The UI talks only to the JSON API when online, and to an on-device SQLite copy when offline (P6). Phones reach the server through Tailscale (§9).
 
 ### API (v1)
 | Method | Path | Purpose |
@@ -267,7 +267,7 @@ Cost at family scale: a few hundred LIST/GET per day, well under $0.01/month.
 
 ### Security
 - The server binds to localhost. Remote access goes **only through Tailscale** (`tailscale serve`), and no port is open to the internet.
-- `tailscale serve` adds `Tailscale-User-Login` headers. The server accepts only requests proxied from 127.0.0.1 that carry a login on the allowlist in `~/.photoctl/config.toml`. A direct localhost browser uses the per-install token cookie.
+- `tailscale serve` adds `Tailscale-User-Login` headers. The server accepts only requests proxied from 127.0.0.1 that carry a login on the allowlist in `~/.shoebox/config.toml`. A direct localhost browser uses the per-install token cookie.
 - The server holds AWS credentials. Browsers and phones only ever see presigned URLs (≤ 15 min) (P8).
 - Catalogs contain GPS and people names. They are downloadable only by authenticated users, and the UI says so before download. On phones they live in the browser's origin-private storage (OPFS), protected by device encryption, and "Remove downloaded data" wipes them.
 
@@ -280,7 +280,7 @@ Cost at family scale: a few hundred LIST/GET per day, well under $0.01/month.
 ### 9.1 Access
 - Install **Tailscale** on the Mac and on each phone, signed in to the same tailnet (free for personal use; iOS + Android apps).
 - On the Mac: `tailscale serve --bg 8765` publishes `https://<mac-name>.<tailnet>.ts.net` with a valid HTTPS certificate. HTTPS is required because service workers, OPFS and "Add to Home Screen" only work in a secure context.
-- `photoctl serve --tailscale` checks this setup and prints the phone URL plus a QR code.
+- `shoebox serve --tailscale` checks this setup and prints the phone URL plus a QR code.
 - **Install as an app (PWA):**
   - iOS: Safari → Share → Add to Home Screen.
   - Android: Chrome → Install app.
@@ -295,7 +295,7 @@ Cost at family scale: a few hundred LIST/GET per day, well under $0.01/month.
 ### 9.3 Upload photos from the phone
 - `<input type="file" accept="image/*,video/*" multiple>` opens the native photo picker on both platforms.
 - **Resumable chunked uploads** (tus protocol: `tus-js-client` in the browser, a tus endpoint in FastAPI) survive network drops and app switches. Large videos are sent in 8 MB chunks.
-- The server stages files in `~/.photoctl/inbox/<phone_device_id>/` and runs the same pipeline (hash → derive → S3 → catalog). `source_ref = upload:<phone_device_id>:<original name>`, and `media_sources.device_id` = the phone, so "photos from my iPhone" works.
+- The server stages files in `~/.shoebox/inbox/<phone_device_id>/` and runs the same pipeline (hash → derive → S3 → catalog). `source_ref = upload:<phone_device_id>:<original name>`, and `media_sources.device_id` = the phone, so "photos from my iPhone" works.
 - **Metadata caveats in browsers** (shown in the UI after each upload, recorded as `metadata_fidelity` in the record):
   - **iOS Safari:** the photo picker may convert HEIC → JPEG and **remove location** unless "Options → Location" is turned on in the picker. Picking from the **Files** app keeps the originals.
   - **Android Chrome:** the system photo picker can **redact GPS** from shared files.
@@ -357,7 +357,7 @@ The **library** catalog (`/api/catalogs/library`) is the merged view of everythi
 
 ### 11.3 Searching several catalogs on one device
 - On-device: sqlite-wasm opens the selected files and `ATTACH`es them (up to 10). Search runs the same `queries/*.sql` per attached DB with `UNION ALL`, then **dedups by `photo_id`**. A photo present in both the iPhone and Android catalogs shows once, with both device badges.
-- On the server and CLI: `photoctl catalog download --device <id|all> --flavour contributed -o dir/` and `photoctl search "beach" --catalog iphone.sqlite --catalog pixel.sqlite`.
+- On the server and CLI: `shoebox catalog download --device <id|all> --flavour contributed -o dir/` and `shoebox search "beach" --catalog iphone.sqlite --catalog pixel.sqlite`.
 - UI: the Catalogs screen has a toggle per device catalog ("Pixel 8 · Android · 4,210 items · 2 h old") plus "Download all" (`/api/catalogs/all.zip`). The grid's "Source" chip filters by device or platform.
 
 ### 11.4 Freshness
@@ -373,36 +373,36 @@ Downloaded catalogs are point-in-time snapshots. Every result card and catalog r
 
 | File | Why it matters | Can it be rebuilt without a backup? |
 |---|---|---|
-| `~/.photoctl/catalog.sqlite` | The searchable library: edits, tags, people names, op log | Yes, from `sync/snapshots` + `sync/ops` (§7) or from `meta/` JSON. A backup is just faster. |
-| `~/.photoctl/state.sqlite` | Which Apple Photos items this Mac already archived, plus failures to retry | Yes, from `meta/` JSON (each sidecar has the Apple UUID and sha256), but slowly |
-| `~/.photoctl/device.json` | This Mac's `device_id` and name. Restoring it lets the new Mac **carry on as the same device** instead of appearing as a stranger | No. **Back it up.** |
-| `~/.photoctl/config.toml` | Settings, Tailscale login allowlist (no secrets) | No. **Back it up.** |
+| `~/.shoebox/catalog.sqlite` | The searchable library: edits, tags, people names, op log | Yes, from `sync/snapshots` + `sync/ops` (§7) or from `meta/` JSON. A backup is just faster. |
+| `~/.shoebox/state.sqlite` | Which Apple Photos items this Mac already archived, plus failures to retry | Yes, from `meta/` JSON (each sidecar has the Apple UUID and sha256), but slowly |
+| `~/.shoebox/device.json` | This Mac's `device_id` and name. Restoring it lets the new Mac **carry on as the same device** instead of appearing as a stranger | No. **Back it up.** |
+| `~/.shoebox/config.toml` | Settings, Tailscale login allowlist (no secrets) | No. **Back it up.** |
 
 AWS credentials and the API token are **never** backed up; you log in again on a new Mac.
 
 ### 12.2 How backups are made
-- `photoctl db backup` takes a consistent copy of each database while it's in use, via SQLite's online backup API (`sqlite3.Connection.backup`). It then runs `PRAGMA integrity_check` on the copy, gzips it, and uploads it.
+- `shoebox db backup` takes a consistent copy of each database while it's in use, via SQLite's online backup API (`sqlite3.Connection.backup`). It then runs `PRAGMA integrity_check` on the copy, gzips it, and uploads it.
 - **Layout:**
   ```
   backups/<device_id>/<YYYY-MM-DDTHH-MM>/catalog.sqlite.gz
   backups/<device_id>/<YYYY-MM-DDTHH-MM>/state.sqlite.gz
   backups/<device_id>/<YYYY-MM-DDTHH-MM>/device.json, config.toml
-  backups/<device_id>/<YYYY-MM-DDTHH-MM>/manifest.json   {sha256 per file, schema_version, last_pushed_op, photoctl version}
+  backups/<device_id>/<YYYY-MM-DDTHH-MM>/manifest.json   {sha256 per file, schema_version, last_pushed_op, shoebox version}
   backups/<device_id>/LATEST.json                          (pointer, replaced with If-Match)
   ```
-- **When:** automatically at the end of every archive run, plus daily via a macOS LaunchAgent (`photoctl db schedule install`). Also available as a button in the app (Sync & devices → "Back up databases now").
+- **When:** automatically at the end of every archive run, plus daily via a macOS LaunchAgent (`shoebox db schedule install`). Also available as a button in the app (Sync & devices → "Back up databases now").
 - **Retention (S3 lifecycle):** daily backups kept 30 days; the first backup of each month is copied to `backups/<device_id>/monthly/` and kept 12 months. At 50k photos, a gzipped catalog is roughly 20–30 MB, so this costs well under $0.05/month.
 - **Safety:** same private, encrypted, versioned bucket. Backups contain GPS and people names, so the ingest policy may write `backups/*` but only the admin role may delete there.
-- **Monitoring:** `photoctl status` and the app's Sync screen show "Last backup: 3 h ago ✓". It turns amber after 48 h without a backup.
+- **Monitoring:** `shoebox status` and the app's Sync screen show "Last backup: 3 h ago ✓". It turns amber after 48 h without a backup.
 
 ### 12.3 Recovery ladder (fastest first)
 
 | Situation | Command | What happens | Time |
 |---|---|---|---|
-| Database corrupted or deleted, Mac fine | `photoctl db restore` | Download LATEST → verify sha256 + integrity → put files back → `photoctl sync` pulls every op made since the backup | Minutes |
-| New Mac / Mac wiped | `photoctl recover` | Pick your old device from a list (read from `sync/devices/`) → restore `device.json`, config and both DBs → re-adopt the same `device_id` → sync → re-scan Apple Photos (already-archived items are skipped) | Minutes |
-| Restore an older point in time | `photoctl db restore --at 2026-10-01` | Same as above, from a dated backup; sync then re-applies later ops | Minutes |
-| No usable backup | `photoctl catalog rebuild --from-s3` + `photoctl state rebuild --from-s3` | Rebuild from snapshot + ops and from `meta/` JSON | ~10–30 min at 50k |
+| Database corrupted or deleted, Mac fine | `shoebox db restore` | Download LATEST → verify sha256 + integrity → put files back → `shoebox sync` pulls every op made since the backup | Minutes |
+| New Mac / Mac wiped | `shoebox recover` | Pick your old device from a list (read from `sync/devices/`) → restore `device.json`, config and both DBs → re-adopt the same `device_id` → sync → re-scan Apple Photos (already-archived items are skipped) | Minutes |
+| Restore an older point in time | `shoebox db restore --at 2026-10-01` | Same as above, from a dated backup; sync then re-applies later ops | Minutes |
+| No usable backup | `shoebox catalog rebuild --from-s3` + `shoebox state rebuild --from-s3` | Rebuild from snapshot + ops and from `meta/` JSON | ~10–30 min at 50k |
 
 **Making "same device_id" safe:** before a restored device writes anything, it pulls **its own** published ops from `sync/ops/<device_id>/` and advances its HLC past the highest one. That means it never reuses an op id. Local edits that were made after the last push and before the crash are the only thing that can be lost. Pushes happen every 60 s, so that window is small.
 

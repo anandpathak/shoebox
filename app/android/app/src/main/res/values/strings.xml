@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Photoframing</string>
-    <string name="title_activity_main">Photoframing</string>
-    <string name="package_name">app.photoframing</string>
-    <string name="custom_url_scheme">app.photoframing</string>
+    <string name="app_name">Shoebox</string>
+    <string name="title_activity_main">Shoebox</string>
+    <string name="package_name">app.shoebox</string>
+    <string name="custom_url_scheme">app.shoebox</string>
 </resources>

@@ -12,8 +12,8 @@ def authed(api, sidecar, device):
 
 
 def test_phone_pushes_ops_and_they_reach_s3(authed, bucket, tmp_path):
-    from photoctl.catalog import open_catalog
-    from photoctl.sync import pull, sync_once
+    from shoebox.catalog import open_catalog
+    from shoebox.sync import pull, sync_once
 
     client, ids, app = authed
     phone = Dev("01PHONEPHONEPHONEPHONEPHON")

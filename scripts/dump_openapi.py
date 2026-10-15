@@ -9,12 +9,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
-os.environ.setdefault("PHOTOCTL_HOME", tempfile.mkdtemp(prefix="photoctl-openapi-"))
-os.environ.setdefault("PHOTOCTL_TOKEN_STORE", "file")
+os.environ.setdefault("SHOEBOX_HOME", tempfile.mkdtemp(prefix="shoebox-openapi-"))
+os.environ.setdefault("SHOEBOX_TOKEN_STORE", "file")
 
 from fastapi.openapi.utils import get_openapi  # noqa: E402
 
-from photoctl.server.app import create_app  # noqa: E402
+from shoebox.server.app import create_app  # noqa: E402
 
 app = create_app()
 spec = get_openapi(title=app.title, version=app.version, routes=app.routes)

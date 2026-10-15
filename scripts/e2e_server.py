@@ -1,8 +1,8 @@
-"""Seed a throwaway library with synthetic photos and run `photoctl serve` on it (for browser tests/demos).
+"""Seed a throwaway library with synthetic photos and run `shoebox serve` on it (for browser tests/demos).
 
     uv run python scripts/e2e_server.py --port 8799 --items 300
 
-Nothing here touches ~/.photoctl or real S3: it uses a temp PHOTOCTL_HOME, a temp library folder and an
+Nothing here touches ~/.shoebox or real S3: it uses a temp SHOEBOX_HOME, a temp library folder and an
 in-process mock S3 (moto) with tiny stand-in originals in Deep Archive. --no-s3 runs without any bucket.
 """
 
@@ -47,9 +47,9 @@ def gradient(path: Path, size: tuple[int, int], colors) -> None:
 
 
 def seed(library: Path, items: int, seed_value: int = 7) -> None:
-    from photoctl.catalog import open_catalog
-    from photoctl.catalog.store import upsert_record
-    from photoctl.device import Device, load_device
+    from shoebox.catalog import open_catalog
+    from shoebox.catalog.store import upsert_record
+    from shoebox.device import Device, load_device
 
     rng = random.Random(seed_value)
     mac = load_device()
@@ -105,9 +105,9 @@ def seed_faces(items: int) -> None:
     has groups to name. Stand-ins only: random vectors, boxes in the middle of the picture."""
     import numpy as np
 
-    from photoctl.analyze.faces import Face
-    from photoctl.analyze.facedb import add_faces, assign, open_faces
-    from photoctl.catalog import open_catalog
+    from shoebox.analyze.faces import Face
+    from shoebox.analyze.facedb import add_faces, assign, open_faces
+    from shoebox.catalog import open_catalog
 
     rng = np.random.default_rng(11)
     people = [rng.normal(size=128) for _ in range(2)]
@@ -152,11 +152,11 @@ class FakeEmbedder:
 
 def fake_ai(items: int) -> None:
     """Plain-English search and captions without downloading models: stand-in vectors and a few captions."""
-    from photoctl.analyze import ai
-    from photoctl.analyze.vectors import open_vectors, save
-    from photoctl.catalog import open_catalog
-    from photoctl.catalog.ops import Emitter
-    from photoctl.device import load_device
+    from shoebox.analyze import ai
+    from shoebox.analyze.vectors import open_vectors, save
+    from shoebox.catalog import open_catalog
+    from shoebox.catalog.ops import Emitter
+    from shoebox.device import load_device
 
     emb = FakeEmbedder()
     ai.available = lambda: True
@@ -179,7 +179,7 @@ def fake_photos_library(home: Path, n: int = 8) -> None:
     from datetime import datetime, timezone
     from types import SimpleNamespace
 
-    from photoctl import archiver
+    from shoebox import archiver
 
     folder = home / "fake-photos"
     items = []
@@ -216,8 +216,8 @@ def start_mock_s3(home: Path, upload_originals: bool) -> str:
     os.environ.update({"AWS_ENDPOINT_URL": f"http://{host}:{port}", "AWS_ACCESS_KEY_ID": "e2e",
                        "AWS_SECRET_ACCESS_KEY": "e2e", "AWS_DEFAULT_REGION": "us-east-1"})
     os.environ.pop("AWS_PROFILE", None)
-    from photoctl.catalog import open_catalog
-    from photoctl.s3 import Bucket
+    from shoebox.catalog import open_catalog
+    from shoebox.s3 import Bucket
 
     name = "e2e-archive"
     b = Bucket(name)
@@ -236,8 +236,8 @@ def publish_phone_catalogs(conn, bucket) -> None:
     import json
     from datetime import datetime, timezone
 
-    from photoctl.catalog.export import export_catalog
-    from photoctl.publish import catalog_key, manifest_key
+    from shoebox.catalog.export import export_catalog
+    from shoebox.publish import catalog_key, manifest_key
 
     for device_id, dev_name, platform in (("01E2EIPHONE000000000000000", "My iPhone", "ios"),
                                           ("01E2EPIXEL0000000000000000", "Pixel 8", "android")):
@@ -255,13 +255,13 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8799)
     ap.add_argument("--items", type=int, default=300)
-    ap.add_argument("--home", help="Reuse this PHOTOCTL_HOME (default: a new temp dir)")
+    ap.add_argument("--home", help="Reuse this SHOEBOX_HOME (default: a new temp dir)")
     ap.add_argument("--no-s3", action="store_true", help="Run without a (mock) bucket")
     args = ap.parse_args()
-    home = Path(args.home or tempfile.mkdtemp(prefix="photoctl-e2e-"))
-    os.environ["PHOTOCTL_HOME"] = str(home)
-    os.environ["PHOTOCTL_TOKEN_STORE"] = "file"
-    os.environ.setdefault("PHOTOCTL_ANALYSIS", "0")   # seeded stand-in images: don't label them or fetch face models
+    home = Path(args.home or tempfile.mkdtemp(prefix="shoebox-e2e-"))
+    os.environ["SHOEBOX_HOME"] = str(home)
+    os.environ["SHOEBOX_TOKEN_STORE"] = "file"
+    os.environ.setdefault("SHOEBOX_ANALYSIS", "0")   # seeded stand-in images: don't label them or fetch face models
     library = home / "library"
     fake_photos_library(home)  # never read the real Photos library from tests or demos
     fresh = not (home / "catalog.sqlite").exists()
@@ -273,10 +273,10 @@ def main() -> None:
 
     import uvicorn
 
-    from photoctl.server.app import create_app
-    from photoctl.server.config import Settings
+    from shoebox.server.app import create_app
+    from shoebox.server.config import Settings
 
-    dist = ROOT / "src" / "photoctl" / "web" / "dist"
+    dist = ROOT / "src" / "shoebox" / "web" / "dist"
     app = create_app(Settings(library=library, port=args.port, static_dir=dist, sync_interval=0,
                               bucket=bucket, allowed_logins=["phone-user@example.com"]))
     print(f"e2e server: http://127.0.0.1:{args.port}  home={home}", flush=True)

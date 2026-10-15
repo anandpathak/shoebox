@@ -1,14 +1,14 @@
 from click.testing import CliRunner
 
 from opkit import record
-from photoctl import cli, paths
-from photoctl.backup import backup
-from photoctl.catalog import open_catalog
-from photoctl.catalog.checksum import checksum
-from photoctl.catalog.ops import Emitter
-from photoctl.catalog.store import upsert_record
-from photoctl.device import Device
-from photoctl.sync import sync_once
+from shoebox import cli, paths
+from shoebox.backup import backup
+from shoebox.catalog import open_catalog
+from shoebox.catalog.checksum import checksum
+from shoebox.catalog.ops import Emitter
+from shoebox.catalog.store import upsert_record
+from shoebox.device import Device
+from shoebox.sync import sync_once
 
 PEER = Device("01PEERPEERPEERPEERPEERPEER", "Mini", "macos", "x")
 

@@ -1,8 +1,8 @@
 {
-  "name": "photoframing-app",
+  "name": "shoebox-app",
   "private": true,
   "version": "0.1.0",
-  "description": "iPhone/Android shell around the photoframing web app, plus automatic camera-roll backup",
+  "description": "iPhone/Android shell around the shoebox web app, plus automatic camera-roll backup",
   "scripts": {
     "sync": "cap sync",
     "test": "vitest run"

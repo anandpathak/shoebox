@@ -1,4 +1,4 @@
-// Twin of the row-building parts of photoctl/catalog/store.py.
+// Twin of the row-building parts of shoebox/catalog/store.py.
 import type { Db } from './dbapi'
 import { sha1Hex } from './sha1'
 

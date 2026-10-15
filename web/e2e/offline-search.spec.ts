@@ -21,7 +21,7 @@ test('offline, search runs on the device and matches what the server returned', 
 
   for (const q of QUERIES) {
     const ids = await page.evaluate(async (query) => {
-      const { local } = (globalThis as unknown as { photoctlLocal: { local: { call: (o: string, ...a: unknown[]) => Promise<{ items: { photo_id: string }[] }> } } }).photoctlLocal
+      const { local } = (globalThis as unknown as { shoeboxLocal: { local: { call: (o: string, ...a: unknown[]) => Promise<{ items: { photo_id: string }[] }> } } }).shoeboxLocal
       return (await local.call('search', 'library', { q: query, limit: 60 })).items.map((i) => i.photo_id)
     }, q)
     expect(ids, q).toEqual(online[q])

@@ -66,7 +66,7 @@ function AppleCard({ mac, busy, onStarted, onError }: { mac: string; busy: boole
   return (
     <section className="card">
       <h2>Archive from Apple Photos on {mac}</h2>
-      <p className="muted small">Runs on the Mac, with the same steps as <code>photoctl archive</code>. Only one run at a time.</p>
+      <p className="muted small">Runs on the Mac, with the same steps as <code>shoebox archive</code>. Only one run at a time.</p>
       <label className="field">What to archive
         <select value={mode} onChange={(e) => setMode(e.target.value as Mode)} aria-label="What to archive">
           <option value="selected">What's selected in Photos on the Mac</option>

@@ -1,4 +1,4 @@
-// Where the library comes from. The server implementation talks to photoctl over HTTP; the
+// Where the library comes from. The server implementation talks to shoebox over HTTP; the
 // on-device implementation (M9) runs the same SQL in SQLite WebAssembly.
 import { api, qs } from '../api/client'
 import type { Device, MediaDetail, Person, SearchResult } from '../api/types'

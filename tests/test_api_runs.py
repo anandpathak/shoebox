@@ -8,7 +8,7 @@ from test_archiver import photos
 
 @pytest.fixture
 def authed(api, tmp_path, monkeypatch):
-    from photoctl import archiver
+    from shoebox import archiver
 
     client, token, app = api
     client.headers["Authorization"] = f"Bearer {token}"
@@ -43,7 +43,7 @@ def test_start_watch_and_history(authed):
 
 def test_second_run_is_refused_and_cancel_works(authed):
     client, app, monkeypatch = authed
-    from photoctl import archiver
+    from shoebox import archiver
 
     real = archiver.process
     monkeypatch.setattr(archiver, "process", lambda item, opts: (time.sleep(0.3), real(item, opts))[1])

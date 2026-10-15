@@ -7,7 +7,7 @@ def test_check_reports_missing_and_archived(api, sidecar, device):
     client, token, app = api
     client.headers["Authorization"] = f"Bearer {token}"
     seed(sidecar, device, app.state.settings.library, n=2)
-    from photoctl.catalog import open_catalog
+    from shoebox.catalog import open_catalog
     have = [r[0] for r in open_catalog().execute("SELECT sha256 FROM media")]
     new = hashlib.sha256(b"new photo").hexdigest()
     r = client.post("/api/backup/check", json={"hashes": [have[0], new, have[1].upper()]}).json()
@@ -19,7 +19,7 @@ def test_check_reports_missing_and_archived(api, sidecar, device):
 def test_uploads_waiting_in_the_inbox_count_as_in_progress(api):
     client, token, _ = api
     client.headers["Authorization"] = f"Bearer {token}"
-    from photoctl import paths
+    from shoebox import paths
     folder = paths.inbox_dir() / "PHONE"
     folder.mkdir(parents=True)
     (folder / "01ABC__x.jpg").write_bytes(b"queued bytes")

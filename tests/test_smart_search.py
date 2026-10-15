@@ -5,13 +5,13 @@ import pytest
 
 from conftest import make_jpeg
 from opkit import record
-from photoctl.analyze.ai_run import analyze_ai
-from photoctl.analyze.smart import names_in, smart_search
-from photoctl.analyze.vectors import Index, open_vectors
-from photoctl.catalog import open_catalog
-from photoctl.catalog.ops import Emitter
-from photoctl.catalog.query import search
-from photoctl.catalog.store import upsert_record
+from shoebox.analyze.ai_run import analyze_ai
+from shoebox.analyze.smart import names_in, smart_search
+from shoebox.analyze.vectors import Index, open_vectors
+from shoebox.catalog import open_catalog
+from shoebox.catalog.ops import Emitter
+from shoebox.catalog.query import search
+from shoebox.catalog.store import upsert_record
 
 rng = np.random.default_rng(5)
 CONCEPTS = {w: (lambda v: v / np.linalg.norm(v))(rng.normal(size=64)) for w in ("snow", "beach", "dog", "cake")}
@@ -47,7 +47,7 @@ def lib(tmp_path, sidecar, device, monkeypatch):
     conn = open_catalog()
     models = FakeModels()
 
-    from photoctl.analyze import ai_run, image
+    from shoebox.analyze import ai_run, image
 
     real = image.load
 
@@ -146,14 +146,14 @@ def test_vectors_stay_on_this_mac(lib):
     conn, *_ = lib
     import os
 
-    from photoctl import paths
+    from shoebox import paths
 
     assert oct(os.stat(paths.home() / "embeddings.sqlite").st_mode & 0o777) == "0o600"
     assert conn.execute("SELECT name FROM sqlite_master WHERE name = 'vectors'").fetchone() is None
 
 
 def test_caption_tidying():
-    from photoctl.analyze.ai import tidy
+    from shoebox.analyze.ai import tidy
 
     assert tidy("The image shows a dog on a beach. It is sunny. There are three boats and a man in a") == \
         "A dog on a beach. It is sunny."

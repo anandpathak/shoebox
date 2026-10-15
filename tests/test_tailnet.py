@@ -5,8 +5,8 @@ import stat
 import pytest
 from click.testing import CliRunner
 
-from photoctl import cli
-from photoctl.tailnet import TailnetError, check
+from shoebox import cli
+from shoebox.tailnet import TailnetError, check
 
 STATUS = {"BackendState": "Running", "Self": {"DNSName": "studio-mac.tail1234.ts.net.", "UserID": 7},
           "User": {"7": {"LoginName": "owner@example.com"}}}
@@ -45,7 +45,7 @@ def test_not_connected_and_missing(fake_tailscale, monkeypatch):
     with pytest.raises(TailnetError, match="sign in"):
         check(8765)
     monkeypatch.setenv("PATH", "/nonexistent")
-    import photoctl.tailnet as t
+    import shoebox.tailnet as t
     monkeypatch.setattr(t, "CANDIDATES", ("tailscale",))
     with pytest.raises(TailnetError, match="isn't installed"):
         check(8765)

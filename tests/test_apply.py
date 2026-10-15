@@ -3,8 +3,8 @@
 import pytest
 
 from opkit import Dev, fresh, media, record, tags
-from photoctl.catalog.apply import apply_ops
-from photoctl.catalog.store import person_id, resolve_person
+from shoebox.catalog.apply import apply_ops
+from shoebox.catalog.store import person_id, resolve_person
 
 
 @pytest.fixture

@@ -25,7 +25,7 @@ export function PairPhone() {
     <main className="pair">
       <section className="card" role="dialog" aria-label="Pair this phone">
         <h1>Pair this phone</h1>
-        <p className="muted small">On the Mac, <code>photoctl serve --lan</code> shows a code (run <code>photoctl pair</code> for a
+        <p className="muted small">On the Mac, <code>shoebox serve --lan</code> shows a code (run <code>shoebox pair</code> for a
           new one). Scanning its QR code pairs this phone straight away.</p>
         <form onSubmit={(e) => { e.preventDefault(); void pair(code) }}>
           <label className="field">Code<input value={code} onChange={(e) => setCode(e.target.value)} autoCapitalize="characters"

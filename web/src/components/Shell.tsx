@@ -50,7 +50,7 @@ export function Shell({ current, children }: { current: string; children: ReactN
   return (
     <div className="shell">
       <nav className="tabbar" aria-label="Sections">
-        <div className="brand"><img src="/favicon.svg" alt="" />Photoframing</div>
+        <div className="brand"><img src="/favicon.svg" alt="" />Shoebox</div>
         {TABS.map((t) => (
           <a key={t.name} href={`#/${t.name}`} aria-current={current === t.name ? 'page' : undefined}>
             <Icon name={t.icon} />{t.label}

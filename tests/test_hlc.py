@@ -1,4 +1,4 @@
-from photoctl.hlc import HLC, Stamp
+from shoebox.hlc import HLC, Stamp
 
 
 def test_monotonic_even_when_wall_clock_goes_backwards():

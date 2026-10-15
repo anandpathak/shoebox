@@ -4,11 +4,11 @@ import numpy as np
 
 from conftest import make_jpeg
 from opkit import record
-from photoctl.analyze.faces import Face
-from photoctl.analyze.facedb import open_faces
-from photoctl.analyze.run import analyze_pending
-from photoctl.catalog import open_catalog
-from photoctl.catalog.store import upsert_record
+from shoebox.analyze.faces import Face
+from shoebox.analyze.facedb import open_faces
+from shoebox.analyze.run import analyze_pending
+from shoebox.catalog import open_catalog
+from shoebox.catalog.store import upsert_record
 
 rng = np.random.default_rng(3)
 
@@ -34,7 +34,7 @@ def seed(app, sidecar, device, people):
         make_jpeg(library / rec["keys"]["compressed"], size=(800, 600))
         by_photo[rec["photo_id"]] = emb
 
-    from photoctl.analyze import image, run
+    from shoebox.analyze import image, run
 
     real = image.load
 

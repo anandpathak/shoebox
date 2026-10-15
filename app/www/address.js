@@ -1,4 +1,4 @@
-export const KEY = 'photoframing.mac'
+export const KEY = 'shoebox.mac'
 
 const PRIVATE = [/^10\./, /^192\.168\./, /^172\.(1[6-9]|2\d|3[01])\./, /^127\./]
 

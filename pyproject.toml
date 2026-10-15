@@ -1,5 +1,5 @@
 [project]
-name = "photoctl"
+name = "shoebox"
 version = "0.1.0"
 description = "Archive Apple Photos originals to S3 with small, metadata-rich copies and a searchable catalog"
 readme = "README.md"
@@ -22,7 +22,7 @@ dependencies = [
 ]
 
 [project.scripts]
-photoctl = "photoctl.cli:main"
+shoebox = "shoebox.cli:main"
 
 [project.optional-dependencies]
 ai = [

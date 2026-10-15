@@ -2,9 +2,9 @@ from datetime import datetime, timedelta, timezone
 from email.utils import format_datetime
 
 from opkit import record
-from photoctl import originals
-from photoctl.catalog import open_catalog
-from photoctl.catalog.store import upsert_record
+from shoebox import originals
+from shoebox.catalog import open_catalog
+from shoebox.catalog.store import upsert_record
 
 
 def test_parse_restore_header():

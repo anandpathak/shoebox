@@ -8,7 +8,7 @@ export interface Queued {
 }
 export type Progress = Record<string, { sent: number; status: 'waiting' | 'uploading' | 'done' | 'error'; error?: string }>
 
-const DB = 'photoctl'
+const DB = 'shoebox'
 const STORE = 'uploads'
 
 function open(): Promise<IDBDatabase> {
@@ -59,7 +59,7 @@ function upload(item: Queued): Promise<void> {
       endpoint: '/api/uploads/files',
       chunkSize: 8 * 1024 * 1024,
       retryDelays: [0, 1000, 3000, 5000],
-      fingerprint: async () => `photoctl-${item.id}`,         // resume the same queued file after a reload
+      fingerprint: async () => `shoebox-${item.id}`,         // resume the same queued file after a reload
       removeFingerprintOnSuccess: true,
       metadata: { filename: item.name, filetype: item.type, device_id: item.deviceId, lastModified: String(item.lastModified) },
       onProgress: (sent) => { progress[item.id] = { sent, status: 'uploading' }; notify() },

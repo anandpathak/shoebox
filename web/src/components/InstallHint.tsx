@@ -4,7 +4,7 @@ import { detectPlatform } from '../lib/device'
 
 interface BeforeInstallPromptEvent extends Event { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> }
 
-const KEY = 'photoctl.installHintDismissed'
+const KEY = 'shoebox.installHintDismissed'
 
 export function isStandalone(): boolean {
   return matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true
@@ -26,7 +26,7 @@ export function InstallHint({ always = false }: { always?: boolean }) {
   const dismiss = () => { setHidden(true); try { localStorage.setItem(KEY, '1') } catch { /* ignore */ } }
   return (
     <div className="install card" role="note">
-      <strong>Install Photoframing on this {platform === 'ios' ? 'iPhone' : 'device'}</strong>
+      <strong>Install Shoebox on this {platform === 'ios' ? 'iPhone' : 'device'}</strong>
       {platform === 'ios'
         ? <span className="muted small">Tap <b>Share</b> in Safari, then <b>Add to Home Screen</b>. Installed, it opens full screen
             and keeps its offline library (Safari clears data for sites that aren't installed after 7 days unused).</span>

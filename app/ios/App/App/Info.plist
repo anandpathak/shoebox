@@ -12,7 +12,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>Photoframing</string>
+	<string>Shoebox</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -30,15 +30,15 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Photoframing uses the camera to scan the QR code your Mac shows when connecting.</string>
+	<string>Shoebox uses the camera to scan the QR code your Mac shows when connecting.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Photoframing connects to your Mac on this Wi-Fi to back up and browse your photos.</string>
+	<string>Shoebox connects to your Mac on this Wi-Fi to back up and browse your photos.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Photoframing backs up your photos and videos to your own archive.</string>
+	<string>Shoebox backs up your photos and videos to your own archive.</string>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
-		<string>app.photoframing.backup.refresh</string>
-		<string>app.photoframing.backup.processing</string>
+		<string>app.shoebox.backup.refresh</string>
+		<string>app.shoebox.backup.processing</string>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>

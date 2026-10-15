@@ -3,12 +3,12 @@ import sqlite3
 from click.testing import CliRunner
 
 from opkit import record
-from photoctl import cli
-from photoctl.catalog import open_catalog
-from photoctl.catalog.store import upsert_record
-from photoctl.device import Device
-from photoctl.publish import publish_catalog
-from photoctl.snapshot import publish_snapshot
+from shoebox import cli
+from shoebox.catalog import open_catalog
+from shoebox.catalog.store import upsert_record
+from shoebox.device import Device
+from shoebox.publish import publish_catalog
+from shoebox.snapshot import publish_snapshot
 
 IPHONE = Device("01IPHONEIPHONEIPHONEIPHONE", "My iPhone", "ios", "x")
 PIXEL = Device("01PIXELPIXELPIXELPIXELPIXE", "Pixel 8", "android", "x")

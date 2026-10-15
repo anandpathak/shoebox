@@ -1,4 +1,4 @@
-"""One simulated Mac for the multi-process sync test. Run with PHOTOCTL_HOME and AWS_ENDPOINT_URL set.
+"""One simulated Mac for the multi-process sync test. Run with SHOEBOX_HOME and AWS_ENDPOINT_URL set.
 
 argv: <device_id> <seed> <out_json>
 """
@@ -12,14 +12,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from conftest import SIDECAR  # noqa: E402
 from opkit import record  # noqa: E402
-from photoctl.catalog import open_catalog  # noqa: E402
-from photoctl.catalog.checksum import checksum  # noqa: E402
-from photoctl.catalog.ops import Emitter  # noqa: E402
-from photoctl.catalog.store import upsert_record  # noqa: E402
-from photoctl.device import Device  # noqa: E402
-from photoctl.runlock import SyncLock  # noqa: E402
-from photoctl.s3 import Bucket  # noqa: E402
-from photoctl.sync import sync_once  # noqa: E402
+from shoebox.catalog import open_catalog  # noqa: E402
+from shoebox.catalog.checksum import checksum  # noqa: E402
+from shoebox.catalog.ops import Emitter  # noqa: E402
+from shoebox.catalog.store import upsert_record  # noqa: E402
+from shoebox.device import Device  # noqa: E402
+from shoebox.runlock import SyncLock  # noqa: E402
+from shoebox.s3 import Bucket  # noqa: E402
+from shoebox.sync import sync_once  # noqa: E402
 
 device_id, seed, out = sys.argv[1], int(sys.argv[2]), Path(sys.argv[3])
 rng = random.Random(seed)

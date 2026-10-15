@@ -4,7 +4,7 @@ import copy
 
 import pytest
 
-# Synthetic sidecar (no real personal data) shaped like what `photoctl archive` writes.
+# Synthetic sidecar (no real personal data) shaped like what `shoebox archive` writes.
 SIDECAR = {
     "schema_version": 1,
     "photo_id": "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
@@ -40,11 +40,11 @@ def sidecar():
 
 
 @pytest.fixture(autouse=True)
-def photoctl_home(tmp_path, monkeypatch):
-    home = tmp_path / "photoctl-home"
-    monkeypatch.setenv("PHOTOCTL_HOME", str(home))
-    monkeypatch.setenv("PHOTOCTL_TOKEN_STORE", "file")   # never touch the real Keychain in tests
-    monkeypatch.setenv("PHOTOCTL_ANALYSIS", "0")         # no background analysis (or model downloads) unless a test asks
+def shoebox_home(tmp_path, monkeypatch):
+    home = tmp_path / "shoebox-home"
+    monkeypatch.setenv("SHOEBOX_HOME", str(home))
+    monkeypatch.setenv("SHOEBOX_TOKEN_STORE", "file")   # never touch the real Keychain in tests
+    monkeypatch.setenv("SHOEBOX_ANALYSIS", "0")         # no background analysis (or model downloads) unless a test asks
     return home
 
 
@@ -53,8 +53,8 @@ def api(tmp_path):
     """(TestClient from this Mac, token, app). Requests come from 127.0.0.1 to http://127.0.0.1:8765."""
     from fastapi.testclient import TestClient
 
-    from photoctl.server.app import create_app
-    from photoctl.server.config import Settings
+    from shoebox.server.app import create_app
+    from shoebox.server.config import Settings
 
     app = create_app(Settings(library=tmp_path / "library", allowed_logins=["me@example.com"]))
     client = TestClient(app, base_url="http://127.0.0.1:8765", client=("127.0.0.1", 50000))
@@ -63,7 +63,7 @@ def api(tmp_path):
 
 @pytest.fixture
 def device():
-    from photoctl.device import load_device
+    from shoebox.device import load_device
 
     return load_device()
 
@@ -79,7 +79,7 @@ def bucket(monkeypatch):
     with mock_aws():
         import boto3
 
-        from photoctl.s3 import CLIENT_CONFIG, Bucket
+        from shoebox.s3 import CLIENT_CONFIG, Bucket
 
         client = boto3.client("s3", region_name="us-east-1", config=CLIENT_CONFIG)
         client.create_bucket(Bucket="test-archive")

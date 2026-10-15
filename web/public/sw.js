@@ -1,4 +1,4 @@
-// Photoframing service worker (LOCAL_APP_PLAN.md §9.1, §10.4).
+// Shoebox service worker (LOCAL_APP_PLAN.md §9.1, §10.4).
 //  - App shell (HTML/JS/CSS/icons): the page always loads, even offline.
 //  - Thumbnails: cached as you scroll (cache-first; they never change for a photo id).
 //  - Everything else under /api: straight to the network, never cached.
@@ -66,7 +66,7 @@ self.addEventListener('fetch', (event) => {
 
 // Notifications: "Archive finished", "Original ready".
 self.addEventListener('push', (event) => {
-  let data = { title: 'Photoframing', body: '', url: '/#/library' }
+  let data = { title: 'Shoebox', body: '', url: '/#/library' }
   try { data = { ...data, ...event.data.json() } } catch { /* plain text */ }
   event.waitUntil(self.registration.showNotification(data.title, {
     body: data.body, icon: '/icons/icon-192.png', badge: '/icons/maskable-192.png', data: { url: data.url },

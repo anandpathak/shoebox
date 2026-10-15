@@ -1,5 +1,5 @@
-from photoctl.catalog import SCHEMA_VERSION, open_catalog, schema_version
-from photoctl.catalog.store import person_id, stats, upsert_record
+from shoebox.catalog import SCHEMA_VERSION, open_catalog, schema_version
+from shoebox.catalog.store import person_id, stats, upsert_record
 
 
 def test_writes_go_through_ops(tmp_path, sidecar, device):
@@ -55,7 +55,7 @@ def test_fts_finds_place_people_tags(tmp_path, sidecar, device):
 def test_reimport_is_noop_and_keeps_user_edits(tmp_path, sidecar, device):
     conn = open_catalog(tmp_path / "c.sqlite")
     upsert_record(conn, sidecar, device)
-    from photoctl.catalog.ops import Emitter
+    from shoebox.catalog.ops import Emitter
     Emitter(conn, device.device_id).emit("media.set", {"photo_id": sidecar["photo_id"], "field": "title",
                                                        "value": "My edit"})
     upsert_record(conn, sidecar, device)

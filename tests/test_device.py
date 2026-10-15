@@ -1,6 +1,6 @@
 import re
 
-from photoctl.device import load_device, new_ulid
+from shoebox.device import load_device, new_ulid
 
 
 def test_ulid_is_sortable_and_crockford():
@@ -9,11 +9,11 @@ def test_ulid_is_sortable_and_crockford():
     assert a < b
 
 
-def test_device_is_stable(photoctl_home):
+def test_device_is_stable(shoebox_home):
     first = load_device()
     second = load_device()
     assert first.device_id == second.device_id
-    assert (photoctl_home / "device.json").exists()
+    assert (shoebox_home / "device.json").exists()
     assert first.platform in ("macos", "linux", "windows", "unknown")
 
 

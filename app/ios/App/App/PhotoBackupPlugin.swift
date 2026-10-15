@@ -22,7 +22,7 @@ public class PhotoBackupPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "configure", returnType: CAPPluginReturnPromise),
     ]
     private let core = BackupCore.shared
-    private let work = DispatchQueue(label: "app.photoframing.backup.work", qos: .utility)
+    private let work = DispatchQueue(label: "app.shoebox.backup.work", qos: .utility)
 
     override public func load() {
         UIDevice.current.isBatteryMonitoringEnabled = true
@@ -95,8 +95,8 @@ public class PhotoBackupPlugin: CAPPlugin, CAPBridgedPlugin {
 /// BGTaskScheduler glue. Identifiers are listed in Info.plist (BGTaskSchedulerPermittedIdentifiers).
 final class BackgroundBackup {
     static let shared = BackgroundBackup()
-    static let refresh = "app.photoframing.backup.refresh"
-    static let processing = "app.photoframing.backup.processing"
+    static let refresh = "app.shoebox.backup.refresh"
+    static let processing = "app.shoebox.backup.processing"
 
 
     /// Must run before the app finishes launching.

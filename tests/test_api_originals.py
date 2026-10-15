@@ -7,7 +7,7 @@ def test_original_request_and_status(api, sidecar, device, bucket, tmp_path):
     ids = seed(sidecar, device, app.state.settings.library, n=1)
     assert client.post(f"/api/media/{ids[0]}/original", json={}).status_code == 503   # no S3 configured
     app.state.s3 = bucket
-    from photoctl.catalog import open_catalog
+    from shoebox.catalog import open_catalog
     raw = open_catalog().execute("SELECT raw_key FROM media").fetchone()[0]
     f = tmp_path / "orig.heic"
     f.write_bytes(b"original bytes")

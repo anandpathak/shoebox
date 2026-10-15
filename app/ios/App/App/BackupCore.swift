@@ -35,7 +35,7 @@ struct AssetInfo {
 
 final class BackupCore: NSObject {
     static let shared = BackupCore()
-    static let sessionId = "app.photoframing.backup"
+    static let sessionId = "app.shoebox.backup"
     static let liveSuffix = "/live"
 
     /// Called when an upload finishes (also in the background); the plugin forwards it to the web app.
@@ -43,7 +43,7 @@ final class BackupCore: NSObject {
     /// The system hands this over in application(_:handleEventsForBackgroundURLSession:completionHandler:).
     var backgroundCompletion: (() -> Void)?
 
-    private let queue = DispatchQueue(label: "app.photoframing.backup.state")
+    private let queue = DispatchQueue(label: "app.shoebox.backup.state")
     private var bodies: [Int: Data] = [:]
     private lazy var session: URLSession = {
         let c = URLSessionConfiguration.background(withIdentifier: BackupCore.sessionId)
@@ -57,7 +57,7 @@ final class BackupCore: NSObject {
     override init() {
         super.init()
         monitor.pathUpdateHandler = { [weak self] p in self?.path = p }
-        monitor.start(queue: DispatchQueue(label: "app.photoframing.backup.net"))
+        monitor.start(queue: DispatchQueue(label: "app.shoebox.backup.net"))
     }
 
     /// Recreate the background session at launch so finished transfers are delivered.

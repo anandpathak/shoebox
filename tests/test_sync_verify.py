@@ -1,12 +1,12 @@
 from click.testing import CliRunner
 
 from opkit import record
-from photoctl import cli
-from photoctl.catalog import open_catalog
-from photoctl.catalog.ops import Emitter
-from photoctl.catalog.store import upsert_record
-from photoctl.device import Device
-from photoctl.sync import sync_once, verify
+from shoebox import cli
+from shoebox.catalog import open_catalog
+from shoebox.catalog.ops import Emitter
+from shoebox.catalog.store import upsert_record
+from shoebox.device import Device
+from shoebox.sync import sync_once, verify
 
 OTHER = Device("01OTHEROTHEROTHEROTHEROTHE", "Mini", "macos", "x")
 

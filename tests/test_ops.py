@@ -1,7 +1,7 @@
 import pytest
 
-from photoctl.catalog.ops import InvalidOp, make_op, validate
-from photoctl.hlc import HLC
+from shoebox.catalog.ops import InvalidOp, make_op, validate
+from shoebox.hlc import HLC
 
 PID = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 

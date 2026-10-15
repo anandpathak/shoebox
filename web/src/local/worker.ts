@@ -21,8 +21,8 @@ function claimStorage(): Promise<boolean> {
   // using the storage, opening it below still fails and the app says so.
   const hold = (resolve: (v: boolean) => void) => () => { resolve(true); return new Promise(() => {}) }
   return new Promise((resolve) => {
-    locks.request('photoctl-on-device', { signal: AbortSignal.timeout(3000) }, hold(resolve))
-      .catch(() => locks.request('photoctl-on-device', { steal: true }, hold(resolve)).catch(() => resolve(false)))
+    locks.request('shoebox-on-device', { signal: AbortSignal.timeout(3000) }, hold(resolve))
+      .catch(() => locks.request('shoebox-on-device', { steal: true }, hold(resolve)).catch(() => resolve(false)))
   })
 }
 
@@ -35,13 +35,13 @@ function init(): Promise<void> {
 async function start() {
   sqlite3 = await (sqlite3InitModule as unknown as (o: object) => Promise<Any>)({ print: () => {}, printErr: () => {} })
   if (!(await claimStorage())) {
-    poolError = 'Photoframing is open in another tab or window. Close it to use the on-device catalog here.'
+    poolError = 'Shoebox is open in another tab or window. Close it to use the on-device catalog here.'
     return
   }
   // A page that just closed (or the app relaunching) may still be letting go of the storage: retry briefly.
   for (let attempt = 0; attempt < 6; attempt++) {
     try {
-      pool = await sqlite3.installOpfsSAHPoolVfs({ name: 'photoctl-pool', directory: '/photoctl', initialCapacity: 12,
+      pool = await sqlite3.installOpfsSAHPoolVfs({ name: 'shoebox-pool', directory: '/shoebox', initialCapacity: 12,
                                                    clearOnInit: false })
       poolError = null
       return
@@ -49,7 +49,7 @@ async function start() {
       pool = null  // no OPFS here: on-device mode isn't available, everything still works online
       poolError = (e as Error).message
       if (!/invalid state|NoModificationAllowed|could not be|transient/i.test(poolError)) return
-      if (attempt === 5) poolError = 'Photoframing is open in another tab or window. Close it to use the on-device catalog here.' 
+      if (attempt === 5) poolError = 'Shoebox is open in another tab or window. Close it to use the on-device catalog here.' 
       await new Promise((r) => setTimeout(r, 300 * (attempt + 1)))
     }
   }

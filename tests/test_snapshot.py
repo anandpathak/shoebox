@@ -2,13 +2,13 @@ import time
 from datetime import datetime, timedelta, timezone
 
 from opkit import record
-from photoctl.catalog import open_catalog
-from photoctl.catalog.checksum import checksum
-from photoctl.catalog.ops import Emitter
-from photoctl.catalog.store import upsert_record
-from photoctl.device import Device
-from photoctl.snapshot import Lease, bootstrap, needs_snapshot, publish_snapshot, read_head
-from photoctl.sync import pull, push
+from shoebox.catalog import open_catalog
+from shoebox.catalog.checksum import checksum
+from shoebox.catalog.ops import Emitter
+from shoebox.catalog.store import upsert_record
+from shoebox.device import Device
+from shoebox.snapshot import Lease, bootstrap, needs_snapshot, publish_snapshot, read_head
+from shoebox.sync import pull, push
 
 MAC = Device("01MACMACMACMACMACMACMACMAC", "Mac", "macos", "x")
 NEW = Device("01NEWNEWNEWNEWNEWNEWNEWNEW", "New Mac", "macos", "x")

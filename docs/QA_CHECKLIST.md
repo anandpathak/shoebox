@@ -8,7 +8,7 @@ and push notifications.
 Setup: Tailscale on the Mac and both phones (same account), then on the Mac:
 
 ```sh
-uv run photoctl serve --setup-tailscale
+uv run shoebox serve --setup-tailscale
 ```
 
 Record results in the table at the bottom (✓ / ✗ + a note).

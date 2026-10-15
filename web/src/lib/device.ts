@@ -1,5 +1,5 @@
 // This browser/phone's identity (LOCAL_APP_PLAN.md §9.4). Kept in localStorage; OPFS copy added with on-device mode.
-const KEY = 'photoctl.device'
+const KEY = 'shoebox.device'
 const CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'
 
 export interface LocalDevice { device_id: string; name: string; platform: 'ios' | 'android' | 'web'; registered?: boolean }

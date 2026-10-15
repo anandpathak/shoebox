@@ -13,7 +13,7 @@ import { join } from 'node:path'
 export const test = base.extend<{ devicePage: Page }, { webkitApp: { ctx: BrowserContext; page: Page } | null }>({
   webkitApp: [async ({ browserName }, use) => {
     if (browserName !== 'webkit') return use(null)
-    const ctx = await webkit.launchPersistentContext(mkdtempSync(join(tmpdir(), 'photoctl-wk-')), { ...devices['iPhone 15'] })
+    const ctx = await webkit.launchPersistentContext(mkdtempSync(join(tmpdir(), 'shoebox-wk-')), { ...devices['iPhone 15'] })
     await use({ ctx, page: ctx.pages()[0] ?? await ctx.newPage() })
     await ctx.close()
   }, { scope: 'worker' }],
@@ -28,7 +28,7 @@ export const test = base.extend<{ devicePage: Page }, { webkitApp: { ctx: Browse
     await use(p)
     await webkitApp.ctx.setOffline(false)
     await p.evaluate(async () => {           // forget everything this test stored
-      const { local } = (globalThis as unknown as { photoctlLocal: { local: { call: (o: string, ...a: unknown[]) => Promise<unknown> } } }).photoctlLocal
+      const { local } = (globalThis as unknown as { shoeboxLocal: { local: { call: (o: string, ...a: unknown[]) => Promise<unknown> } } }).shoeboxLocal
       await local.call('remove', 'library').catch(() => {})
       localStorage.clear()
     }).catch(() => {})
@@ -38,6 +38,6 @@ export { expect } from '@playwright/test'
 
 export type LocalApi = { call: <T = unknown>(op: string, ...a: unknown[]) => Promise<T> }
 export async function localCall<T>(page: Page, op: string, ...args: unknown[]): Promise<T> {
-  return page.evaluate(([o, a]) => (globalThis as unknown as { photoctlLocal: { local: LocalApi } })
-    .photoctlLocal.local.call(o as string, ...(a as unknown[])), [op, args] as const) as Promise<T>
+  return page.evaluate(([o, a]) => (globalThis as unknown as { shoeboxLocal: { local: LocalApi } })
+    .shoeboxLocal.local.call(o as string, ...(a as unknown[])), [op, args] as const) as Promise<T>
 }

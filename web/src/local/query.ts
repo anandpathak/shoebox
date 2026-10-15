@@ -1,4 +1,4 @@
-// TypeScript twin of photoctl/catalog/query.py. Both must pass spec/query_vectors.json and return the
+// TypeScript twin of shoebox/catalog/query.py. Both must pass spec/query_vectors.json and return the
 // same rows for the same catalog (search parity test).
 import type { MediaItem, ParsedQuery, SearchResult } from '../api/types'
 import type { Db } from './dbapi'

@@ -1,4 +1,4 @@
-// Response shapes of the photoctl API (server/routes/*). Request bodies come from schema.d.ts.
+// Response shapes of the shoebox API (server/routes/*). Request bodies come from schema.d.ts.
 
 export type MediaType = 'photo' | 'video'
 

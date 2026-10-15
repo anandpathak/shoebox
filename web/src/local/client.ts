@@ -66,4 +66,4 @@ export async function gunzip(data: ArrayBuffer | Blob): Promise<Uint8Array> {
 }
 
 // For diagnostics and browser tests.
-;(globalThis as Record<string, unknown>).photoctlLocal = { local, gunzip }
+;(globalThis as Record<string, unknown>).shoeboxLocal = { local, gunzip }

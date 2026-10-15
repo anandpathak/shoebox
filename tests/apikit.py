@@ -2,8 +2,8 @@
 
 from conftest import make_jpeg
 from opkit import record
-from photoctl.catalog import open_catalog
-from photoctl.catalog.store import upsert_record
+from shoebox.catalog import open_catalog
+from shoebox.catalog.store import upsert_record
 
 
 def seed(sidecar, device, library, n=3):

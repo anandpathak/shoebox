@@ -3,7 +3,7 @@
 import sqlite3
 import threading
 
-from photoctl.catalog import SCHEMA_VERSION, _migrations, open_catalog, schema_version
+from shoebox.catalog import SCHEMA_VERSION, _migrations, open_catalog, schema_version
 
 
 import pytest

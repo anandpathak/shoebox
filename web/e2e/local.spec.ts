@@ -3,7 +3,7 @@ import { expect, test } from './fixtures'
 test('a downloaded catalog opens on the device and full-text search runs there', async ({ devicePage: page, browserName }) => {
   await page.goto('/')
   const result = await page.evaluate(async () => {
-    const { local, gunzip } = (globalThis as unknown as { photoctlLocal: { local: { call: (op: string, ...a: unknown[]) => Promise<unknown> }, gunzip: (b: ArrayBuffer) => Promise<Uint8Array> } }).photoctlLocal
+    const { local, gunzip } = (globalThis as unknown as { shoeboxLocal: { local: { call: (op: string, ...a: unknown[]) => Promise<unknown> }, gunzip: (b: ArrayBuffer) => Promise<Uint8Array> } }).shoeboxLocal
     const status = await local.call('status') as { persistent: boolean }
     const res = await fetch('/api/catalogs/library')
     const bytes = await gunzip(await res.arrayBuffer())
@@ -19,7 +19,7 @@ test('a downloaded catalog opens on the device and full-text search runs there',
   if (browserName !== 'webkit') await page.reload()   // WebKit: see fixtures.ts
   else await page.goto('/#/library')
   const again = await page.evaluate(async () => {
-    const { local } = (globalThis as unknown as { photoctlLocal: { local: { call: (op: string, ...a: unknown[]) => Promise<unknown> } } }).photoctlLocal
+    const { local } = (globalThis as unknown as { shoeboxLocal: { local: { call: (op: string, ...a: unknown[]) => Promise<unknown> } } }).shoeboxLocal
     return (await local.call('status') as { databases: string[] }).databases
   })
   expect(again).toContain('library')

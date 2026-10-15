@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Photoframing Demo</title>
+<title>Shoebox Demo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -281,7 +281,7 @@ footer .wrap { display: grid; gap: 8px; }
 
 <div class="top">
   <div class="wrap">
-    <div class="brand"><i aria-hidden="true"></i>Photoframing <span class="chip next" style="margin-left:4px">Demo</span></div>
+    <div class="brand"><i aria-hidden="true"></i>Shoebox <span class="chip next" style="margin-left:4px">Demo</span></div>
     <nav class="nav" aria-label="Sections">
       <a href="#features">Features</a>
       <a href="#flow">Archive flow</a>
@@ -299,7 +299,7 @@ footer .wrap { display: grid; gap: 8px; }
     <div>
       <p class="eyebrow">Family photo archive · project walkthrough</p>
       <h1 style="margin-top:14px">Every original safe in S3.<br><em>Every photo searchable</em> from your Mac, iPhone and Android.</h1>
-      <p class="lede">Photoframing moves originals out of Apple Photos into cheap cold storage. It keeps a small copy of each photo with all its metadata, builds a SQLite catalog, and gives you one website to search it from any device, even offline.</p>
+      <p class="lede">Shoebox moves originals out of Apple Photos into cheap cold storage. It keeps a small copy of each photo with all its metadata, builds a SQLite catalog, and gives you one website to search it from any device, even offline.</p>
       <div class="cta-row">
         <a class="btn primary" href="#flow">Walk through the archive flow</a>
         <a class="btn" href="#app">Try the phone app</a>
@@ -332,7 +332,7 @@ footer .wrap { display: grid; gap: 8px; }
           <li>Re-runs skip anything already archived</li>
           <li>Archived items go to an "Archived to S3" album in Photos for review</li>
         </ul>
-        <span class="ms">M0 · photoctl archive</span>
+        <span class="ms">M0 · shoebox archive</span>
       </article>
       <article class="feat">
         <div class="feat-head"><h3>Small copies, full metadata</h3><span class="chip built">Built</span></div>
@@ -420,7 +420,7 @@ footer .wrap { display: grid; gap: 8px; }
         <ul>
           <li>The Mac's SQLite databases back up to S3 after every run and daily</li>
           <li>Kept 30 days, plus one per month for a year</li>
-          <li><code>photoctl recover</code> sets up a new Mac as the same device</li>
+          <li><code>shoebox recover</code> sets up a new Mac as the same device</li>
           <li>Catches up on changes made since the backup by syncing</li>
         </ul>
         <span class="ms">T0.7 + M3b · backups/</span>
@@ -541,7 +541,7 @@ footer .wrap { display: grid; gap: 8px; }
         <rect class="boxa" x="20" y="140" width="420" height="330" rx="12"/>
         <text class="t1" x="38" y="168">Mac · owner's machine</text>
         <rect class="inner" x="38" y="182" width="384" height="62" rx="8"/>
-        <text class="tm" x="52" y="205">photoctl archive</text>
+        <text class="tm" x="52" y="205">shoebox archive</text>
         <text class="t3" x="52" y="226">hash → compress (sips / ffmpeg) → sidecar → upload</text>
         <rect class="inner" x="38" y="254" width="186" height="74" rx="8"/>
         <text class="tm" x="52" y="277">catalog.sqlite</text>
@@ -552,7 +552,7 @@ footer .wrap { display: grid; gap: 8px; }
         <text class="t3" x="250" y="297">this Mac's upload</text>
         <text class="t3" x="250" y="314">status (not synced)</text>
         <rect class="inner" x="38" y="338" width="384" height="116" rx="8"/>
-        <text class="tm" x="52" y="361">photoctl serve · 127.0.0.1:8765</text>
+        <text class="tm" x="52" y="361">shoebox serve · 127.0.0.1:8765</text>
         <text class="t3" x="52" y="382">FastAPI + web UI · search, view, edit, trigger runs</text>
         <text class="t3" x="52" y="400">sync loop every 60 s · presigned URLs (≤ 15 min)</text>
         <text class="t3" x="52" y="418">ingest.lock / sync.lock: one run at a time</text>
@@ -691,8 +691,8 @@ footer .wrap { display: grid; gap: 8px; }
 
 <footer>
   <div class="wrap">
-    <p>Photoframing · project files: <code>src/photoctl/</code> (CLI), <code>infra/</code> (Terraform), <code>docs/PRD.md</code>, <code>docs/TECH_REQUIREMENTS.md</code>, <code>docs/LOCAL_APP_PLAN.md</code>, <code>docs/TASKS.md</code>.</p>
-    <p>Try it today: select a photo in Photos, then run <code>uv run photoctl archive --selected --local-only --out test-output</code>.</p>
+    <p>Shoebox · project files: <code>src/shoebox/</code> (CLI), <code>infra/</code> (Terraform), <code>docs/PRD.md</code>, <code>docs/TECH_REQUIREMENTS.md</code>, <code>docs/LOCAL_APP_PLAN.md</code>, <code>docs/TASKS.md</code>.</p>
+    <p>Try it today: select a photo in Photos, then run <code>uv run shoebox archive --selected --local-only --out test-output</code>.</p>
   </div>
 </footer>
 
@@ -733,7 +733,7 @@ footer .wrap { display: grid; gap: 8px; }
     photo: [
       { t: "Pick", s: "built", h: "Pick what to archive",
         p: "Select photos in Photos.app, or name an album, a date range or the whole library. The CLI reads the Photos database directly with osxphotos.",
-        term: '<span class="c">$</span> uv run photoctl archive <span class="k">--selected</span>\n<span class="c">1 items matched (1 photos, 0 videos) · 0 already archived · 1 to process</span>\n\n<span class="c">source</span>   applephotos:37CF…DE13\n<span class="c">file</span>     IMG_5368.HEIC · 4032×3024 · 1.9 MB\n<span class="c">taken</span>    2025-08-15 11:52:05 +05:30\n<span class="c">place</span>    Gokarna, Karnataka, India' },
+        term: '<span class="c">$</span> uv run shoebox archive <span class="k">--selected</span>\n<span class="c">1 items matched (1 photos, 0 videos) · 0 already archived · 1 to process</span>\n\n<span class="c">source</span>   applephotos:37CF…DE13\n<span class="c">file</span>     IMG_5368.HEIC · 4032×3024 · 1.9 MB\n<span class="c">taken</span>    2025-08-15 11:52:05 +05:30\n<span class="c">place</span>    Gokarna, Karnataka, India' },
       { t: "Hash", s: "built", h: "Give it a permanent ID",
         p: "The ID comes from the file's contents (SHA-256), so the same photo gets the same ID on any device. Duplicates merge automatically.",
         term: '<span class="c">sha256</span>    → base32 → first 26 chars\n<span class="c">photo_id</span>  <span class="k">XMWNZRKFSGXTWYPDPCNRBSSBM4</span>\n<span class="c">folder</span>    2025/2025-08   <span class="c">(from the capture date)</span>' },
@@ -757,7 +757,7 @@ footer .wrap { display: grid; gap: 8px; }
     video: [
       { t: "Pick", s: "built", h: "Pick what to archive",
         p: "Videos are archived alongside photos. Use --no-videos to skip them.",
-        term: '<span class="c">$</span> uv run photoctl archive <span class="k">--selected</span>\n<span class="c">1 items matched (0 photos, 1 videos) · 1 to process</span>\n\n<span class="c">source</span>   applephotos:72CE…86D0\n<span class="c">file</span>     IMG_1520.MOV · HEVC 1920×1080 · 18 s · 28 MB\n<span class="c">taken</span>    2025-01-17 10:31:58 +05:30' },
+        term: '<span class="c">$</span> uv run shoebox archive <span class="k">--selected</span>\n<span class="c">1 items matched (0 photos, 1 videos) · 1 to process</span>\n\n<span class="c">source</span>   applephotos:72CE…86D0\n<span class="c">file</span>     IMG_1520.MOV · HEVC 1920×1080 · 18 s · 28 MB\n<span class="c">taken</span>    2025-01-17 10:31:58 +05:30' },
       { t: "Hash", s: "built", h: "Give it a permanent ID",
         p: "Same rule as photos: the ID comes from the file's bytes.",
         term: '<span class="c">photo_id</span>  <span class="k">YOJO2KPLBCRHQEOJOWB56CQJB6</span>\n<span class="c">folder</span>    2025/2025-01' },

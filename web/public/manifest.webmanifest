@@ -1,6 +1,6 @@
 {
-  "name": "Photoframing",
-  "short_name": "Photoframing",
+  "name": "Shoebox",
+  "short_name": "Shoebox",
   "description": "Your family photo archive: search, view and back up from any device.",
   "id": "/",
   "start_url": "/#/library",

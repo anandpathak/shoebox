@@ -13,15 +13,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "tests"))
-os.environ["PHOTOCTL_HOME"] = tempfile.mkdtemp(prefix="photoctl-parity-")
+os.environ["SHOEBOX_HOME"] = tempfile.mkdtemp(prefix="shoebox-parity-")
 
 from conftest import SIDECAR  # noqa: E402
 from opkit import record  # noqa: E402
-from photoctl.catalog import open_catalog  # noqa: E402
-from photoctl.catalog.ops import Emitter  # noqa: E402
-from photoctl.catalog.query import search  # noqa: E402
-from photoctl.catalog.store import upsert_record  # noqa: E402
-from photoctl.device import Device  # noqa: E402
+from shoebox.catalog import open_catalog  # noqa: E402
+from shoebox.catalog.ops import Emitter  # noqa: E402
+from shoebox.catalog.query import search  # noqa: E402
+from shoebox.catalog.store import upsert_record  # noqa: E402
+from shoebox.device import Device  # noqa: E402
 
 MAC = Device("01MACMACMACMACMACMACMACMAC", "Mac", "macos", "x")
 PIXEL = Device("01PIXELPIXELPIXELPIXELPIXE", "Pixel 8", "android", "x")
@@ -52,7 +52,7 @@ def _data_sql(conn: sqlite3.Connection) -> str:
 
 
 def main() -> None:
-    path = Path(os.environ["PHOTOCTL_HOME"]) / "parity.sqlite"
+    path = Path(os.environ["SHOEBOX_HOME"]) / "parity.sqlite"
     conn = open_catalog(path)
     for n in range(40):
         city, region = PLACES[n % len(PLACES)]

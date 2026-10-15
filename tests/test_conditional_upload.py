@@ -1,6 +1,6 @@
 import threading
 
-from photoctl import s3 as s3mod
+from shoebox import s3 as s3mod
 
 
 def test_only_one_of_two_racing_uploads_creates_the_object(bucket, tmp_path):

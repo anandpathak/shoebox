@@ -11,11 +11,11 @@ Guiding constraints, in priority order: **(1) originals are never lost, (2) priv
 
 ```
 ┌──────────────────────── Mac (owner's machine) ─────────────────────────┐
-│  photoctl CLI (Python)                                                   │
+│  shoebox CLI (Python)                                                   │
 │   ingest ──► hash ─► derive (jpg/thumb) ─► upload ─► sidecar JSON        │
 │   enrich ──► exif/time/place ─► vision (local or Claude) ─► faces ─►     │
 │              embeddings ─► cluster ─► update index                       │
-│   state: ~/.photoctl/state.sqlite  (manifest, faces, people, index)      │
+│   state: ~/.shoebox/state.sqlite  (manifest, faces, people, index)      │
 └───────────────┬─────────────────────────────────────┬───────────────────┘
                 │ boto3 (TLS, SigV4)                   │ sync index
                 ▼                                     ▼
@@ -54,8 +54,8 @@ Key design decisions:
 ## 2. Repository layout
 
 ```
-photoframing/
-  photoctl/                # Python package (Python 3.12, uv/poetry)
+shoebox/
+  shoebox/                # Python package (Python 3.12, uv/poetry)
     cli.py                 # Typer CLI: ingest, enrich, faces, index, verify, serve
     sources/               # folder.py, apple_photos.py (osxphotos)
     derive.py              # Pillow + pillow-heif, rawpy for RAW
@@ -109,7 +109,7 @@ photoframing/
 ### 3.4 Metadata captured at ingest (written to sidecar + state DB)
 EXIF: DateTimeOriginal, OffsetTimeOriginal, GPSLatitude/Longitude/Altitude, Make, Model, LensModel, FocalLength, FNumber, ExposureTime, ISO, Orientation, PixelXDimension/Y, ColorSpace. File: size, mime, sha256, perceptual hash (`imagehash.phash`). Apple: everything listed in §3.2. This is the cheapest moment to read it; never rely on reading `raw/` again.
 
-### 3.5 State database (local, `~/.photoctl/state.sqlite`)
+### 3.5 State database (local, `~/.shoebox/state.sqlite`)
 ```sql
 CREATE TABLE source_files (
   source_ref TEXT PRIMARY KEY,     -- 'folder:/abs/path' or 'applephotos:UUID'
@@ -216,11 +216,11 @@ Recommendation for "minimum cost": run **local embeddings for everyone** (free, 
                        face_count INTEGER, sample_face_ids TEXT, hidden INTEGER DEFAULT 0);
   CREATE TABLE people_history (at TEXT, action TEXT, from_ids TEXT, to_id TEXT);   -- merge/split/rename
   ```
-- Naming UI: `photoctl faces review` prints/opens a local HTML page (served on localhost) with cluster grids; owner types names, merges, splits. Also bootstrap from Apple's `persons` labels: if ≥ 70% of a cluster's faces come from photos Apple labelled "Yahvi", propose that name.
+- Naming UI: `shoebox faces review` prints/opens a local HTML page (served on localhost) with cluster grids; owner types names, merges, splits. Also bootstrap from Apple's `persons` labels: if ≥ 70% of a cluster's faces come from photos Apple labelled "Yahvi", propose that name.
 - `people.json` (id → name, no embeddings) is synced to S3 `index/`; **embeddings are never uploaded to S3 unencrypted** — either keep them local-only (default; rebuildable from `compressed/`) or upload encrypted with a local key (age/sops) as an opt-in backup.
 
 ### 4.6 Index build and sync
-- `photoctl index build` materialises the search tables from `photos`, `faces`, `people`, and `meta` JSON:
+- `shoebox index build` materialises the search tables from `photos`, `faces`, `people`, and `meta` JSON:
   ```sql
   CREATE VIRTUAL TABLE photo_fts USING fts5(photo_id UNINDEXED, caption, tags, ocr_text, place_text, people_text);
   CREATE VIRTUAL TABLE photo_vec USING vec0(photo_id TEXT PRIMARY KEY, embedding float[512]);
@@ -232,8 +232,8 @@ Recommendation for "minimum cost": run **local embeddings for everyone** (free, 
   CREATE TABLE vocab_event (alias TEXT PRIMARY KEY, date_from TEXT, date_to TEXT); -- 'diwali 2022' → range
   ```
 - Place vocab is generated from distinct `country/region/city/locality/poi` values in the index plus `vocab/places.yaml` (aliases). Tag vocab is generated from distinct tags plus `vocab/synonyms.yaml`. Events come only from `vocab/events.yaml` (owner-maintained).
-- `photoctl index push` uploads `index/photos.sqlite` (VACUUM'd, ~100–200 MB at 50k photos with vectors; faces.embedding excluded) and `index/people.json`. Versioned key (`index/photos.sqlite` + `index/photos.<ts>.sqlite` kept 5 deep).
-- Rebuild path: `photoctl index rebuild --from-s3` streams `meta/` JSON (50k objects ≈ $0.02 of GETs) → SQLite. Embeddings/faces are recomputed from `compressed/` if the local DB is lost.
+- `shoebox index push` uploads `index/photos.sqlite` (VACUUM'd, ~100–200 MB at 50k photos with vectors; faces.embedding excluded) and `index/people.json`. Versioned key (`index/photos.sqlite` + `index/photos.<ts>.sqlite` kept 5 deep).
+- Rebuild path: `shoebox index rebuild --from-s3` streams `meta/` JSON (50k objects ≈ $0.02 of GETs) → SQLite. Embeddings/faces are recomputed from `compressed/` if the local DB is lost.
 
 ## 5. Phase 3 — Search
 
@@ -291,7 +291,7 @@ No LLM and no network call. The vocabulary is closed (our people, our places, ou
   - `GET /photo/{id}` → full record + presigned compressed URL
   - `POST /photo/{id}/restore` → starts Glacier restore
   - `GET /people` (names only) ; `POST /feedback`
-- **MCP server** (`photoctl serve-mcp`, stdio or streamable-HTTP) exposing `search_photos(query?, people?, date_from?, date_to?, place?, terms?)` (structured args let the calling assistant do its own parsing; otherwise the local parser runs), `list_people()`, `get_photo(photo_id)`, `request_original(photo_id)`. Register it in Claude Desktop/Claude Code → "share me a photo of Yahvi" works in chat, and the model receives the thumbnail as an image block. This is the cheapest phase-3 UI: no web frontend needed for the owner.
+- **MCP server** (`shoebox serve-mcp`, stdio or streamable-HTTP) exposing `search_photos(query?, people?, date_from?, date_to?, place?, terms?)` (structured args let the calling assistant do its own parsing; otherwise the local parser runs), `list_people()`, `get_photo(photo_id)`, `request_original(photo_id)`. Register it in Claude Desktop/Claude Code → "share me a photo of Yahvi" works in chat, and the model receives the thumbnail as an image block. This is the cheapest phase-3 UI: no web frontend needed for the owner.
 - Web UI (3b): minimal React/HTMX page served by the same FastAPI app — search box, grid, lightbox, "get original" with status.
 
 ### 5.4 Hosting options (pick A first, move to B when needed)
@@ -308,7 +308,7 @@ Search needs only S3 (presign) plus the local SQLite file and CLIP text model. T
 ### 5.5 Security controls (all phases)
 - **Identity/authz:** SSO/short-lived creds for CLI; Lambda role with `s3:GetObject` on `compressed/*, thumb/*, meta/*, index/*`, `s3:RestoreObject` + `GetObject` on `raw/*`, nothing else. No principal other than the admin role can delete.
 - **Data:** all buckets private + encrypted; TLS-only policy; versioning; optional Object Lock on `raw/`. Presigned URLs ≤ 15 min, generated per request, never logged. EXIF GPS stays in `compressed/` for the owner; if a "share externally" feature is ever added, serve a stripped copy.
-- **Biometrics:** face embeddings local-only by default; people names in S3 are just names ↔ opaque ids. Provide `photoctl faces purge` to delete all embeddings. (If anyone outside the household is ever indexed, BIPA/GDPR-style consent considerations apply — out of scope for a personal archive, but the switch exists.)
+- **Biometrics:** face embeddings local-only by default; people names in S3 are just names ↔ opaque ids. Provide `shoebox faces purge` to delete all embeddings. (If anyone outside the household is ever indexed, BIPA/GDPR-style consent considerations apply — out of scope for a personal archive, but the switch exists.)
 - **LLM boundary:** the search path makes no LLM or third-party calls; query text stays on owner-controlled infrastructure. The only possible cloud-model use is enrichment captioning, and only when `vision.backend=claude`: derivative images only, never originals or face crops. Treat that model output as untrusted data: structured outputs + schema validation.
 - **Query safety:** parser output values come from the vocab tables. Free-text content terms go into FTS5 as quoted phrases and SQL uses parameterised queries only. User text is never interpolated into SQL or FTS syntax.
 - **Secrets:** `ANTHROPIC_API_KEY` (only if `vision.backend=claude`) from Keychain; never in git; `.env` git-ignored; pre-commit secret scan.
@@ -352,9 +352,9 @@ One-time: uploads 50k×4 PUTs ≈ $1; Deep Archive has a 180-day minimum (deleti
 ## 8. Phase 1 implementation plan (first sprint)
 
 1. `infra/`: bucket + lifecycle + IAM + TLS/encryption policies; `terraform apply`.
-2. `photoctl ingest --source folder:/path --dry-run` → manifest only; then real run on 1k photos.
+2. `shoebox ingest --source folder:/path --dry-run` → manifest only; then real run on 1k photos.
 3. Add Apple Photos source; handle iCloud-missing originals.
-4. `photoctl verify --sample 200`.
+4. `shoebox verify --sample 200`.
 5. Full library run overnight; review summary; turn on Object Lock/MFA-delete for `raw/`.
 
 Phase 2 starts with the **free** parts (EXIF/time/place, CLIP embeddings, faces) so search is useful before any LLM spend; captions/tags follow as a config choice.

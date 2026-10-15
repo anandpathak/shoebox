@@ -14,24 +14,24 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 
 ## M0 — Archive CLI (Phase 1 basics) ✅
 
-- [x] **T0.1** `photoctl archive` from Apple Photos: hash → compress (sips, EXIF/GPS kept) → JSON sidecar → upload original to Deep Archive + compressed/meta to S3 ✅ 2026-10-10
-- [x] **T0.2** Device-local resumable state (`~/.photoctl/state.sqlite`), `status`, `verify` ✅ 2026-10-10
+- [x] **T0.1** `shoebox archive` from Apple Photos: hash → compress (sips, EXIF/GPS kept) → JSON sidecar → upload original to Deep Archive + compressed/meta to S3 ✅ 2026-10-10
+- [x] **T0.2** Device-local resumable state (`~/.shoebox/state.sqlite`), `status`, `verify` ✅ 2026-10-10
 - [x] **T0.3** Terraform bucket (private, encrypted, versioned, TLS-only, lifecycle) + ingest IAM policy ✅ 2026-10-10
 - [x] **T0.4** `--local-only` test mode, friendly permission errors ✅ 2026-10-11
 - [x] **T0.5** Video support: 720p MP4 (ffmpeg, metadata kept) + poster frame ✅ 2026-10-11
 - [ ] **T0.6** First real run: `archive --selected` on ~20 photos + 2 videos → S3. Delete them from the "Archived to S3" album in Photos only after `verify` passes.
-  *Done when:* `photoctl verify --sample 20` shows 0 bad, and the objects are visible in the S3 console.
-- [x] **T0.7** Back up the Mac's databases to S3 now: `photoctl db backup` (SQLite online backup API → `integrity_check` → gzip → `backups/<device_id>/<timestamp>/` with `state.sqlite.gz`, `catalog.sqlite.gz`, `device.json` + manifest with sha256), `photoctl db list`, `photoctl db restore [--at] [--device]`. Runs automatically at the end of every `archive`. ✅ 2026-10-11
-  *Done when:* deleting `~/.photoctl/state.sqlite`, then `photoctl db restore`, then re-running the same `archive`, uploads 0 bytes.
+  *Done when:* `shoebox verify --sample 20` shows 0 bad, and the objects are visible in the S3 console.
+- [x] **T0.7** Back up the Mac's databases to S3 now: `shoebox db backup` (SQLite online backup API → `integrity_check` → gzip → `backups/<device_id>/<timestamp>/` with `state.sqlite.gz`, `catalog.sqlite.gz`, `device.json` + manifest with sha256), `shoebox db list`, `shoebox db restore [--at] [--device]`. Runs automatically at the end of every `archive`. ✅ 2026-10-11
+  *Done when:* deleting `~/.shoebox/state.sqlite`, then `shoebox db restore`, then re-running the same `archive`, uploads 0 bytes.
 
 ---
 
 ## M1 — Catalog DB built during archive (§3)
 
-- [x] **T1.1** Add `photoctl/catalog/` with `schema.sql` (including the `devices` table), a migration runner (`meta.schema_version`), WAL + `busy_timeout`, and `open_catalog()`. ✅ 2026-10-11
-  *Done when:* `photoctl catalog init` creates `~/.photoctl/catalog.sqlite` with every table from §3; re-running is a no-op.
-- [x] **T1.2** Device identity: generate a `device_id` (ULID) + name + platform on first run and store it in `~/.photoctl/device.json` + `meta`. ✅ 2026-10-11
-  *Done when:* the id is stable across runs and shown by `photoctl status`.
+- [x] **T1.1** Add `shoebox/catalog/` with `schema.sql` (including the `devices` table), a migration runner (`meta.schema_version`), WAL + `busy_timeout`, and `open_catalog()`. ✅ 2026-10-11
+  *Done when:* `shoebox catalog init` creates `~/.shoebox/catalog.sqlite` with every table from §3; re-running is a no-op.
+- [x] **T1.2** Device identity: generate a `device_id` (ULID) + name + platform on first run and store it in `~/.shoebox/device.json` + `meta`. ✅ 2026-10-11
+  *Done when:* the id is stable across runs and shown by `shoebox status`.
 - [x] **T1.3** Thumbnails: 320px `thumb/<part>/<id>.jpg` for photos and video posters, saved locally and uploaded to S3 Standard. Backfill command for items already archived. ✅ 2026-10-11
   *Done when:* every archived item has a thumb of roughly ≤ 40 KB.
 - [x] **T1.4** Map the sidecar to catalog rows: `media`, `media_sources`, `media_tags` (Apple keywords + labels), `media_albums`, `people` + `media_people`, place fields, camera, duration. ✅ 2026-10-11
@@ -40,11 +40,11 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
   *Done when:* archiving 5 items gives 5 `media` rows with correct keys, dates, GPS and place.
 - [x] **T1.6** FTS: keep `media_fts` in sync on every insert or update. ✅ 2026-10-11
   *Done when:* `SELECT … FROM media_fts WHERE media_fts MATCH 'gokarna'` finds the test photo.
-- [x] **T1.7** Ingest lock (`~/.photoctl/ingest.lock`, `flock`) + run log `~/.photoctl/runs/<run_id>.jsonl` (progress events). ✅ 2026-10-11
+- [x] **T1.7** Ingest lock (`~/.shoebox/ingest.lock`, `flock`) + run log `~/.shoebox/runs/<run_id>.jsonl` (progress events). ✅ 2026-10-11
   *Done when:* starting a second `archive` while one is running exits immediately with "already running (pid, start time)".
-- [x] **T1.8** `photoctl catalog backfill` builds the catalog from existing `library/meta/**/*.json` (or `--from-s3 meta/`). ✅ 2026-10-11
+- [x] **T1.8** `shoebox catalog backfill` builds the catalog from existing `library/meta/**/*.json` (or `--from-s3 meta/`). ✅ 2026-10-11
   *Done when:* deleting `catalog.sqlite` and running backfill restores an identical row count.
-- [x] **T1.9** `photoctl catalog export --flavour full|contributed [--device <id>] -o file.sqlite.gz`: a consistent snapshot via the SQLite backup API, then VACUUM (§11.2). ✅ 2026-10-11
+- [x] **T1.9** `shoebox catalog export --flavour full|contributed [--device <id>] -o file.sqlite.gz`: a consistent snapshot via the SQLite backup API, then VACUUM (§11.2). ✅ 2026-10-11
   *Done when:* the exported file opens in `sqlite3`, and the `contributed` export contains only media sourced from that device.
 
 ---
@@ -61,11 +61,11 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
   *Note:* Imports (Apple title/favorite) carry a lower priority than edits, so a later re-import never overrides a user edit. Ops for photos that haven't arrived yet wait in deferred_ops.
 - [x] **T2.4** **Property test** (Hypothesis): 2–3 simulated devices (Mac + phones), random ops, random delivery interleavings → identical catalog checksum. ✅ 2026-10-11
   *Done when:* 1,000 examples pass in CI.
-  *Note:* Found and fixed a real bug: two removes of the same tag made tombstones.removed_by depend on arrival order. Verified the test catches a planted order-dependence bug. Default 300 examples; PHOTOCTL_PROPERTY_EXAMPLES=1000 for the full run.
+  *Note:* Found and fixed a real bug: two removes of the same tag made tombstones.removed_by depend on arrival order. Verified the test catches a planted order-dependence bug. Default 300 examples; SHOEBOX_PROPERTY_EXAMPLES=1000 for the full run.
 - [x] **T2.5** Change `archive` (T1.5) to emit `media.upsert` / `media.source` / `device.register` ops instead of direct inserts. ✅ 2026-10-11
   *Done when:* the catalog after archive is the same as before, and the ops appear in `outbox`.
   *Note:* archive, catalog backfill and thumbs backfill all emit ops; backfill skips records already in the catalog unless --force.
-- [x] **T2.6** `photoctl catalog checksum`: deterministic hash over sorted rows (used by sync verify). ✅ 2026-10-11
+- [x] **T2.6** `shoebox catalog checksum`: deterministic hash over sorted rows (used by sync verify). ✅ 2026-10-11
   *Done when:* the same ops give the same checksum on two DB files.
 - [x] **T2.7** Conformance vectors `spec/sync_vectors/*.json` (ops → expected rows), shared with the TypeScript `apply_ops` (T9.4). ✅ 2026-10-11
   *Done when:* there are ≥ 15 vectors covering every §5 rule, run in pytest.
@@ -85,16 +85,16 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
   *Done when:* killing the process mid-push and re-running gives no lost and no duplicated batches.
   *Note:* If a batch key already exists (crash after upload, or restored device), the ops it holds are cleared from the outbox and the rest go in a new batch, so nothing is lost or uploaded twice.
 - [x] **T3.4** Pull: list each device prefix with `StartAfter=cursor`, sort by HLC, `apply_ops`, advance cursors in the same transaction. ✅ 2026-10-11
-  *Done when:* device B sees device A's archive after `photoctl sync`.
+  *Done when:* device B sees device A's archive after `shoebox sync`.
   *Note:* Batches are validated first; malformed or spoofed batches (ops from another device_id) are skipped with a warning, not fatal.
-- [x] **T3.5** Sync lock (`sync.lock` flock) + `photoctl sync [--watch 60]` + automatic sync at the end of archive. ✅ 2026-10-11
+- [x] **T3.5** Sync lock (`sync.lock` flock) + `shoebox sync [--watch 60]` + automatic sync at the end of archive. ✅ 2026-10-11
   *Done when:* running `sync` twice concurrently gives one sync and one "already syncing" message.
-- [x] **T3.6** Device registry `sync/devices/<id>.json` (name, platform, last_seen, app version, checksum); `photoctl devices`. ✅ 2026-10-11
+- [x] **T3.6** Device registry `sync/devices/<id>.json` (name, platform, last_seen, app version, checksum); `shoebox devices`. ✅ 2026-10-11
   *Done when:* both devices are listed with their platform and last-seen time.
 - [x] **T3.7** Snapshot + bootstrap: compaction lease (`sync/locks/compact.json`), VACUUM'd gz snapshot, `HEAD.json` CAS with `If-Match`; a new device bootstraps from the snapshot, then pulls the remaining ops. ✅ 2026-10-11
   *Done when:* a fresh device gets a full catalog in < 1 min for 10k items, and a simulated expired lease is taken over.
-  *Note:* Measured with 10k items (mocked S3): snapshot 6.1 MB gzipped, published in 2.3 s; fresh device bootstrap + pull 0.3 s, checksums equal. Snapshots drop the op log (re-applying is harmless) except ops still waiting in deferred_ops. 'photoctl sync --snapshot' forces one.
-- [x] **T3.8** `photoctl sync verify`: compares the local checksum with other devices' published checksums. ✅ 2026-10-11
+  *Note:* Measured with 10k items (mocked S3): snapshot 6.1 MB gzipped, published in 2.3 s; fresh device bootstrap + pull 0.3 s, checksums equal. Snapshots drop the op log (re-applying is harmless) except ops still waiting in deferred_ops. 'shoebox sync --snapshot' forces one.
+- [x] **T3.8** `shoebox sync verify`: compares the local checksum with other devices' published checksums. ✅ 2026-10-11
   *Done when:* after both devices sync, verify reports "converged".
   *Note:* Sync now also registers the device in the catalog if it isn't yet (found by this test).
 - [x] **T3.9** Integration test on a `-test` bucket: two processes (two `device_id`s) doing concurrent archive + edits + sync → same checksum. ✅ 2026-10-11
@@ -110,21 +110,21 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [~] **T3b.1** Terraform: lifecycle for `backups/` (daily kept 30 days, `monthly/` kept 365 days); confirm the ingest policy can write but not delete there.
   *Done when:* `tofu apply` succeeds and a test delete on `backups/` with the ingest identity is denied.
   *Note:* Written and `tofu validate` passes (2026-10-11). Backups are tagged `retention=daily` / `retention=monthly` and two tag-filtered rules expire them after 30 / 365 days (`backup_daily_days`, `backup_monthly_days`); the ingest policy gained `s3:PutObjectTagging`/`GetObjectTagging` and still has no delete. **Your step:** `tofu plan && tofu apply` (together with T3.1).
-- [x] **T3b.2** Full `photoctl db backup`: catalog + state + `device.json` + `config.toml`; consistent copies via the online backup API; `integrity_check`; manifest (sha256 per file, schema_version, last pushed op, version); `LATEST.json` replaced with `If-Match`; first backup of the month copied to `monthly/`. ✅ 2026-10-11
+- [x] **T3b.2** Full `shoebox db backup`: catalog + state + `device.json` + `config.toml`; consistent copies via the online backup API; `integrity_check`; manifest (sha256 per file, schema_version, last pushed op, version); `LATEST.json` replaced with `If-Match`; first backup of the month copied to `monthly/`. ✅ 2026-10-11
   *Done when:* a backup taken while an archive run is writing passes `integrity_check` after download.
-- [x] **T3b.3** Automatic schedule: after every archive run + daily via a LaunchAgent (`photoctl db schedule install|uninstall`); `photoctl status` shows "Last backup: 3 h ago", amber after 48 h. ✅ 2026-10-11
+- [x] **T3b.3** Automatic schedule: after every archive run + daily via a LaunchAgent (`shoebox db schedule install|uninstall`); `shoebox status` shows "Last backup: 3 h ago", amber after 48 h. ✅ 2026-10-11
   *Done when:* the LaunchAgent fires once overnight and a new backup appears in S3.
-  *Note:* Not installed on this Mac. Run 'photoctl db schedule install' yourself; the daily job needs credentials that don't expire overnight (an expired 'aws login' session makes it fail and logs to ~/.photoctl/logs/backup.err.log).
-- [x] **T3b.4** `photoctl db restore [--at <date>]`: download → verify sha256 → `integrity_check` → swap files atomically (old ones kept as `.bak`) → `photoctl sync` catches up on ops made since the backup. ✅ 2026-10-11
+  *Note:* Not installed on this Mac. Run 'shoebox db schedule install' yourself; the daily job needs credentials that don't expire overnight (an expired 'aws login' session makes it fail and logs to ~/.shoebox/logs/backup.err.log).
+- [x] **T3b.4** `shoebox db restore [--at <date>]`: download → verify sha256 → `integrity_check` → swap files atomically (old ones kept as `.bak`) → `shoebox sync` catches up on ops made since the backup. ✅ 2026-10-11
   *Done when:* restoring yesterday's backup and syncing gives the same catalog checksum as the other devices.
-- [x] **T3b.5** `photoctl recover` for a new or wiped Mac: list old devices from `sync/devices/` → restore identity, config and DBs → pull this device's own ops and advance the HLC past them (no op-id reuse) → sync → ready to `archive` again. ✅ 2026-10-11
+- [x] **T3b.5** `shoebox recover` for a new or wiped Mac: list old devices from `sync/devices/` → restore identity, config and DBs → pull this device's own ops and advance the HLC past them (no op-id reuse) → sync → ready to `archive` again. ✅ 2026-10-11
   *Done when:* on a fresh macOS user account, `recover` followed by `archive --all --dry-run` reports everything as already archived.
   *Note:* Also fixed 'archive --dry-run' to skip items already archived, so a dry run predicts the real run.
-- [x] **T3b.6** Fallback rebuilds when there's no usable backup: `photoctl catalog rebuild --from-s3` and `photoctl state rebuild --from-s3` (from `meta/` JSON: Apple UUID + sha256 → status). ✅ 2026-10-11
+- [x] **T3b.6** Fallback rebuilds when there's no usable backup: `shoebox catalog rebuild --from-s3` and `shoebox state rebuild --from-s3` (from `meta/` JSON: Apple UUID + sha256 → status). ✅ 2026-10-11
   *Done when:* both rebuild on a test bucket and match the originals' row counts.
 - [x] **T3b.7** Runbook `docs/RECOVERY.md`: what to do when the DB is corrupted, the Mac is lost, or you need a point in time; tested end to end once. ✅ 2026-10-11
   *Done when:* someone following only the runbook recovers a wiped test Mac.
-  *Note:* Each runbook path is exercised by automated tests that wipe ~/.photoctl and recover (tests/test_archive_cli.py, test_restore_catchup.py). It hasn't been walked through on a physical spare Mac yet.
+  *Note:* Each runbook path is exercised by automated tests that wipe ~/.shoebox and recover (tests/test_archive_cli.py, test_restore_catchup.py). It hasn't been walked through on a physical spare Mac yet.
 
 ---
 
@@ -133,24 +133,24 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T4.1** Shared query files `queries/*.sql` (search, filters, person, place, device/platform, pagination) with named parameters, plus a Python runner. Parameterised SQL only (§10.5). ✅ 2026-10-11
   *Done when:* there are tests for each filter and for combinations of 2 filters.
   *Note:* Text filters (free text, person, place, tag, album) go through one quoted FTS5 expression from build_fts (person names resolve through merges via the FTS people column); dates, type, favourite, device, hidden and keyset pagination are plain SQL. Words like 'december', '2024', 'videos' become filters. Shared vectors: spec/query_vectors.json. Multi-catalog search queries each file and merges (rather than ATTACH), so the same SQL runs unchanged everywhere.
-- [x] **T4.2** `photoctl search "gokarna" --from 2025-08-01 --type photo [--device iphone]` prints a table with ids and local paths. ✅ 2026-10-11
+- [x] **T4.2** `shoebox search "gokarna" --from 2025-08-01 --type photo [--device iphone]` prints a table with ids and local paths. ✅ 2026-10-11
   *Done when:* it returns the expected test items.
-- [x] **T4.3** Multi-catalog search: `photoctl search "beach" --catalog a.sqlite --catalog b.sqlite` (ATTACH + UNION ALL + dedup by `photo_id`, with source-device badges) (§11.3). ✅ 2026-10-11
+- [x] **T4.3** Multi-catalog search: `shoebox search "beach" --catalog a.sqlite --catalog b.sqlite` (ATTACH + UNION ALL + dedup by `photo_id`, with source-device badges) (§11.3). ✅ 2026-10-11
   *Done when:* a photo present in both files is listed once, with both devices shown.
-- [x] **T4.4** `photoctl catalog download --device <id|all|library> --flavour full|contributed -o dir/` from `sync/catalogs/`. ✅ 2026-10-11
+- [x] **T4.4** `shoebox catalog download --device <id|all|library> --flavour full|contributed -o dir/` from `sync/catalogs/`. ✅ 2026-10-11
   *Done when:* every published catalog downloads and opens.
-- [x] **T4.5** Fetch helpers: local path if present, otherwise a presigned S3 URL (≤ 15 min); `photoctl get <id> [--compressed|--thumb] -o dir`. ✅ 2026-10-11
+- [x] **T4.5** Fetch helpers: local path if present, otherwise a presigned S3 URL (≤ 15 min); `shoebox get <id> [--compressed|--thumb] -o dir`. ✅ 2026-10-11
   *Done when:* fetching on a second device (with no local files) downloads from S3.
   *Note:* Presigned links use SigV4 and are capped at 900 s.
-- [x] **T4.6** Original restore: `photoctl restore <id>` → `RestoreObject` (Bulk/Standard tier option); status check; download when ready. ✅ 2026-10-11
+- [x] **T4.6** Original restore: `shoebox restore <id>` → `RestoreObject` (Bulk/Standard tier option); status check; download when ready. ✅ 2026-10-11
   *Done when:* a restore is requested and the status shows "in progress" (the full 12 h path is checked once manually).
-  *Note:* Command is 'photoctl original <id>' (request / --status / --download DIR) so it isn't confused with 'db restore'. The full 12-hour path still needs one manual check against real Deep Archive.
+  *Note:* Command is 'shoebox original <id>' (request / --status / --download DIR) so it isn't confused with 'db restore'. The full 12-hour path still needs one manual check against real Deep Archive.
 
 ---
 
 ## M5 — API server (§8)
 
-- [x] **T5.1** FastAPI + uvicorn; `photoctl serve` binds to 127.0.0.1:8765; API token cookie for localhost; Tailscale header auth with a login allowlist (`~/.photoctl/config.toml`). ✅ 2026-10-11
+- [x] **T5.1** FastAPI + uvicorn; `shoebox serve` binds to 127.0.0.1:8765; API token cookie for localhost; Tailscale header auth with a login allowlist (`~/.shoebox/config.toml`). ✅ 2026-10-11
   *Done when:* requests without the token or an allowed Tailscale login get 401.
   *Note:* Token in the macOS Keychain (0600 file fallback). Also: DNS-rebinding Host check, same-origin check on cookie writes, Tailscale headers only trusted from 127.0.0.1, 'serve' refuses non-local interfaces.
 - [x] **T5.2** Read endpoints: search (incl. `device` filter), media detail, thumb, compressed, people. ✅ 2026-10-11
@@ -175,7 +175,7 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 ## M6 — Web UI, mobile-first (§8 screens)
 
 - [x] **T6.1** Scaffold `web/` (Vite + React + TS), served by FastAPI; API client generated from OpenAPI; `DataSource` interface with a `ServerDataSource` implementation (§10.5). ✅ 2026-10-11
-  *Done when:* `photoctl serve` opens the UI at http://127.0.0.1:8765.
+  *Done when:* `shoebox serve` opens the UI at http://127.0.0.1:8765.
   *Note:* Request types are generated from the OpenAPI schema (scripts/dump_openapi.py + openapi-typescript); response types are hand-written in web/src/api/types.ts because the API returns plain dicts. The schema isn't served at runtime.
 - [x] **T6.2** Responsive layout designed for phone width first (bottom tab bar on mobile, sidebar on desktop); status bar (online/offline/pending edits). ✅ 2026-10-11
   *Done when:* Playwright screenshots at iPhone 15 and Pixel 8 sizes look right, with no horizontal scroll.
@@ -184,8 +184,8 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
   *Done when:* 10k items scroll smoothly on a mid-range Android phone.
   *Note:* Measured in Chrome at Pixel 7 size on this Mac: 10,000 tiles loaded, p95 frame time 16.8 ms while scrolling (e2e/perf.spec.ts with E2E_ITEMS=10000). Not yet checked on a real mid-range Android phone. Uses content-visibility on month sections instead of a virtual list. The e2e run also found and fixed a server bug: request DB connections crossing worker threads.
 - [x] **T6.4** Search bar + filter chips (date, person, place, type, favourite, source device). ✅ 2026-10-11
-  *Done when:* the results match `photoctl search` for the same query.
-  *Note:* Same /api/search code path as 'photoctl search'; e2e compares tile counts with the API for text, type, favourites, device and person.
+  *Done when:* the results match `shoebox search` for the same query.
+  *Note:* Same /api/search code path as 'shoebox search'; e2e compares tile counts with the API for text, type, favourites, device and person.
 - [x] **T6.5** Viewer: swipe navigation, image/video player, metadata panel with a map pin and source devices, download compressed, request original. ✅ 2026-10-11
   *Done when:* everything works for one photo and one video on desktop and in mobile emulation.
   *Note:* Map is an OpenStreetMap link (no embedded map: works offline and loads nothing third-party).
@@ -204,11 +204,11 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 
 - [x] **T7.1** Refactor `archive` into a library function `run_archive(selection, options, progress_cb, cancel_token)` used by both the CLI and the API. ✅ 2026-10-11
   *Done when:* the CLI behaviour is unchanged (existing tests pass).
-  *Note:* photoctl/archiver.py: run_archive(items | selection, Options, on_event, cancel). Cancellation stops after the items in progress; the CLI is a thin wrapper drawing its progress bar from events. The per-item pipeline takes any item with source_type/ref (Apple Photos now, uploads in T7.3).
+  *Note:* shoebox/archiver.py: run_archive(items | selection, Options, on_event, cancel). Cancellation stops after the items in progress; the CLI is a thin wrapper drawing its progress bar from events. The per-item pipeline takes any item with source_type/ref (Apple Photos now, uploads in T7.3).
 - [x] **T7.2** `POST /api/uploads/apple-photos` (selection on the Mac / album / date range / all, dry-run) → background run holding the ingest lock; SSE progress; `POST /api/runs/{id}/cancel`. ✅ 2026-10-11
   *Done when:* a run started from the UI shows live progress, a second start shows "already running", and cancel stops after the current item.
   *Note:* Progress streams from the run's JSONL log, so runs started from the terminal are visible in the app too (only app-started runs can be cancelled from the app). Without S3 the server still adds items to the main catalog but doesn't mark them archived, so a later run with S3 uploads them.
-- [x] **T7.3** tus resumable upload endpoint `/api/uploads/files` → `~/.photoctl/inbox/<device_id>/` → same pipeline (`source_ref = upload:<device_id>:<name>`); records `metadata_fidelity` + a "metadata incomplete" flag when GPS/date is missing. ✅ 2026-10-11
+- [x] **T7.3** tus resumable upload endpoint `/api/uploads/files` → `~/.shoebox/inbox/<device_id>/` → same pipeline (`source_ref = upload:<device_id>:<name>`); records `metadata_fidelity` + a "metadata incomplete" flag when GPS/date is missing. ✅ 2026-10-11
   *Done when:* a 500 MB video upload survives a dropped connection and resumes.
   *Note:* Tested with a 30 MB file in 8 MB chunks with a simulated drop and resume (the protocol is the same at 500 MB; not tried at that size here). Uploads are credited to the uploading device. Without S3 the uploaded file is kept in inbox/<device>/archived-locally/ (it's the only copy) and is uploaded once the server runs with a bucket.
 - [x] **T7.4** Uploads screen: trigger options, live progress, cancel, "Upload from this device" picker, run history, failures + "retry failed". ✅ 2026-10-11
@@ -219,9 +219,9 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 
 ## M8 — Phones: iOS + Android web access and triggers (§9)
 
-- [~] **T8.1** Tailscale on the Mac + iPhone + Android; `tailscale serve --bg 8765`; `photoctl serve --tailscale` checks the setup and prints the phone URL + a QR code. Add a setup guide to the README.
+- [~] **T8.1** Tailscale on the Mac + iPhone + Android; `tailscale serve --bg 8765`; `shoebox serve --tailscale` checks the setup and prints the phone URL + a QR code. Add a setup guide to the README.
   *Done when:* `https://<mac>.<tailnet>.ts.net` opens on both phones with a valid certificate, and is unreachable off the tailnet.
-  *Note:* Built 2026-10-11: `photoctl serve --tailscale` / `--setup-tailscale` checks Tailscale, sets up `tailscale serve`, trusts its MagicDNS name, allows your own login by default, and prints the URL + QR code; README has the phone guide. Tested with a stand-in `tailscale` command (Tailscale isn't installed on this Mac). **Your step:** install Tailscale on the Mac and both phones, run `uv run photoctl serve --setup-tailscale`, open the URL on each phone.
+  *Note:* Built 2026-10-11: `shoebox serve --tailscale` / `--setup-tailscale` checks Tailscale, sets up `tailscale serve`, trusts its MagicDNS name, allows your own login by default, and prints the URL + QR code; README has the phone guide. Tested with a stand-in `tailscale` command (Tailscale isn't installed on this Mac). **Your step:** install Tailscale on the Mac and both phones, run `uv run shoebox serve --setup-tailscale`, open the URL on each phone.
 - [~] **T8.2** PWA: manifest, icons, service worker (app shell + thumbnail cache), install prompts/help for iOS (Add to Home Screen) and Android (Install app).
   *Done when:* it installs on both phones and opens full-screen from the home-screen icon.
   *Note:* Built 2026-10-11: web manifest, drawn icons (incl. maskable + apple-touch-icon), service worker (offline app shell, thumbnail cache, API never cached), install hint (iOS: Share → Add to Home Screen; Chrome/Android: Install button). Browser tests confirm the manifest, the active worker and an offline reload. **Your step:** install it on the iPhone and the Android phone.
@@ -239,7 +239,7 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
   *Note:* Files wait in IndexedDB (they survive closing the tab) and upload by themselves when the Mac is reachable again; tus fingerprints resume half-sent files. Browser test: pick while offline, reload, reconnect, uploaded.
 - [~] **T8.7** (Optional) Web push for "run finished" / "original ready" (iOS 16.4+ installed PWA, Android).
   *Done when:* a notification arrives on both phones.
-  *Note:* Built 2026-10-12: VAPID keys and subscriptions in ~/.photoctl (0600); 'Archive finished/cancelled/failed' sent when a run ends; 'Original ready' from the background loop; Sync screen has Turn on / Send a test / Turn off; the service worker shows notifications and opens the right screen. Sending is tested with a mocked push service (expired subscriptions are dropped). **Your step:** turn it on from the installed app on both phones and press 'Send a test'.
+  *Note:* Built 2026-10-12: VAPID keys and subscriptions in ~/.shoebox (0600); 'Archive finished/cancelled/failed' sent when a run ends; 'Original ready' from the background loop; Sync screen has Turn on / Send a test / Turn off; the service worker shows notifications and opens the right screen. Sending is tested with a mocked push service (expired subscriptions are dropped). **Your step:** turn it on from the installed app on both phones and press 'Send a test'.
 - [~] **T8.8** Real-device QA checklist (§15) on iPhone Safari + PWA and Android Chrome + PWA.
   *Done when:* every checklist item passes and the results are noted in this file.
   *Note:* Checklist written: docs/QA_CHECKLIST.md (with a results table). **Your step:** run it on both phones.
@@ -297,15 +297,15 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 
 ## M11 — Multi-device end to end (Mac + iPhone + Android)
 
-- [~] **T11.1** Install guide for a second Mac: clone, `uv sync`, AWS creds, `photoctl sync` bootstrap.
+- [~] **T11.1** Install guide for a second Mac: clone, `uv sync`, AWS creds, `shoebox sync` bootstrap.
   *Done when:* the second Mac shows the full library without running any archive.
-  *Note:* Guide written in the README (A second Mac): clone, uv sync, aws login, `photoctl sync` bootstraps from the snapshot, `sync verify`. The bootstrap path is covered by tests/test_snapshot.py. **Your step:** follow it on the second Mac.
+  *Note:* Guide written in the README (A second Mac): clone, uv sync, aws login, `shoebox sync` bootstraps from the snapshot, `sync verify`. The bootstrap path is covered by tests/test_snapshot.py. **Your step:** follow it on the second Mac.
 - [~] **T11.2** Live test: archive on the Mac (triggered from Android) while editing on the iPhone offline → reconnect → sync all → `sync verify` converged; the §5 scenarios checked by hand.
   *Done when:* every §5 scenario is green, with notes in this file.
   *Note:* Automated stand-ins: tests/test_multiprocess_sync.py (two processes archiving and editing concurrently), the conflict vectors in Python and TypeScript, and the phone browser tests (offline edits vs a later Mac edit). **Your step:** the live run across Mac + iPhone + Android, recording each §5 scenario here.
-- [~] **T11.3** Recovery drill: `photoctl recover` onto a wiped Mac, and clear the PWA data on one phone → both bootstrap → checksums match → a re-run of `archive` uploads 0 bytes.
+- [~] **T11.3** Recovery drill: `shoebox recover` onto a wiped Mac, and clear the PWA data on one phone → both bootstrap → checksums match → a re-run of `archive` uploads 0 bytes.
   *Done when:* both are recovered in < 15 min, with timings noted here.
-  *Note:* Automated stand-ins: `photoctl recover` onto a wiped home (tests/test_archive_cli.py), catalog rebuild from S3, and 'Remove downloaded data' then 'Use on this device' in the browser tests. **Your step:** time the drill on a real wiped Mac and phone.
+  *Note:* Automated stand-ins: `shoebox recover` onto a wiped home (tests/test_archive_cli.py), catalog rebuild from S3, and 'Remove downloaded data' then 'Use on this device' in the browser tests. **Your step:** time the drill on a real wiped Mac and phone.
 
 ---
 
@@ -372,11 +372,11 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 - [x] **T15.1** Ops record where tags and people-on-photo came from (`source`: vision / face); conformance vector 21.
 - [x] **T15.2** Labels: Apple Vision on the compressed copy → tags (source vision) + derived words (landscape, people, portrait, group…); never re-adds a tag the user removed.
 - [x] **T15.3** Faces: OpenCV YuNet + SFace (pinned SHA-256 models), fingerprints in `faces.sqlite` (0600, Mac only); clustering; learning from Apple Photos names; naming → `media.person.add` (source face) + re-matching; *not them* / *not a person*.
-- [x] **T15.4** `photoctl analyze`, `photoctl faces`; background worker after archive runs / phone uploads; API.
+- [x] **T15.4** `shoebox analyze`, `shoebox faces`; background worker after archive runs / phone uploads; API.
 - [x] **T15.5** People → *Who's this?* (face groups, name with suggestions, *Not a person*, progress); e2e test.
 - [x] **T15.6** Text in photos: Apple Vision text recognition → op `media.text` → catalog v5 `text_in_image`, part of keyword search on every device; shown in the viewer. Analysis version 2 re-reads already-analysed photos once.
 - [x] **T15.7** Captions with Florence-2 (optional `ai` extra): new op `media.caption` (import priority, user edits win), catalog v4, part of keyword search everywhere; editable in the viewer.
-- [x] **T15.10** Plain-English search with SigLIP 2: vectors on the Mac, `/api/search/smart` and `photoctl search --best`; names/dates become filters; *Best matches* / *Newest first* in the app.
+- [x] **T15.10** Plain-English search with SigLIP 2: vectors on the Mac, `/api/search/smart` and `shoebox search --best`; names/dates become filters; *Best matches* / *Newest first* in the app.
 - [~] **T15.11** Check caption quality and the search threshold (`MIN_PROBABILITY`) on a real library.
   Checked on sample photos (2026-10-12, this Mac): SigLIP 2 picked the right picture for every query (right 0.014–0.136,
   wrong 0.0, threshold 0.001). Florence-2 captions were accurate on real photos; long captions drifted into invented detail on a

@@ -1,8 +1,8 @@
-// Pairing a phone with the Mac on the same Wi-Fi (`photoctl serve --lan`). The token the Mac hands out is
+// Pairing a phone with the Mac on the same Wi-Fi (`shoebox serve --lan`). The token the Mac hands out is
 // kept here too, because the native app's background uploads can't use the browser's cookie.
 import { api } from '../api/client'
 
-const KEY = 'photoctl.pairToken'
+const KEY = 'shoebox.pairToken'
 
 /** Only where pairing applies: not on the Mac itself, not over Tailscale. */
 export function canPair(host = location.hostname): boolean {

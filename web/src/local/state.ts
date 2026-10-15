@@ -12,7 +12,7 @@ export interface LocalState {
   devices?: Record<string, { name: string; platform: string; items: number; downloadedAt: string; createdAt: string }>
 }
 
-const KEY = 'photoctl.local'
+const KEY = 'shoebox.local'
 const EMPTY: LocalState = { enabled: false, downloadedAt: null, cursor: 0, epoch: null, items: 0, refreshedAt: null }
 const listeners = new Set<(s: LocalState) => void>()
 

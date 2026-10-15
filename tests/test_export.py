@@ -1,10 +1,10 @@
 import gzip
 import sqlite3
 
-from photoctl.catalog import open_catalog
-from photoctl.catalog.export import export_catalog
-from photoctl.catalog.store import upsert_record
-from photoctl.device import Device
+from shoebox.catalog import open_catalog
+from shoebox.catalog.export import export_catalog
+from shoebox.catalog.store import upsert_record
+from shoebox.device import Device
 
 
 def _two_device_catalog(tmp_path, sidecar, device):

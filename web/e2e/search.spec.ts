@@ -5,7 +5,7 @@ async function apiCount(page: import('@playwright/test').Page, params: Record<st
   return (await r.json()).items.length as number
 }
 
-test('typed search matches the API (best matches, and newest first like photoctl search)', async ({ page }) => {
+test('typed search matches the API (best matches, and newest first like shoebox search)', async ({ page }) => {
   await page.goto('/')
   await page.getByLabel('Search the library').fill('beach')
   await expect(page).toHaveURL(/q=beach/)

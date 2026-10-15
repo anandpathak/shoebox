@@ -1,4 +1,4 @@
-# Photoframing demo
+# Shoebox demo
 
 `index.html` is a self-contained presenter page for the project. Open it in a browser:
 

@@ -7,11 +7,11 @@ from hypothesis import strategies as st
 
 from conftest import SIDECAR
 from opkit import Dev, record
-from photoctl.catalog import open_catalog
-from photoctl.catalog.apply import apply_ops
-from photoctl.catalog.checksum import checksum
+from shoebox.catalog import open_catalog
+from shoebox.catalog.apply import apply_ops
+from shoebox.catalog.checksum import checksum
 
-EXAMPLES = int(os.environ.get("PHOTOCTL_PROPERTY_EXAMPLES", "300"))
+EXAMPLES = int(os.environ.get("SHOEBOX_PROPERTY_EXAMPLES", "300"))
 RECORDS = [record(SIDECAR, n, persons=[f"P{n}"], labels=["Sea"] if n % 2 else []) for n in range(3)]
 TAGS = ["beach", "sea", "night"]
 PEOPLE = ["p_a", "p_b", "p_c"]

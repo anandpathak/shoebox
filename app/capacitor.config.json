@@ -1,6 +1,6 @@
 {
-  "appId": "app.photoframing",
-  "appName": "Photoframing",
+  "appId": "app.shoebox",
+  "appName": "Shoebox",
   "webDir": "www",
   "server": {
     "allowNavigation": ["*.ts.net", "*.local", "192.168.*.*", "10.*.*.*", "172.*.*.*", "127.0.0.1", "localhost"]

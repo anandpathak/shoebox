@@ -5,9 +5,9 @@ from pathlib import Path
 
 import pytest
 
-from photoctl.catalog import open_catalog
-from photoctl.catalog.apply import apply_ops
-from photoctl.catalog.store import resolve_person
+from shoebox.catalog import open_catalog
+from shoebox.catalog.apply import apply_ops
+from shoebox.catalog.store import resolve_person
 
 VECTORS = sorted((Path(__file__).parent.parent / "spec" / "sync_vectors").glob("*.json"))
 LIVE = "add_op NOT IN (SELECT add_op FROM tombstones)"

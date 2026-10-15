@@ -3,7 +3,7 @@ import time
 from fastapi.testclient import TestClient
 
 from apikit import seed
-from photoctl.runlock import SyncLock
+from shoebox.runlock import SyncLock
 
 
 def test_sync_now_and_status(api, sidecar, device, bucket):
@@ -22,8 +22,8 @@ def test_sync_now_and_status(api, sidecar, device, bucket):
 
 
 def test_background_loop_syncs(tmp_path, sidecar, device, bucket):
-    from photoctl.server.app import create_app
-    from photoctl.server.config import Settings
+    from shoebox.server.app import create_app
+    from shoebox.server.config import Settings
 
     seed(sidecar, device, tmp_path, n=1)
     app = create_app(Settings(library=tmp_path, bucket="test-archive", sync_interval=1))
@@ -38,9 +38,9 @@ def test_background_loop_syncs(tmp_path, sidecar, device, bucket):
 
 
 def test_verify_endpoint(api, sidecar, device, bucket, tmp_path):
-    from photoctl.catalog import open_catalog
-    from photoctl.device import Device
-    from photoctl.sync import sync_once
+    from shoebox.catalog import open_catalog
+    from shoebox.device import Device
+    from shoebox.sync import sync_once
 
     client, token, app = api
     client.headers["Authorization"] = f"Bearer {token}"

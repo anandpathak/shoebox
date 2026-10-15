@@ -4,11 +4,11 @@ from pathlib import Path
 import pytest
 
 from opkit import record
-from photoctl.catalog import open_catalog
-from photoctl.catalog.ops import Emitter
-from photoctl.catalog.query import build_fts, media_detail, parse_query, search, search_catalogs
-from photoctl.catalog.store import upsert_record
-from photoctl.device import Device
+from shoebox.catalog import open_catalog
+from shoebox.catalog.ops import Emitter
+from shoebox.catalog.query import build_fts, media_detail, parse_query, search, search_catalogs
+from shoebox.catalog.store import upsert_record
+from shoebox.device import Device
 
 CASES = json.loads((Path(__file__).parent.parent / "spec" / "query_vectors.json").read_text())["cases"]
 MAC = Device("01MACMACMACMACMACMACMACMAC", "Mac", "macos", "x")

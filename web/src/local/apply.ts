@@ -1,4 +1,4 @@
-// TypeScript twin of photoctl/catalog/apply.py — the same rules, checked by spec/sync_vectors.
+// TypeScript twin of shoebox/catalog/apply.py — the same rules, checked by spec/sync_vectors.
 //  * Scalar fields are last-writer-wins by HLC; field_hlc stores "<priority>|<hlc>" (0 = import, 1 = edit).
 //  * Tags, albums and people-on-photo are observed-remove sets (a remove cancels only the adds it saw).
 //  * Each op applies once (ops.op_id); edits for photos that haven't arrived wait in deferred_ops.

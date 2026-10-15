@@ -1,4 +1,4 @@
-"""End to end: `photoctl archive` with fake Photos items, real sips compression and a mocked S3 bucket."""
+"""End to end: `shoebox archive` with fake Photos items, real sips compression and a mocked S3 bucket."""
 import json
 import shutil
 import sqlite3
@@ -9,7 +9,7 @@ import pytest
 from click.testing import CliRunner
 
 from conftest import make_jpeg
-from photoctl import cli, paths
+from shoebox import cli, paths
 
 pytestmark = pytest.mark.skipif(shutil.which("sips") is None, reason="needs macOS sips")
 
@@ -29,7 +29,7 @@ def fake_photo(path, uuid, day):
 def photos(tmp_path, monkeypatch):
     items = [fake_photo(make_jpeg(tmp_path / f"src/IMG_{i}.jpg", (4032, 3024), (40 * i, 90, 160)), f"UUID-{i}", i)
              for i in range(1, 4)]
-    from photoctl import archiver
+    from shoebox import archiver
     monkeypatch.setattr(archiver, "select_photos", lambda *a, **k: items)
     monkeypatch.setattr(archiver, "add_to_album", lambda *a, **k: None)
     return items
@@ -72,7 +72,7 @@ def test_archive_uploads_catalogs_backs_up_and_is_idempotent(tmp_path, photos, b
 
 
 def test_archive_refuses_while_another_run_holds_the_lock(tmp_path, photos):
-    from photoctl.runlock import IngestLock
+    from shoebox.runlock import IngestLock
 
     with IngestLock():
         res = CliRunner().invoke(cli.main, ["archive", "--all", "--local-only", "--out", str(tmp_path / "o")])
@@ -98,30 +98,30 @@ def test_catalog_rebuilds_from_sidecars_after_loss(tmp_path, photos, bucket, mon
     assert sqlite3.connect(paths.catalog_db()).execute("SELECT COUNT(*) FROM media").fetchone()[0] == 3
 
 
-def test_recover_on_a_fresh_mac_knows_everything_is_archived(tmp_path, photos, bucket, monkeypatch, photoctl_home):
+def test_recover_on_a_fresh_mac_knows_everything_is_archived(tmp_path, photos, bucket, monkeypatch, shoebox_home):
     import shutil as sh
 
     monkeypatch.setattr(cli, "_bucket", lambda name, profile: bucket)
     out = tmp_path / "lib"
     res = CliRunner().invoke(cli.main, ["archive", "--all", "--bucket", "test-archive", "--out", str(out)])
     assert res.exit_code == 0, res.output
-    old_id = json.loads((photoctl_home / "device.json").read_text())["device_id"]
+    old_id = json.loads((shoebox_home / "device.json").read_text())["device_id"]
 
-    sh.rmtree(photoctl_home)                     # the Mac is wiped
+    sh.rmtree(shoebox_home)                     # the Mac is wiped
     res = CliRunner().invoke(cli.main, ["recover", "--bucket", "test-archive"], input="1\n")
     assert res.exit_code == 0, res.output
-    assert json.loads((photoctl_home / "device.json").read_text())["device_id"] == old_id
+    assert json.loads((shoebox_home / "device.json").read_text())["device_id"] == old_id
     dry = CliRunner().invoke(cli.main, ["archive", "--all", "--dry-run", "--out", str(out)])
     assert "3 already archived · 0 to process" in dry.output
 
 
-def test_recover_without_backup_rebuilds_state_from_s3(tmp_path, photos, bucket, monkeypatch, photoctl_home):
+def test_recover_without_backup_rebuilds_state_from_s3(tmp_path, photos, bucket, monkeypatch, shoebox_home):
     import shutil as sh
 
     monkeypatch.setattr(cli, "_bucket", lambda name, profile: bucket)
     out = tmp_path / "lib"
     CliRunner().invoke(cli.main, ["archive", "--all", "--bucket", "test-archive", "--out", str(out), "--no-backup"])
-    sh.rmtree(photoctl_home)
+    sh.rmtree(shoebox_home)
     res = CliRunner().invoke(cli.main, ["recover", "--bucket", "test-archive", "--yes"], input="1\n")
     assert res.exit_code == 0, res.output
     assert "No database backup" in res.output and "Marked 3 Apple Photos items" in res.output
@@ -129,12 +129,12 @@ def test_recover_without_backup_rebuilds_state_from_s3(tmp_path, photos, bucket,
     assert "3 already archived · 0 to process" in dry.output
 
 
-def test_rebuild_catalog_and_state_from_s3_only(tmp_path, photos, bucket, monkeypatch, photoctl_home):
+def test_rebuild_catalog_and_state_from_s3_only(tmp_path, photos, bucket, monkeypatch, shoebox_home):
     monkeypatch.setattr(cli, "_bucket", lambda name, profile: bucket)
     out = tmp_path / "lib"
     CliRunner().invoke(cli.main, ["archive", "--all", "--bucket", "test-archive", "--out", str(out), "--no-backup"])
     for name in ("catalog.sqlite", "state.sqlite"):
-        (photoctl_home / name).unlink()
+        (shoebox_home / name).unlink()
     r1 = CliRunner().invoke(cli.main, ["catalog", "rebuild", "--bucket", "test-archive", "--yes"])
     r2 = CliRunner().invoke(cli.main, ["state", "rebuild", "--bucket", "test-archive"])
     assert r1.exit_code == 0 and "3 photos" in r1.output, r1.output

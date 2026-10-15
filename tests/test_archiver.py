@@ -6,8 +6,8 @@ from types import SimpleNamespace
 import pytest
 
 from conftest import make_jpeg
-from photoctl.archiver import Options, run_archive
-from photoctl.runlock import AlreadyRunning, IngestLock
+from shoebox.archiver import Options, run_archive
+from shoebox.runlock import AlreadyRunning, IngestLock
 
 
 def photos(tmp_path, n):

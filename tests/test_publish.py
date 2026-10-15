@@ -3,11 +3,11 @@ import sqlite3
 from datetime import datetime, timedelta, timezone
 
 from opkit import record
-from photoctl.catalog import open_catalog
-from photoctl.catalog.ops import Emitter
-from photoctl.catalog.store import upsert_record
-from photoctl.device import Device
-from photoctl.publish import catalog_key, list_catalogs, manifest_key, publish_catalog
+from shoebox.catalog import open_catalog
+from shoebox.catalog.ops import Emitter
+from shoebox.catalog.store import upsert_record
+from shoebox.device import Device
+from shoebox.publish import catalog_key, list_catalogs, manifest_key, publish_catalog
 
 MAC = Device("01MACMACMACMACMACMACMACMAC", "Mac", "macos", "x")
 T0 = datetime(2026, 10, 11, 12, 0, tzinfo=timezone.utc)

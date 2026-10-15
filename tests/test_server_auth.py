@@ -26,7 +26,7 @@ def test_cookie_writes_need_same_origin(api):
     client, _, app = api
 
     @app.post("/api/_probe")
-    def probe(u=__import__("fastapi").Depends(__import__("photoctl.server.deps", fromlist=["user"]).user)):
+    def probe(u=__import__("fastapi").Depends(__import__("shoebox.server.deps", fromlist=["user"]).user)):
         return {"ok": True}
 
     client.get("/")
@@ -66,6 +66,6 @@ def test_security_headers(api):
 def test_serve_refuses_public_interfaces():
     from click.testing import CliRunner
 
-    from photoctl import cli
+    from shoebox import cli
     res = CliRunner().invoke(cli.main, ["serve", "--host", "0.0.0.0"])
     assert res.exit_code != 0 and "tailscale serve" in res.output

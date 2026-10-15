@@ -17,15 +17,15 @@ def authed(api):
 SUB = {"endpoint": "https://push.example.com/abc", "keys": {"p256dh": "BNc" + "A" * 84, "auth": "AAAAAAAAAAAAAAAAAAAAAA"}}
 
 
-def test_keys_are_private_and_stable(authed, photoctl_home):
+def test_keys_are_private_and_stable(authed, shoebox_home):
     client, _ = authed
     k1 = client.get("/api/push/key").json()["publicKey"]
     assert k1 == client.get("/api/push/key").json()["publicKey"] and len(k1) == 87
-    mode = stat.S_IMODE(os.stat(photoctl_home / "vapid.json").st_mode)
+    mode = stat.S_IMODE(os.stat(shoebox_home / "vapid.json").st_mode)
     assert mode == 0o600
 
 
-def test_subscribe_notify_and_drop_expired(authed, monkeypatch, photoctl_home):
+def test_subscribe_notify_and_drop_expired(authed, monkeypatch, shoebox_home):
     client, _ = authed
     sent = []
 
@@ -33,7 +33,7 @@ def test_subscribe_notify_and_drop_expired(authed, monkeypatch, photoctl_home):
         pass
 
     import pywebpush
-    from photoctl.server import push
+    from shoebox.server import push
 
     def fake_webpush(sub, data, **kw):
         if sub["endpoint"].endswith("gone"):
@@ -45,13 +45,13 @@ def test_subscribe_notify_and_drop_expired(authed, monkeypatch, photoctl_home):
     assert client.post("/api/push/subscribe", json={"subscription": {"endpoint": "x"}}).status_code == 422
     assert client.post("/api/push/test").json() == {"sent": 1}
     assert [s["endpoint"] for s in push.subscriptions()] == [SUB["endpoint"]]     # expired one removed
-    assert stat.S_IMODE(os.stat(photoctl_home / "push_subscriptions.json").st_mode) == 0o600
+    assert stat.S_IMODE(os.stat(shoebox_home / "push_subscriptions.json").st_mode) == 0o600
 
 
 def test_run_end_sends_a_notification(authed, monkeypatch, tmp_path):
     client, app = authed
     import pywebpush
-    from photoctl import archiver
+    from shoebox import archiver
 
     got = []
     monkeypatch.setattr(pywebpush, "webpush", lambda sub, data, **kw: got.append(data))

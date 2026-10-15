@@ -1,4 +1,4 @@
-// Hybrid logical clock — twin of photoctl/hlc.py: "<wall_ms:013d>-<counter:04d>-<device_id>".
+// Hybrid logical clock — twin of shoebox/hlc.py: "<wall_ms:013d>-<counter:04d>-<device_id>".
 export class HLC {
   private wall = 0
   private counter = 0

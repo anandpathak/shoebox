@@ -34,7 +34,7 @@ async function connect(text) {
   status.textContent = `Connecting to ${got.base.replace(/^https?:\/\//, '')}…`
   if (!(await reachable(got.base))) {
     status.textContent = ''
-    err.textContent = "Can't reach your Mac. Is photoctl running, and is this phone on the same Wi-Fi (or Tailscale on)?"
+    err.textContent = "Can't reach your Mac. Is shoebox running, and is this phone on the same Wi-Fi (or Tailscale on)?"
     return
   }
   localStorage.setItem(KEY, got.base)
@@ -48,13 +48,13 @@ if (scanner) {
     err.textContent = ''
     try {
       const { ScanResult } = await scanner.scanBarcode({
-        hint: QR_CODE, scanInstructions: 'Point at the QR code photoctl shows on the Mac', scanButton: false,
+        hint: QR_CODE, scanInstructions: 'Point at the QR code shoebox shows on the Mac', scanButton: false,
       })
       if (ScanResult) { input.value = ScanResult.replace(/\?pair=.*/, ''); await connect(ScanResult) }
     } catch (e) {
       const msg = String(e?.message ?? e)
       if (!/cancel/i.test(msg)) err.textContent = /permission|denied/i.test(msg)
-        ? 'Camera access is off for Photoframing. Allow it in Settings, or type the address below.'
+        ? 'Camera access is off for Shoebox. Allow it in Settings, or type the address below.'
         : `Couldn't scan: ${msg}`
     }
   })
@@ -68,7 +68,7 @@ if (saved) {
     status.textContent = `Connecting to ${input.value}…`
     reachable(saved).then((ok) => {
       if (ok) open(saved)
-      else { status.textContent = ''; err.textContent = "Can't reach your Mac. Is photoctl running, and is this phone on the same Wi-Fi (or Tailscale on)?" }
+      else { status.textContent = ''; err.textContent = "Can't reach your Mac. Is shoebox running, and is this phone on the same Wi-Fi (or Tailscale on)?" }
     })
   }
 }

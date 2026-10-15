@@ -16,9 +16,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from photoctl.catalog.ops import make_op  # noqa: E402
-from photoctl.catalog.store import person_id  # noqa: E402
-from photoctl.hlc import HLC  # noqa: E402
+from shoebox.catalog.ops import make_op  # noqa: E402
+from shoebox.catalog.store import person_id  # noqa: E402
+from shoebox.hlc import HLC  # noqa: E402
 
 OUT = ROOT / "spec" / "sync_vectors"
 P1, P2 = "AAAAAAAAAAAAAAAAAAAAAAAAAA", "BBBBBBBBBBBBBBBBBBBBBBBBBB"

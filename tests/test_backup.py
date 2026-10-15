@@ -3,11 +3,11 @@ from datetime import datetime, timezone
 
 import pytest
 
-from photoctl import paths
-from photoctl.backup import backup, list_backups, restore
-from photoctl.catalog import open_catalog
-from photoctl.catalog.store import upsert_record
-from photoctl.state import State
+from shoebox import paths
+from shoebox.backup import backup, list_backups, restore
+from shoebox.catalog import open_catalog
+from shoebox.catalog.store import upsert_record
+from shoebox.state import State
 
 
 def _seed(sidecar, device):
@@ -58,7 +58,7 @@ def test_new_machine_recovers_identity(bucket, sidecar, device):
     for f in (paths.state_db(), paths.catalog_db(), paths.device_file()):
         f.unlink()
     restore(bucket, device.device_id, with_identity=True)
-    from photoctl.device import load_device
+    from shoebox.device import load_device
     assert load_device(create=False).device_id == device.device_id
 
 
@@ -76,7 +76,7 @@ def test_backup_while_another_thread_writes(bucket, sidecar, device, tmp_path):
     import threading
 
     from opkit import record
-    from photoctl.catalog.export import integrity_ok
+    from shoebox.catalog.export import integrity_ok
 
     _seed(sidecar, device)
     stop = threading.Event()
@@ -105,7 +105,7 @@ def test_backup_while_another_thread_writes(bucket, sidecar, device, tmp_path):
 def test_manifest_and_latest_pointer(bucket, sidecar, device):
     import json
 
-    from photoctl.backup import last_local_backup
+    from shoebox.backup import last_local_backup
 
     _seed(sidecar, device)
     new = backup(bucket, device, now=datetime(2026, 10, 12, tzinfo=timezone.utc))

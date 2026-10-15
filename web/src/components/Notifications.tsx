@@ -44,7 +44,7 @@ export function Notifications() {
       <h2>Notifications</h2>
       <p className="muted small">Get told when an archive run finishes or an original is ready to download.</p>
       {!supported || (ios && !isStandalone())
-        ? <p className="muted small">{ios ? 'On iPhone, add Photoframing to your Home Screen first, then turn notifications on from there.'
+        ? <p className="muted small">{ios ? 'On iPhone, add Shoebox to your Home Screen first, then turn notifications on from there.'
             : 'This browser can’t show notifications.'}</p>
         : state === 'denied'
           ? <p className="muted small">Notifications are blocked for this site. Allow them in the browser’s site settings.</p>
