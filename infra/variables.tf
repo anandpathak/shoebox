@@ -50,3 +50,9 @@ variable "backup_monthly_days" {
   type        = number
   default     = 365
 }
+
+variable "app_origins" {
+  description = "Origins of the Shoebox phone app's own pages (allowed to fetch the viewer library file)."
+  type        = list(string)
+  default     = ["capacitor://localhost", "https://localhost"]
+}

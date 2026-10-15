@@ -33,6 +33,7 @@ class SyncResult:
     rejected_batches: list[str] = field(default_factory=list)
     bootstrapped_from: dict | None = None
     snapshot: dict | None = None
+    viewer: dict | None = None
     published: dict | None = None
 
 
@@ -198,6 +199,8 @@ def full_sync(bucket, device, *, force_snapshot: bool = False) -> SyncResult:
             if force_snapshot or needs_snapshot(conn, bucket):
                 result.snapshot = publish_snapshot(conn, bucket, device)
             result.published = publish_catalog(conn, bucket, device)
+            from .viewer import publish_viewer
+            result.viewer = publish_viewer(conn, bucket, device)    # what phones browse when no Mac is on
         finally:
             conn.close()
     return result

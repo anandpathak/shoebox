@@ -171,6 +171,6 @@ data "aws_iam_policy_document" "ingest" {
 
 resource "aws_iam_policy" "ingest" {
   name        = "${aws_s3_bucket.archive.id}-ingest"
-  description = "photoctl: upload/read/restore in the photo archive bucket; no deletes."   # wording kept: changing it would replace the policy
+  description = "photoctl: upload/read/restore in the photo archive bucket; no deletes." # wording kept: changing it would replace the policy
   policy      = data.aws_iam_policy_document.ingest.json
 }

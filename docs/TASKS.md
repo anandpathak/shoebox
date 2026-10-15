@@ -388,6 +388,16 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 
 ---
 
+## M16 — Browse from phones without the Mac (read-only)
+
+- [x] **T16.1** Mac publishes `viewer/library.sqlite.gz` + `viewer/HEAD.json` after a sync when the library changed (at most every 15 min); `shoebox viewer publish|access|forget`; `GET /api/viewer/access` hands the read-only key to signed-in devices.
+- [~] **T16.2** Terraform: read-only IAM user + key (GetObject on `thumb/`, `compressed/`, `viewer/` only), CORS for the app's own origins. *User step:* `cd infra && tofu plan && tofu apply`, then `shoebox viewer access`.
+- [ ] **T16.3** Web app viewer mode: library from S3 into the on-device catalog, signed image links (SigV4 on the phone), read-only screens.
+- [ ] **T16.4** Phone app: keep the key in the Keychain / Keystore; bundled viewer; *Browse without your Mac* on the start page; *Use without your Mac* set-up card.
+- [ ] **T16.5** Tests: SigV4 against AWS's published example; e2e of viewer mode against a local S3 stand-in.
+
+---
+
 ## Open decisions (see LOCAL_APP_PLAN §16)
 
 - [x] **D1** UI stack: React + Vite + TS (recommended; needed for on-device mode) vs HTMX — built with the recommended option

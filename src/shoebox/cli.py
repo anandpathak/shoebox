@@ -556,6 +556,52 @@ def _prepare_tailscale(settings, port: int, setup: bool) -> None:
     click.echo("iPhone: Safari → Share → Add to Home Screen.  Android: Chrome → ⋮ → Install app.\n")
 
 
+# ---------------------------------------------------------------- viewer (phones without the Mac)
+
+@main.group()
+def viewer():
+    """Let the phone app browse the library (read-only) when no Mac is on."""
+
+
+@viewer.command("access")
+@click.option("--key-id", required=True, help="tofu -chdir=infra output -raw reader_key_id")
+@click.option("--secret-stdin", is_flag=True, help="Read the secret from standard input instead of asking.")
+def viewer_access(key_id, secret_stdin):
+    """Store the read-only S3 key on this Mac; phones get it under Sync → Use without your Mac."""
+    from .viewer import save_access
+
+    secret = (click.get_text_stream("stdin").read().strip() if secret_stdin
+              else click.prompt("Secret access key (tofu -chdir=infra output -raw reader_secret)", hide_input=True))
+    if not key_id.startswith(("AKIA", "ASIA")) or len(secret) < 30:
+        raise click.UsageError("That doesn't look like an AWS access key id and secret")
+    save_access(key_id, secret)
+    click.echo("Saved. Open the phone app while connected to this Mac: Sync → Use without your Mac → Set up.")
+
+
+@viewer.command("forget")
+def viewer_forget():
+    """Remove the stored read-only key from this Mac (rotate it in AWS to cut phones off)."""
+    from .viewer import clear_access
+
+    clear_access()
+    click.echo("Removed. Phones that already have the key keep it until you rotate it: "
+               "tofu -chdir=infra apply -replace=aws_iam_access_key.reader")
+
+
+@viewer.command("publish")
+@click.option("--bucket", envvar="SHOEBOX_BUCKET", required=True)
+@click.option("--profile", envvar="AWS_PROFILE", default=None)
+def viewer_publish(bucket, profile):
+    """Upload the read-only library copy now (sync does this by itself when something changed)."""
+    from .catalog import open_catalog
+    from .device import load_device
+    from .s3 import Bucket
+    from .viewer import publish_viewer
+
+    head = publish_viewer(open_catalog(), Bucket(bucket, profile), load_device(), force=True)
+    click.echo(f"Published {head['items']} items ({head['bytes'] / 1e6:.1f} MB) for phones to browse.")
+
+
 # ---------------------------------------------------------------- analysis
 
 @main.command()
