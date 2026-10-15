@@ -26,7 +26,7 @@ export interface Editor {
 }
 
 export interface DataSource {
-  readonly kind: 'server' | 'device'
+  readonly kind: 'server' | 'device' | 'cloud'
   readonly canEdit: boolean
   readonly edit: Editor
   search(p: SearchParams): Promise<SearchResult>

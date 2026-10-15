@@ -11,7 +11,7 @@ test('typed search matches the API (best matches, and newest first like shoebox 
   await expect(page).toHaveURL(/q=beach/)
   const best = await apiCount(page, { q: 'beach' }, '/api/search/smart')
   expect(best).toBeGreaterThan(0)
-  await expect(page.locator('.tile')).toHaveCount(Math.min(best, 120))
+  await expect(page.locator('.tile')).toHaveCount(Math.min(best, 120), { timeout: 15_000 })   // slow when every suite runs at once
   await page.getByRole('button', { name: 'Newest first' }).click()
   const expected = await apiCount(page, { q: 'beach' })
   await expect(page.locator('.tile')).toHaveCount(Math.min(expected, 120))

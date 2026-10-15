@@ -10,6 +10,9 @@ export const handlers = {
   status(env: Env) {
     return { persistent: env.persistent, reason: env.unavailableReason, databases: env.list() }
   },
+  hasCatalog(env: Env, name: string) {
+    return env.list().includes(name)
+  },
   importCatalog(env: Env, name: string, bytes: Uint8Array) {
     env.importDb(name, bytes)
     const db = env.db(name)

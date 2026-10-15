@@ -1,5 +1,7 @@
 import { RegisterDevice } from './components/RegisterDevice'
 import { Shell } from './components/Shell'
+import { isViewerMode } from './cloud/mode'
+import { ViewerProvider } from './cloud/ViewerProvider'
 import { PairPhone } from './components/PairPhone'
 import { AppProvider, useApp } from './lib/app'
 import { useRoute } from './lib/router'
@@ -29,5 +31,6 @@ function Screens() {
 }
 
 export default function App() {
+  if (isViewerMode()) return <ViewerProvider><Screens /></ViewerProvider>
   return <AppProvider><Screens /></AppProvider>
 }

@@ -86,8 +86,8 @@ function Details({ item, onChanged }: { item: MediaDetail; onChanged: () => void
       <div className="row">
         {item.compressed_key && <a className="btn primary" href={source.compressedUrl(item.photo_id, true)} download>
           <Icon name="download" size={18} />Download {item.media_type === 'video' ? 'video' : 'photo'}</a>}
-        <SaveOfflineButton id={item.photo_id} />
-        <OriginalButton id={item.photo_id} />
+        {source.kind !== 'cloud' && <SaveOfflineButton id={item.photo_id} />}
+        {source.kind !== 'cloud' && <OriginalButton id={item.photo_id} />}
       </div>
       <p className="mono muted">{item.photo_id}</p>
     </aside>

@@ -5,6 +5,8 @@ import { defineConfig } from 'vite'
 // Dev: `SHOEBOX_TOKEN=$(uv run shoebox serve --print-token) npm run dev` with `shoebox serve` running.
 export default defineConfig({
   plugins: [react()],
+  // Relative asset paths: the same build is served by the Mac at / and bundled in the phone app under /browse/.
+  base: './',
   optimizeDeps: { exclude: ['@sqlite.org/sqlite-wasm'] },
   worker: { format: 'es' },
   build: { outDir: '../src/shoebox/web/dist', emptyOutDir: true, sourcemap: false },

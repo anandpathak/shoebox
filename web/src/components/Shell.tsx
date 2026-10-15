@@ -22,7 +22,14 @@ function usePendingOnDevice(enabled: boolean, version: number): number {
 }
 
 export function StatusBar() {
-  const { health, online, authError, sync, localState, version } = useApp()
+  const { health, online, authError, sync, localState, version, viewer } = useApp()
+  if (viewer) {
+    return (
+      <div className="status" role="status"><i />
+        <span>Read-only · library from {ago(viewer.state?.created_at)}{viewer.error ? ' (couldn’t check for a newer one)' : ''}</span>
+      </div>
+    )
+  }
   const pendingHere = usePendingOnDevice(localState.enabled, version)
   if (authError) return <div className="status error"><i /><span>{authError}</span></div>
   if (!online) {
@@ -47,11 +54,13 @@ export function StatusBar() {
 }
 
 export function Shell({ current, children }: { current: string; children: ReactNode }) {
+  const { viewer } = useApp()
+  const tabs = viewer ? TABS.filter((t) => t.name === 'library' || t.name === 'people') : TABS
   return (
     <div className="shell">
       <nav className="tabbar" aria-label="Sections">
-        <div className="brand"><img src="/favicon.svg" alt="" />Shoebox</div>
-        {TABS.map((t) => (
+        <div className="brand"><img src="favicon.svg" alt="" />Shoebox</div>
+        {tabs.map((t) => (
           <a key={t.name} href={`#/${t.name}`} aria-current={current === t.name ? 'page' : undefined}>
             <Icon name={t.icon} />{t.label}
           </a>

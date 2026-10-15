@@ -227,8 +227,24 @@ def start_mock_s3(home: Path, upload_originals: bool) -> str:
         for (raw,) in conn.execute("SELECT raw_key FROM media"):
             b.client.put_object(Bucket=name, Key=raw, Body=b"original", StorageClass="DEEP_ARCHIVE")
         publish_phone_catalogs(conn, b)
+        publish_for_viewer(conn, b, home / "library")
         conn.close()
     return name
+
+
+def publish_for_viewer(conn, bucket, library: Path) -> None:
+    """What phones browse without the Mac: thumbnails and small copies in S3, the viewer library file, and a
+    stand-in read-only key (the local S3 doesn't check signatures; sigv4.test.ts checks them against AWS)."""
+    from shoebox.device import load_device
+    from shoebox.viewer import publish_viewer, save_access
+
+    for thumb, comp in conn.execute("SELECT thumb_key, compressed_key FROM media"):
+        for key in filter(None, (thumb, comp)):
+            f = library / key
+            if f.exists():
+                bucket.client.put_object(Bucket=bucket.name, Key=key, Body=f.read_bytes(), ContentType="image/jpeg")
+    publish_viewer(conn, bucket, load_device(), force=True)
+    save_access("e2e-reader", "e2e-reader-secret")
 
 
 def publish_phone_catalogs(conn, bucket) -> None:

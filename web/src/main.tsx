@@ -9,6 +9,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App'
 import './local/client'
 import { startAutomaticBackup } from './backup/runner'
+import { isViewerMode } from './cloud/mode'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -16,8 +17,9 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
-startAutomaticBackup()     // only does something inside the iPhone/Android app
+const viewer = isViewerMode()
+if (!viewer) startAutomaticBackup()     // only does something inside the iPhone/Android app
 
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+if (!viewer && 'serviceWorker' in navigator && import.meta.env.PROD) {
   addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(() => {}) })
 }

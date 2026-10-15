@@ -29,7 +29,7 @@ export function People() {
     <>
       <TopBar title="People" />
       {error && <div className="error">{error}</div>}
-      {online && !localState.preferDevice && people && <div className="stack"><WhoIsThis people={people} onChanged={changed} /></div>}
+      {source.kind === 'server' && online && !localState.preferDevice && people && <div className="stack"><WhoIsThis people={people} onChanged={changed} /></div>}
       {people && people.length === 0 && (
         <div className="empty"><strong>No people yet</strong>
           <span>Names you gave faces in Apple Photos appear here, and so do faces you name above. You can also add people to any photo.</span></div>

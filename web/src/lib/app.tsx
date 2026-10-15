@@ -7,8 +7,17 @@ import { LocalDataSource, ServerDataSource, type DataSource } from '../data/sour
 import { enableOnDevice } from '../local/enable'
 import { refreshLocal } from '../local/refresh'
 import { getLocal, onLocal, type LocalState } from '../local/state'
+import type { ViewerState } from '../cloud/source'
 
-interface AppState {
+export interface ViewerInfo {
+  status: 'loading' | 'ready' | 'missing' | 'error'
+  progress?: [number, number]
+  state?: ViewerState | null
+  error?: string
+  refresh: () => void
+}
+
+export interface AppState {
   source: DataSource
   localState: LocalState
   health: Health | null
@@ -19,9 +28,10 @@ interface AppState {
   refreshSync: () => void
   version: number          // bumps after edits/syncs so screens reload
   changed: () => void
+  viewer?: ViewerInfo      // viewer mode: browsing from S3 without the Mac (read-only)
 }
 
-const Ctx = createContext<AppState | null>(null)
+export const Ctx = createContext<AppState | null>(null)
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const server = useMemo(() => new ServerDataSource(), [])
