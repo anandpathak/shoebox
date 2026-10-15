@@ -42,4 +42,12 @@ if [ -n "$mails" ]; then
   fail=1
 fi
 
+# 5. The commit itself would carry the author's email: it must not be a personal address.
+author=$(git config user.email)
+if printf '%s' "$author" | grep -E -q '@(gmail|googlemail|yahoo|outlook|hotmail|live|icloud|me|proton|protonmail)\.'; then
+  echo "pre-commit: commits would carry your personal email ($author)." >&2
+  echo "  Use a no-reply address in this repo: git config user.email <username>@users.noreply.github.com" >&2
+  fail=1
+fi
+
 [ "$fail" -eq 0 ] || { echo "Commit blocked. Remove the items above (or unstage them) and try again." >&2; exit 1; }

@@ -202,4 +202,10 @@ After cloning, enable the leak guard once:
 git config core.hooksPath .githooks
 ```
 
+Commit with a no-reply address so your email isn't in the history (the hook refuses gmail/outlook/icloud and similar):
+
+```sh
+git config user.email <your-github-username>@users.noreply.github.com
+```
+
 The pre-commit hook blocks photos and videos, SQLite databases, Terraform state, `.env`/config files and anything that looks like an AWS key or private key. `library/` and `test-output/` hold personal photos and are git-ignored.
