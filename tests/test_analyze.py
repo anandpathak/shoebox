@@ -207,6 +207,36 @@ def test_text_in_the_picture_is_searchable(lib):
     assert conn.execute("SELECT text_in_image FROM media WHERE photo_id = ?", (q,)).fetchone()[0] is None
 
 
+def test_a_failed_photo_is_retried_a_few_times(lib):
+    conn, fdb, add, analyze, emit = lib
+    from photoctl.analyze import run
+
+    p = add(1, labels=[("beach", 0.9)])
+    calls = []
+    real = run.add_faces
+
+    def flaky(fdb_, pid, found):
+        calls.append(pid)
+        if len(calls) == 1:
+            raise RuntimeError("Vision failed: transient")
+        return real(fdb_, pid, found)
+    run.add_faces = flaky
+    try:
+        assert analyze()["failed"] == 1
+        assert analyze()["analyzed"] == 1                                    # tried again, worked
+    finally:
+        run.add_faces = real
+    assert "beach" in vtags(conn, p)
+
+    q = add(2)
+    run.add_faces = lambda *a: (_ for _ in ()).throw(RuntimeError("broken file"))
+    try:
+        results = [analyze()["failed"] for _ in range(5)]
+    finally:
+        run.add_faces = real
+    assert results == [1, 1, 1, 0, 0]                                         # gives up after 3 attempts
+
+
 def test_stray_letters_are_not_text():
     from photoctl.analyze.vision import useful_text
 

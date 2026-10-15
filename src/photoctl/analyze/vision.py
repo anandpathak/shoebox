@@ -21,9 +21,7 @@ def classify(im: Image.Image) -> list[tuple[str, float]]:
     data = jpeg_bytes(im)
     handler = Vision.VNImageRequestHandler.alloc().initWithData_options_(NSData.dataWithBytes_length_(data, len(data)), None)
     req = Vision.VNClassifyImageRequest.alloc().init()
-    ok, err = handler.performRequests_error_([req], None)
-    if not ok:
-        raise RuntimeError(f"Vision failed: {err}")
+    _perform(handler, req)
     return sorted(((o.identifier(), float(o.confidence())) for o in req.results() or []), key=lambda x: -x[1])
 
 
@@ -39,9 +37,7 @@ def read_text(im: Image.Image, *, max_chars: int = 4000) -> str:
     req = Vision.VNRecognizeTextRequest.alloc().init()
     req.setRecognitionLevel_(Vision.VNRequestTextRecognitionLevelAccurate)
     req.setUsesLanguageCorrection_(True)
-    ok, err = handler.performRequests_error_([req], None)
-    if not ok:
-        raise RuntimeError(f"Vision failed: {err}")
+    _perform(handler, req)
     lines = []
     for o in req.results() or []:
         c = o.topCandidates_(1)
@@ -54,6 +50,19 @@ def useful_text(text: str) -> str:
     """Keep it only if there are real words (not a stray letter on a T-shirt)."""
     words = [w for w in text.split() if sum(ch.isalnum() for ch in w) >= 2]
     return " ".join(text.split()) if len(words) >= 2 else ""
+
+
+def _perform(handler, req, tries: int = 2) -> None:
+    """Vision occasionally fails a request once (seen on the first request in a fresh server); try again."""
+    import time
+
+    for attempt in range(tries):
+        ok, err = handler.performRequests_error_([req], None)
+        if ok:
+            return
+        if attempt + 1 < tries:
+            time.sleep(0.5)
+    raise RuntimeError(f"Vision failed: {err}")
 
 
 def known_labels() -> set[str]:

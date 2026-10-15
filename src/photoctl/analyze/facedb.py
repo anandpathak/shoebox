@@ -34,6 +34,7 @@ CREATE INDEX IF NOT EXISTS faces_cluster ON faces(cluster);
 CREATE INDEX IF NOT EXISTS faces_person ON faces(person_id);
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 """
+MAX_ATTEMPTS = 3        # a photo that fails analysis is tried again on later passes, this many times in all
 
 
 def open_faces(path=None) -> sqlite3.Connection:
@@ -45,6 +46,8 @@ def open_faces(path=None) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode = WAL")
     conn.executescript(SCHEMA)
+    if "attempts" not in {r[1] for r in conn.execute("PRAGMA table_info(analyzed)")}:
+        conn.execute("ALTER TABLE analyzed ADD COLUMN attempts INTEGER NOT NULL DEFAULT 1")
     return conn
 
 

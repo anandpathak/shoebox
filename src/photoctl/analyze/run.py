@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Callable
 
 from . import VERSION
-from .facedb import add_faces, assign, learn_from_photo_names, now, open_faces, rematch
+from .facedb import MAX_ATTEMPTS, add_faces, assign, learn_from_photo_names, now, open_faces, rematch
 from .image import load, source_path
 from .labels import pick
 
@@ -17,7 +17,9 @@ LIVE = "add_op NOT IN (SELECT add_op FROM tombstones)"
 
 
 def pending(catalog: sqlite3.Connection, fdb: sqlite3.Connection, *, redo: bool = False) -> list[sqlite3.Row]:
-    done = set() if redo else {r[0] for r in fdb.execute("SELECT photo_id FROM analyzed WHERE version >= ?", (VERSION,))}
+    done = set() if redo else {r[0] for r in fdb.execute(
+        "SELECT photo_id FROM analyzed WHERE version >= ? AND (error IS NULL OR error = 'no local copy' OR attempts >= ?)",
+        (VERSION, MAX_ATTEMPTS))}
     rows = catalog.execute("SELECT photo_id, media_type, compressed_key, poster_key FROM media WHERE deleted = 0 "
                            "ORDER BY taken_at DESC").fetchall()
     return [r for r in rows if r["photo_id"] not in done]
@@ -87,8 +89,11 @@ def analyze_pending(catalog, library: Path, device_id: str, *, limit: int | None
             counts["faces"] += info.get("faces", 0)
             learnt |= info.get("learnt", False)
         except Exception as e:     # one bad file mustn't stop the rest
-            fdb.execute("INSERT OR REPLACE INTO analyzed (photo_id, version, analyzed_at, error) VALUES (?, ?, ?, ?)",
-                        (row["photo_id"], VERSION, now(), f"{type(e).__name__}: {e}"[:300]))
+            prev = fdb.execute("SELECT attempts, error FROM analyzed WHERE photo_id = ? AND version >= ?",
+                               (row["photo_id"], VERSION)).fetchone()
+            attempts = (prev["attempts"] + 1) if prev and prev["error"] else 1
+            fdb.execute("INSERT OR REPLACE INTO analyzed (photo_id, version, analyzed_at, error, attempts) "
+                        "VALUES (?, ?, ?, ?, ?)", (row["photo_id"], VERSION, now(), f"{type(e).__name__}: {e}"[:300], attempts))
             fdb.commit()
             counts["failed"] += 1
             info = {"photo_id": row["photo_id"], "error": str(e)}
