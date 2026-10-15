@@ -46,7 +46,8 @@ make a new edit (the change log keeps the newest one) rather than restoring.
    ```
 
    Pick the Mac you're replacing from the list. `recover`:
-   - restores its identity (`device.json`), settings and both databases from the newest backup;
+   - restores its identity (`device.json`), settings and its databases (state, catalog, and faces: who is who in
+     your photos, so recognition carries on) from the newest backup;
    - if that device has no backup, adopts its identity from the device registry, starts the catalog
      from the library snapshot and rebuilds the archive state from the sidecars in `meta/`;
    - syncs, so it has every change from every device.

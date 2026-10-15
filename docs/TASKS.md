@@ -371,7 +371,7 @@ Database backup runs in two stages: **T0.7** backs up `state.sqlite` right away,
 
 - [x] **T15.1** Ops record where tags and people-on-photo came from (`source`: vision / face); conformance vector 21.
 - [x] **T15.2** Labels: Apple Vision on the compressed copy → tags (source vision) + derived words (landscape, people, portrait, group…); never re-adds a tag the user removed.
-- [x] **T15.3** Faces: OpenCV YuNet + SFace (pinned SHA-256 models), fingerprints in `faces.sqlite` (0600, Mac only); clustering; learning from Apple Photos names; naming → `media.person.add` (source face) + re-matching; *not them* / *not a person*.
+- [x] **T15.3** Faces: OpenCV YuNet + SFace (pinned SHA-256 models), fingerprints in `faces.sqlite` (0600, not synced; included in database backups since 2026-10-16, `[backup] faces = false` to opt out); clustering; learning from Apple Photos names; naming → `media.person.add` (source face) + re-matching; *not them* / *not a person*.
 - [x] **T15.4** `shoebox analyze`, `shoebox faces`; background worker after archive runs / phone uploads; API.
 - [x] **T15.5** People → *Who's this?* (face groups, name with suggestions, *Not a person*, progress); e2e test.
 - [x] **T15.6** Text in photos: Apple Vision text recognition → op `media.text` → catalog v5 `text_in_image`, part of keyword search on every device; shown in the viewer. Analysis version 2 re-reads already-analysed photos once.

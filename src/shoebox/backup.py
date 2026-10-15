@@ -1,7 +1,11 @@
 """Back up this device's databases to S3 and restore them (LOCAL_APP_PLAN.md §12).
 
 Layout:
-  backups/<device_id>/<YYYY-MM-DDTHH-MM-SSZ>/{state,catalog}.sqlite.gz, device.json, config.toml, manifest.json
+  backups/<device_id>/<YYYY-MM-DDTHH-MM-SSZ>/{state,catalog,faces}.sqlite.gz, device.json, config.toml, manifest.json
+
+faces.sqlite (face fingerprints and which face is whom) is included so a replacement Mac keeps recognising
+people. It's biometric data: it goes only to your own private, encrypted bucket, and `[backup] faces = false`
+in config.toml leaves it out.
   backups/<device_id>/monthly/<YYYY-MM>/...   first backup of each month (kept longer by lifecycle)
   backups/<device_id>/LATEST.json
 """
@@ -24,7 +28,8 @@ from . import paths
 from .catalog.export import integrity_ok, snapshot
 from .device import Device
 
-DATABASES = ("state", "catalog")
+DATABASES = ("state", "catalog", "faces")
+PRIVATE = {"faces"}            # restored readable by this user only
 DAILY, MONTHLY = "retention=daily", "retention=monthly"  # matched by the lifecycle rules in infra/main.tf
 
 
@@ -44,12 +49,21 @@ def _shoebox_version() -> str:
 
 
 def _db_path(name: str) -> Path:
-    return {"state": paths.state_db(), "catalog": paths.catalog_db()}[name]
+    return {"state": paths.state_db(), "catalog": paths.catalog_db(), "faces": paths.faces_db()}[name]
+
+
+def back_up_faces() -> bool:
+    import tomllib
+
+    cfg = paths.config_file()
+    data = tomllib.loads(cfg.read_text()).get("backup", {}) if cfg.exists() else {}
+    return bool(data.get("faces", True))
 
 
 def _local_files() -> dict[str, Path]:
     """Name in the backup → local path, for everything that exists right now."""
-    files = {f"{db}.sqlite.gz": _db_path(db) for db in DATABASES}
+    dbs = [db for db in DATABASES if db != "faces" or back_up_faces()]
+    files = {f"{db}.sqlite.gz": _db_path(db) for db in dbs}
     files["device.json"] = paths.device_file()
     files["config.toml"] = paths.config_file()
     return {k: v for k, v in files.items() if v.exists()}
@@ -227,6 +241,8 @@ def restore(bucket, device_id: str, *, at: datetime | None = None, with_identity
                 if old.exists():
                     os.replace(old, Path(str(dest) + suffix + ".bak"))
             shutil.copyfile(src, dest.with_suffix(dest.suffix + ".tmp"))
+            if dest.stem in PRIVATE:
+                os.chmod(dest.with_suffix(dest.suffix + ".tmp"), 0o600)
             os.replace(dest.with_suffix(dest.suffix + ".tmp"), dest)
             restored[dest.name] = chosen["created_at"]
     return {"backup": chosen["prefix"], "created_at": chosen["created_at"], "restored": restored}

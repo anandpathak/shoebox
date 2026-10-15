@@ -38,7 +38,7 @@ MAX_ATTEMPTS = 3        # a photo that fails analysis is tried again on later pa
 
 
 def open_faces(path=None) -> sqlite3.Connection:
-    path = path or paths.home() / "faces.sqlite"
+    path = path or paths.faces_db()
     new = not os.path.exists(path)
     conn = sqlite3.connect(path, timeout=30, check_same_thread=False)
     if new:

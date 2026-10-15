@@ -29,6 +29,10 @@ def catalog_db() -> Path:
     return home() / "catalog.sqlite"
 
 
+def faces_db() -> Path:
+    return home() / "faces.sqlite"
+
+
 def device_file() -> Path:
     return home() / "device.json"
 

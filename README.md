@@ -98,8 +98,10 @@ uv run shoebox faces          # groups of faces still waiting for a name
   faces are grouped; in the app go to **People → Who's this?** and type a name once. Every photo of that
   person, now and later, can then be searched by name. Faces you named in Apple Photos are learnt
   automatically. *Not a person* hides a group. A wrong match: open the photo and remove that person from it.
-- Face fingerprints are biometric data, so they stay in `~/.shoebox/faces.sqlite` on this Mac only: they
-  aren't synced, published or backed up. Only the names you confirm are.
+- Face fingerprints are biometric data. They live in `~/.shoebox/faces.sqlite` (readable only by you) and aren't
+  synced to other devices or put in published catalogs. They *are* included in the database backups in your own
+  private, encrypted bucket, so a replacement Mac keeps recognising people; `faces = false` under `[backup]` in
+  `config.toml` leaves them out. Names you confirm are part of the catalog and always sync.
 - Turn background analysis off with `analysis = false` under `[server]` in `~/.shoebox/config.toml`.
 
 #### Plain-English search and captions (optional AI extras)
@@ -121,7 +123,7 @@ uv run shoebox search --best "kids playing in the snow"
 
 ### Database backups
 
-At the end of every archive run, `state.sqlite`, `catalog.sqlite`, `device.json` and `config.toml` are backed up to
+At the end of every archive run, `state.sqlite`, `catalog.sqlite`, `faces.sqlite`, `device.json` and `config.toml` are backed up to
 `s3://$SHOEBOX_BUCKET/backups/<device_id>/<timestamp>/`. Each database is copied consistently and integrity-checked
 before upload. The first backup of each month is also kept under `monthly/`.
 

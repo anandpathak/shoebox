@@ -116,3 +116,44 @@ def test_manifest_and_latest_pointer(bucket, sidecar, device):
     assert manifest["catalog"]["schema_version"] >= 2 and len(manifest["catalog"]["checksum"]) == 64
     assert manifest["catalog"]["unpushed_ops"] == 3   # nothing has synced in this test
     assert last_local_backup()["prefix"].startswith(f"backups/{device.device_id}/")
+
+
+def _faces(person="p_asha"):
+    from shoebox.analyze.facedb import open_faces
+
+    fdb = open_faces()
+    fdb.execute("INSERT INTO faces (photo_id, x, y, w, h, score, emb, person_id, status) "
+                "VALUES ('P1', .1, .1, .2, .2, .9, ?, ?, 'confirmed')", (b"\0" * 512, person))
+    fdb.commit()
+    fdb.close()
+
+
+def test_faces_are_backed_up_and_restored_privately(bucket, sidecar, device):
+    import os
+
+    _seed(sidecar, device)
+    _faces()
+    res = backup(bucket, device)
+    assert "faces.sqlite.gz" in res.files
+    for f in (paths.faces_db(), paths.catalog_db(), paths.state_db()):
+        f.unlink()
+    out = restore(bucket, device.device_id)
+    assert "faces.sqlite" in out["restored"]
+    assert oct(os.stat(paths.faces_db()).st_mode & 0o777) == "0o600"
+    row = sqlite3.connect(paths.faces_db()).execute("SELECT person_id, status FROM faces").fetchone()
+    assert row == ("p_asha", "confirmed")
+
+
+def test_faces_can_be_left_out_of_backups(bucket, sidecar, device):
+    _seed(sidecar, device)
+    _faces()
+    paths.config_file().write_text("[backup]\nfaces = false\n")
+    assert "faces.sqlite.gz" not in backup(bucket, device).files
+
+
+def test_older_backups_without_faces_still_restore(bucket, sidecar, device):
+    _seed(sidecar, device)
+    res = backup(bucket, device)                      # no faces.sqlite on this Mac yet
+    assert "faces.sqlite.gz" not in res.files
+    out = restore(bucket, device.device_id)
+    assert set(out["restored"]) == {"state.sqlite", "catalog.sqlite"}
