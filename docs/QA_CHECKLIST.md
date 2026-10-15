@@ -81,6 +81,16 @@ Build and install from `app/` (see app/README.md), with Tailscale on.
 - [ ] iPhone: a photo only in iCloud (*Optimise iPhone storage*) is downloaded and backed up on Wi-Fi.
 - [ ] Turn the Mac off: the card says *waiting for your Mac*; turn it on: it catches up by itself.
 
+## 10. Browsing without the Mac
+- [ ] After `tofu apply` and `shoebox viewer access`: Sync → Use without your Mac → Set up says *Ready on this phone*.
+- [ ] Turn the Mac off (or leave the Wi-Fi/tailnet): the start page offers *Browse without your Mac*; the library opens,
+      thumbnails load, search works, a photo opens and *Download photo* saves it.
+- [ ] Nothing offers editing, uploading or originals; only Library and People are shown.
+- [ ] Force-quit and reopen offline: the library still opens (iPhone: if it re-downloads each time, on-device storage
+      isn't available inside the app; note it).
+- [ ] Change something on the Mac, sync, wait 15 min: the phone shows it after reopening.
+- [ ] Rotate the key: the phone says the key was refused and to set it up again.
+
 ## Results
 
 | Date | Device / OS / browser | Sections passed | Problems |

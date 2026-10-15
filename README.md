@@ -184,6 +184,27 @@ them on the phone, asks the Mac which ones it doesn't have (`POST /api/backup/ch
 The native projects need Xcode (iPhone) or Android Studio (Android) to build; see [app/README.md](app/README.md).
 Without the app, phones can still pick photos by hand under **Uploads**.
 
+### Browsing on phones when the Mac is off (read-only)
+
+The phone app can browse and search the library straight from your S3 bucket, with no Mac running. It uses a
+**read-only key** that can only read thumbnails, small copies and the library file: not originals or backups,
+and it can't upload, change or delete anything.
+
+```sh
+cd infra && tofu plan && tofu apply                                     # creates the read-only key + CORS rule
+tofu -chdir=infra output -raw reader_secret | \
+  uv run shoebox viewer access --key-id "$(tofu -chdir=infra output -raw reader_key_id)" --secret-stdin
+```
+
+Then, on each phone, once while connected to the Mac: **Sync → Use without your Mac → Set up**. The key is
+kept in the iPhone Keychain / Android Keystore. When the Mac can't be reached, the start page offers **Browse
+without your Mac**: search (keywords, people, places, dates, captions, text in photos), view and download the
+small copies. Plain-English ranking, edits, uploads and originals need the Mac.
+
+The Mac republishes the library file (`viewer/library.sqlite.gz`) after a sync when something changed, at most
+every 15 minutes; `shoebox viewer publish` does it now. To cut every phone off, rotate the key:
+`tofu -chdir=infra apply -replace=aws_iam_access_key.reader`, then `shoebox viewer access` with the new one.
+
 ## A second Mac
 
 Every Mac keeps its own catalog and syncs through the same bucket; it doesn't need its own Photos library.

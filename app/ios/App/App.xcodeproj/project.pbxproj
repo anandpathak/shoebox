@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A1B2C3D40000000000000006 /* SecureStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40000000000000005 /* SecureStore.swift */; };
 		A1B2C3D40000000000000004 /* PhotoBackupPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40000000000000003 /* PhotoBackupPlugin.swift */; };
 		A1B2C3D40000000000000002 /* BackupCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40000000000000001 /* BackupCore.swift */; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
@@ -20,6 +21,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		A1B2C3D40000000000000005 /* SecureStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureStore.swift; sourceTree = "<group>"; };
 		A1B2C3D40000000000000003 /* PhotoBackupPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoBackupPlugin.swift; sourceTree = "<group>"; };
 		A1B2C3D40000000000000001 /* BackupCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupCore.swift; sourceTree = "<group>"; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
@@ -68,6 +70,7 @@
 			children = (
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
+				A1B2C3D40000000000000005 /* SecureStore.swift */,
 				A1B2C3D40000000000000003 /* PhotoBackupPlugin.swift */,
 				A1B2C3D40000000000000001 /* BackupCore.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
@@ -162,6 +165,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
+				A1B2C3D40000000000000006 /* SecureStore.swift in Sources */,
 				A1B2C3D40000000000000004 /* PhotoBackupPlugin.swift in Sources */,
 				A1B2C3D40000000000000002 /* BackupCore.swift in Sources */,
 			);

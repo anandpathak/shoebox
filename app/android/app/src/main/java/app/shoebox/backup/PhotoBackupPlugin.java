@@ -156,6 +156,29 @@ public class PhotoBackupPlugin extends Plugin {
     @PluginMethod
     public void finishBackground(PluginCall call) { call.resolve(); }
 
+    /** The read-only S3 key for browsing without the Mac (SecureStore: Android Keystore). */
+    @PluginMethod
+    public void setViewerAccess(PluginCall call) {
+        String json = call.getString("json");
+        if (json == null) { call.reject("json is required"); return; }
+        try { SecureStore.set(getContext(), json); call.resolve(); }
+        catch (Exception e) { call.reject("Couldn't store the key: " + e.getMessage()); }
+    }
+
+    @PluginMethod
+    public void getViewerAccess(PluginCall call) {
+        String json = SecureStore.get(getContext());
+        JSObject out = new JSObject();
+        out.put("json", json == null ? JSObject.NULL : json);
+        call.resolve(out);
+    }
+
+    @PluginMethod
+    public void clearViewerAccess(PluginCall call) {
+        SecureStore.clear(getContext());
+        call.resolve();
+    }
+
     /** Origin, device id and backup settings, for passes made while the app is closed (BackgroundPassWorker). */
     @PluginMethod
     public void configure(PluginCall call) {

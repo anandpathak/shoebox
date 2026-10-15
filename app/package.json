@@ -5,7 +5,8 @@
   "description": "iPhone/Android shell around the shoebox web app, plus automatic camera-roll backup",
   "scripts": {
     "sync": "cap sync",
-    "test": "vitest run"
+    "test": "vitest run",
+    "bundle": "npm --prefix ../web run build && node scripts/bundle-viewer.mjs && cap sync"
   },
   "dependencies": {
     "@capacitor/android": "^7.6.9",

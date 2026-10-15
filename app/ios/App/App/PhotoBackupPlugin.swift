@@ -20,6 +20,9 @@ public class PhotoBackupPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "conditions", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "finishBackground", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "configure", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setViewerAccess", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getViewerAccess", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "clearViewerAccess", returnType: CAPPluginReturnPromise),
     ]
     private let core = BackupCore.shared
     private let work = DispatchQueue(label: "app.shoebox.backup.work", qos: .utility)
@@ -74,6 +77,21 @@ public class PhotoBackupPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func finishBackground(_ call: CAPPluginCall) { call.resolve() }
+
+    // The read-only S3 key for browsing without the Mac (see SecureStore.swift).
+    @objc func setViewerAccess(_ call: CAPPluginCall) {
+        guard let json = call.getString("json") else { return call.reject("json is required") }
+        SecureStore.set(json) ? call.resolve() : call.reject("Couldn't save to the Keychain")
+    }
+
+    @objc func getViewerAccess(_ call: CAPPluginCall) {
+        if let json = SecureStore.get() { call.resolve(["json": json]) } else { call.resolve(["json": NSNull()]) }
+    }
+
+    @objc func clearViewerAccess(_ call: CAPPluginCall) {
+        SecureStore.clear()
+        call.resolve()
+    }
 
     /// The web app passes its origin, device id and backup settings on every run, for passes made while it's closed.
     @objc func configure(_ call: CAPPluginCall) {

@@ -10,7 +10,7 @@ app adds is automatic backup of the camera roll (iOS PhotoKit / Android MediaSto
 cd app
 npm install
 uv run python ../scripts/make_icons.py   # icons and splash screens (PNGs aren't committed)
-npx cap sync
+npm run bundle          # builds the web app and bundles the read-only viewer (browsing without the Mac), then cap sync
 npx cap open ios        # Xcode 16+, then Run on a phone or simulator
 npx cap open android    # Android Studio, then Run
 npm test                # the start page's address checks

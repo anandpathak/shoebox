@@ -62,13 +62,27 @@ if (scanner) {
 
 form.addEventListener('submit', (e) => { e.preventDefault(); void connect(input.value) })
 
+// Set up from the Mac under Sync → Use without your Mac: browse the library from S3, read-only.
+const store = globalThis.Capacitor?.Plugins?.PhotoBackup
+const browseBtn = $('browse')
+let canBrowse = false
+store?.getViewerAccess?.().then(({ json }) => {
+  canBrowse = !!json
+  browseBtn.hidden = !canBrowse
+}).catch(() => {})
+browseBtn.addEventListener('click', () => location.assign('browse/index.html#/library'))
+
 if (saved) {
   input.value = saved.replace(/^https?:\/\//, '')
   if (!changing) {
     status.textContent = `Connecting to ${input.value}…`
     reachable(saved).then((ok) => {
       if (ok) open(saved)
-      else { status.textContent = ''; err.textContent = "Can't reach your Mac. Is shoebox running, and is this phone on the same Wi-Fi (or Tailscale on)?" }
+      else {
+        status.textContent = ''
+        err.textContent = canBrowse ? "Can't reach your Mac right now. You can still browse your library, read-only."
+          : "Can't reach your Mac. Is shoebox running, and is this phone on the same Wi-Fi (or Tailscale on)?"
+      }
     })
   }
 }
