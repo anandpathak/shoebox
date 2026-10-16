@@ -147,13 +147,13 @@ def test_inbox_never_misses_a_file_that_lands_while_it_is_stopping(authed, monke
     calls = {"n": 0}
     arrived = threading.Event()
 
-    def pending_with_a_late_arrival():
+    def pending_with_a_late_arrival(**kw):
         calls["n"] += 1
         if calls["n"] == 1:                      # first look: empty… and a file lands right then
             threading.Thread(target=lambda: (inbox.kick(), arrived.set())).start()
             arrived.wait(2)
             return []
-        return real_pending()
+        return real_pending(**kw)
     monkeypatch.setattr(inbox, "pending", pending_with_a_late_arrival)
     data = jpeg_with_exif()
     url = create(client, data, "late.jpg")

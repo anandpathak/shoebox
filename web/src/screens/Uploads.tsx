@@ -38,6 +38,7 @@ export function Uploads() {
                    onStarted={(r) => { setActive(r); setError(null) }} onError={setError} />
         {active && <LiveRun run={active} onUpdate={setActive} onFinished={() => { refresh(); changed() }} />}
         <DeviceUploads deviceId={uploaderId(health?.via, health?.device.device_id)} onDone={() => { refresh(); changed() }} />
+        <InboxCard />
         <History runs={history.filter((r) => r.run_id !== active?.run_id)} onRetry={(r) => setActive(r)} onError={setError} />
       </div>
     </>
@@ -250,6 +251,45 @@ function History({ runs, onRetry, onError }: { runs: RunInfo[]; onRetry: (r: Run
           )
         })}
       </div>
+    </section>
+  )
+}
+
+interface Inbox {
+  pending: { filename: string; device_id: string; bytes: number; attempts: number; failed: boolean; error: string | null }[]
+  last_error: string | null
+}
+
+/** Uploads that reached the Mac but aren't archived yet: progress, files waiting for a retry, ones set aside. */
+function InboxCard() {
+  const [inbox, setInbox] = useState<Inbox | null>(null)
+  const [busy, setBusy] = useState(false)
+  const load = useCallback(() => { api<Inbox>('/api/uploads/files').then(setInbox).catch(() => {}) }, [])
+  useEffect(() => {
+    load()
+    const t = setInterval(load, 8000)
+    return () => clearInterval(t)
+  }, [load])
+  if (!inbox || (inbox.pending.length === 0 && !inbox.last_error)) return null
+  const setAside = inbox.pending.filter((p) => p.failed)
+  const retrying = inbox.pending.filter((p) => !p.failed && p.attempts > 0)
+  const queued = inbox.pending.length - setAside.length - retrying.length
+  const retry = async () => { setBusy(true); try { setInbox(await api<Inbox>('/api/uploads/files/retry', { method: 'POST' })) } finally { setBusy(false) } }
+  return (
+    <section className="card" aria-label="Waiting on the Mac">
+      <h2>Waiting on the Mac</h2>
+      <p className="small" data-testid="inbox-summary">
+        {[queued && `${queued} being archived`, retrying.length && `${retrying.length} will be tried again shortly`,
+          setAside.length && `${setAside.length} set aside after repeated failures`].filter(Boolean).join(' · ') || 'Nothing waiting'}
+      </p>
+      {[...retrying, ...setAside].slice(0, 10).map((p) => (
+        <div key={p.filename + p.device_id} className="muted small">{p.filename}: {p.error ?? 'failed'}
+          {p.failed ? '' : ` (attempt ${p.attempts})`}</div>
+      ))}
+      {inbox.last_error && <p className="error small">The Mac hit a problem and will keep trying: {inbox.last_error}</p>}
+      {(setAside.length > 0 || retrying.length > 0) && (
+        <div className="row"><button className="btn" disabled={busy} onClick={retry}>Try again now</button></div>
+      )}
     </section>
   )
 }

@@ -174,6 +174,27 @@ def add_to_album(uuids: list[str], name: str = ARCHIVE_ALBUM) -> None:
         album.add([photoscript.Photo(u) for u in uuids[i:i + 200]])
 
 
+def flush_album(state: State, event=None) -> int:
+    """Add archived Apple Photos items to the "Archived to S3" album: this run's and any left over from
+    earlier runs (Photos busy, a crash, a restart). Recorded per item in state, so nothing is lost or done twice."""
+    say = event or (lambda kind, **d: None)
+    added = 0
+    pending = state.album_pending()
+    for i in range(0, len(pending), 200):
+        chunk = pending[i:i + 200]
+        try:
+            add_to_album([ref.split(":", 1)[1] for ref in chunk])
+        except Exception as e:  # noqa: BLE001 — the archive itself is fine; try again after the next run
+            say("message", text=f"Couldn't update the Photos album ({e}); {len(pending) - added} items will be "
+                                f"added after the next run.")
+            return added
+        state.album_done(chunk)
+        added += len(chunk)
+    if added:
+        say("message", text=f'Added {added} items to the "{ARCHIVE_ALBUM}" album in Photos.')
+    return added
+
+
 def process(item, opts: Options) -> Result:
     """Archive one item. Never raises: failures come back as Result(status='failed')."""
     item = _as_item(item)
@@ -333,7 +354,6 @@ def run_archive(items: Iterable | None, opts: Options, *, selection: Selection |
             if opts.bucket is not None and record_state:
                 opts.bucket.client.head_bucket(Bucket=opts.bucket.name)  # fail fast on auth/bucket problems
             catalog = None if opts.dry_run else open_catalog(opts.catalog_path)
-            apple_done: list[str] = []
             pending = iter(todo)
             with ThreadPoolExecutor(max_workers=opts.workers) as pool:
                 running = set()
@@ -354,11 +374,12 @@ def run_archive(items: Iterable | None, opts: Options, *, selection: Selection |
                         summary.counts[r.status] = summary.counts.get(r.status, 0) + 1
                         summary.uploaded_bytes += r.uploaded_bytes
                         if record_state:
-                            state.upsert(r.source_ref, status=r.status, error=r.error, **r.fields)
+                            extra = {}
+                            if r.source_ref.startswith("applephotos:") and r.status in ("done", "no_derivative"):
+                                extra["album"] = 0 if opts.mark_album else 1   # added to the album after the run
+                            state.upsert(r.source_ref, status=r.status, error=r.error, **r.fields, **extra)
                             if r.status in ("done", "no_derivative"):
                                 summary.archived_refs.append(r.source_ref)
-                                if r.source_ref.startswith("applephotos:"):
-                                    apple_done.append(r.uuid)
                         if catalog is not None and r.record is not None:
                             upsert_record(catalog, r.record, device, bytes_compressed=r.fields.get("bytes_compressed"),
                                           source_device_id=r.source_device_id)
@@ -369,12 +390,8 @@ def run_archive(items: Iterable | None, opts: Options, *, selection: Selection |
             event("end", counts=summary.counts, uploaded_bytes=summary.uploaded_bytes, cancelled=summary.cancelled)
             if catalog is not None:
                 catalog.close()
-            if opts.mark_album and apple_done:
-                try:
-                    add_to_album(apple_done)
-                    event("message", text=f'Added {len(apple_done)} items to the "{ARCHIVE_ALBUM}" album in Photos.')
-                except Exception as e:
-                    event("message", text=f"Couldn't update the Photos album ({e}); the archive itself succeeded.")
+            if opts.mark_album and record_state:
+                flush_album(state, event)
             if opts.bucket is not None and record_state:
                 state.db.close()
                 _after_run(opts, device, event)

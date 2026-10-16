@@ -34,8 +34,9 @@ def options_for_app(app, *, dry_run: bool = False) -> Options:
     from ..deps import app_bucket
 
     s3 = app_bucket(app)
+    workers = max(1, min(int(app.state.settings.workers or 4), 16))
     return Options(out=app.state.settings.library, bucket=None if dry_run else s3, dry_run=dry_run,
-                   local_only=s3 is None and not dry_run)
+                   local_only=s3 is None and not dry_run, workers=workers)
 
 
 def options_for(request: Request, *, dry_run: bool = False) -> Options:

@@ -130,7 +130,7 @@ def delete(upload_id: str):
 @router.post("/retry")
 def retry(request: Request):
     """Try again with uploads whose archive failed (they stay in the inbox until they succeed)."""
-    request.app.state.inbox.kick()
+    request.app.state.inbox.retry_failed()
     return request.app.state.inbox.status()
 
 
@@ -150,7 +150,16 @@ def _finish(app, info: dict, part: Path) -> None:
 
 
 class InboxProcessor:
-    """Archives finished uploads as soon as no other run holds the ingest lock."""
+    """Archives finished uploads as soon as no other run holds the ingest lock.
+
+    Fault tolerance: everything it needs is on disk (the file and its <id>.json), so a restart simply picks
+    up where it was; items already archived are recognised and cleared. A file that fails is retried after
+    1, 2, 4 … minutes (at most an hour) and set aside after MAX_ATTEMPTS, until "Retry failed". Unexpected
+    errors never stop the processor.
+    """
+
+    BATCH = 50              # files per archive run: new uploads join quickly, finished ones are cleared sooner
+    MAX_ATTEMPTS = 5
 
     def __init__(self, app):
         self.app = app
@@ -158,65 +167,126 @@ class InboxProcessor:
         self._thread: threading.Thread | None = None
         self._lock = threading.Lock()        # guards starting/stopping the thread so no wake-up is lost
         self.last_run_id: str | None = None
+        self.last_error: str | None = None
 
-    def pending(self) -> list[tuple[Path, dict]]:
+    def _all(self) -> list[tuple[Path, dict, Path]]:
         out = []
         for meta in paths.inbox_dir().glob("*/*.json"):
             if meta.parent.name.startswith("."):
                 continue
-            info = json.loads(meta.read_text())
+            try:
+                info = json.loads(meta.read_text())
+            except (OSError, ValueError):
+                continue
             data = meta.parent / f"{info['id']}__{info['filename']}"
             if data.exists():
-                out.append((data, info))
+                out.append((data, info, meta))
         return sorted(out, key=lambda x: x[1]["created"])
 
+    def pending(self, *, due_only: bool = False) -> list[tuple[Path, dict]]:
+        now = time.time()
+        out = []
+        for data, info, _ in self._all():
+            if due_only and (info.get("gave_up") or info.get("next_try", 0) > now):
+                continue
+            out.append((data, info))
+        return out
+
     def status(self) -> dict:
-        return {"pending": [{"filename": i["filename"], "device_id": i["device_id"], "bytes": i["length"]}
-                            for _, i in self.pending()], "last_run_id": self.last_run_id}
+        return {"pending": [{"filename": i["filename"], "device_id": i["device_id"], "bytes": i["length"],
+                             "attempts": i.get("attempts", 0), "failed": bool(i.get("gave_up")),
+                             "error": i.get("last_error")} for _, i in self.pending()],
+                "last_run_id": self.last_run_id, "last_error": self.last_error}
+
+    def retry_failed(self) -> int:
+        n = 0
+        for _, info, meta in self._all():
+            if info.get("attempts") or info.get("gave_up"):
+                for k in ("attempts", "next_try", "gave_up", "last_error"):
+                    info.pop(k, None)
+                _write_json(meta, info)
+                n += 1
+        self.kick()
+        return n
 
     def kick(self) -> None:
         with self._lock:
             self._wake.set()
-            if self._thread is None:
+            if self._thread is None or not self._thread.is_alive():
                 self._thread = threading.Thread(target=self._loop, name="inbox", daemon=True)
                 self._thread.start()
 
     def _loop(self) -> None:
+        while True:
+            self._wake.wait(timeout=5)
+            self._wake.clear()
+            try:
+                batch = self.pending(due_only=True)[:self.BATCH]
+                if not batch:
+                    waiting = [i for _, i in self.pending() if not i.get("gave_up")]
+                    with self._lock:
+                        if self._wake.is_set():      # a file arrived while we were checking: go round again
+                            continue
+                        if not waiting:
+                            self._thread = None
+                            return
+                    # failed files waiting for their next try: sleep until the first one is due
+                    first = min(i.get("next_try", 0) for i in waiting)
+                    self._wake.wait(timeout=max(1.0, min(60.0, first - time.time())))
+                    self._wake.set()
+                    continue
+                self._run(batch)
+                self.last_error = None
+            except Exception as e:  # noqa: BLE001 — never let one bad moment stop uploads for good
+                self.last_error = f"{type(e).__name__}: {e}"
+                time.sleep(5)
+                self._wake.set()
+
+    def _run(self, batch) -> None:
         from datetime import datetime, timezone
 
         from ...runlock import AlreadyRunning
         from ...uploads import FileItem
         from .runs import options_for_app
 
-        while True:
-            self._wake.wait(timeout=5)
-            self._wake.clear()
-            batch = self.pending()
-            if not batch:
-                with self._lock:
-                    if self._wake.is_set():      # a file arrived while we were checking: go round again
-                        continue
-                    self._thread = None
-                    return
-            items = []
-            for data, info in batch:
-                lm = info.get("last_modified")
-                when = datetime.fromtimestamp(int(lm) / 1000, tz=timezone.utc) if lm and str(lm).isdigit() else None
-                items.append(FileItem(str(data), info["filename"], info["device_id"], info["id"], last_modified=when,
-                                      asset_ref=info.get("asset_ref")))
-            try:
-                run = self.app.state.runs.start("upload", f"{len(items)} uploaded file(s)", options_for_app(self.app),
-                                                items=items, device=self.app.state.device)
-            except AlreadyRunning:
-                time.sleep(2)
-                self._wake.set()
-                continue
-            self.last_run_id = run.run_id
-            while run.status == "running":
-                time.sleep(0.5)
-            self._clean(batch)
+        items = []
+        for data, info in batch:
+            lm = info.get("last_modified")
+            when = datetime.fromtimestamp(int(lm) / 1000, tz=timezone.utc) if lm and str(lm).isdigit() else None
+            items.append(FileItem(str(data), info["filename"], info["device_id"], info["id"], last_modified=when,
+                                  asset_ref=info.get("asset_ref")))
+        try:
+            run = self.app.state.runs.start("upload", f"{len(items)} uploaded file(s)", options_for_app(self.app),
+                                            items=items, device=self.app.state.device)
+        except AlreadyRunning:
+            time.sleep(2)                    # e.g. an Apple Photos run: go again when it's done
+            self._wake.set()
+            return
+        self.last_run_id = run.run_id
+        while run.status == "running":
+            time.sleep(0.5)
+        self._clean(batch, run.results)
+        self._note_failures(batch, run.results)
+        self._wake.set()                     # more may be waiting
 
-    def _clean(self, batch) -> None:
+    def _note_failures(self, batch, results: dict) -> None:
+        """Files still here after their run failed: back off before the next try, set aside after MAX_ATTEMPTS."""
+        for data, info in batch:
+            meta = data.parent / f"{info['id']}.json"
+            if not data.exists() or not meta.exists():
+                continue                     # archived and cleared (or moved to archived-locally)
+            status, error = _outcome(info, results)
+            if status in ("done", "no_derivative"):
+                continue
+            attempts = int(info.get("attempts", 0)) + 1
+            info["attempts"] = attempts
+            info["last_error"] = error or "archiving didn't finish"
+            info["next_try"] = time.time() + min(60 * 2 ** (attempts - 1), 3600)
+            if attempts >= self.MAX_ATTEMPTS:
+                info["gave_up"] = True
+            _write_json(meta, info)
+
+    def _clean(self, batch, results: dict | None = None) -> None:
         """Delete inbox files once their original is safely in S3. Failures stay for 'retry failed'.
         Without S3 the uploaded file is the only copy: it moves to archived-locally/ and is uploaded
         the next time the server runs with a bucket."""
@@ -226,6 +296,9 @@ class InboxProcessor:
         local_only = self.app.state.settings.bucket is None
         for data, info in batch:
             meta = data.parent / f"{info['id']}.json"
+            status, _ = _outcome(info, results or {}, state)
+            if status not in ("done", "no_derivative"):
+                continue                     # failed or not reached: stays for a retry
             if local_only:
                 keep = data.parent / LOCAL
                 keep.mkdir(exist_ok=True)
@@ -233,11 +306,9 @@ class InboxProcessor:
                 os.replace(meta, keep / meta.name)
                 data.with_name(data.name + ".sha256").unlink(missing_ok=True)
                 continue
-            row = state.get(info.get("asset_ref") or f"upload:{info['device_id']}:{info['id']}:{info['filename']}")
-            if row is not None and row["status"] in ("done", "no_derivative"):
-                data.unlink(missing_ok=True)
-                meta.unlink(missing_ok=True)
-                data.with_name(data.name + ".sha256").unlink(missing_ok=True)
+            data.unlink(missing_ok=True)
+            meta.unlink(missing_ok=True)
+            data.with_name(data.name + ".sha256").unlink(missing_ok=True)
 
     def requeue_local(self) -> int:
         """Server started with S3: send files that were only archived locally through again."""
@@ -252,3 +323,47 @@ class InboxProcessor:
         if n:
             self.kick()
         return n
+
+
+def _outcome(info: dict, results: dict, state=None) -> tuple[str | None, str | None]:
+    """How this file's archive went: from the run's own results, else from the archive state (earlier runs)."""
+    ref = _ref(info)
+    if ref in results:
+        return results[ref]
+    if state is None:
+        from ...state import State
+        state = State()
+    row = state.get(ref)
+    return (row["status"], row["error"]) if row is not None else (None, None)
+
+
+def _ref(info: dict) -> str:
+    return info.get("asset_ref") or f"upload:{info['device_id']}:{info['id']}:{info['filename']}"
+
+
+def _write_json(path: Path, data: dict) -> None:
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(data))
+    os.replace(tmp, path)
+
+
+def tidy_inbox(*, stale_part_days: float = 7) -> dict:
+    """At startup: remove debris a crash or an old bug could leave behind. Never touches an upload itself."""
+    removed = {"cache": 0, "partial": 0}
+    inbox = paths.inbox_dir()
+    for f in inbox.rglob("*.sha256*"):
+        if f.name.count(".sha256") > 1 or (f.name.endswith(".sha256") and not f.with_suffix("").exists()):
+            f.unlink(missing_ok=True)        # re-cached caches (old bug) and caches of files that are gone
+            removed["cache"] += 1
+    cutoff = time.time() - stale_part_days * 86400
+    for f in list(inbox.glob("*/.*.part")) + list((inbox / ".uploads").glob("*.part")):
+        try:
+            if f.stat().st_mtime < cutoff:   # an upload abandoned a week ago won't be resumed
+                f.unlink()
+                f.with_suffix(".json").unlink(missing_ok=True)
+                removed["partial"] += 1
+        except OSError:
+            pass
+    for f in inbox.rglob("*.json.tmp"):
+        f.unlink(missing_ok=True)
+    return removed

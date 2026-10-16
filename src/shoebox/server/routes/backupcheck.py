@@ -39,8 +39,21 @@ def _inbox_hashes() -> set[str]:
     """Uploads that arrived but aren't archived yet don't need sending again."""
     import hashlib
 
+    import json
+
     out = set()
-    for f in paths.inbox_dir().glob("*/*__*"):
+    # Uploads are known by their <id>.json; only those files are hashed. (Globbing for "*__*" also matched
+    # the .sha256 cache files themselves, which then got cached and re-cached into ever longer names.)
+    for meta in paths.inbox_dir().glob("*/*.json"):
+        if meta.parent.name.startswith("."):
+            continue
+        try:
+            info = json.loads(meta.read_text())
+        except (OSError, ValueError):
+            continue
+        f = meta.parent / f"{info['id']}__{info['filename']}"
+        if not f.is_file():
+            continue
         cache = f.with_name(f.name + ".sha256")
         if cache.exists():
             out.add(cache.read_text().strip())

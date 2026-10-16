@@ -32,9 +32,11 @@ class Run:
     messages: list[str] = field(default_factory=list)
     ended_at: str | None = None
     cancel: threading.Event = field(default_factory=threading.Event, repr=False)
+    results: dict = field(default_factory=dict, repr=False)   # source_ref -> (status, error), per item
 
     def public(self) -> dict:
-        return {k: v for k, v in self.__dict__.items() if k != "cancel"} | {"cancellable": self.status == "running"}
+        return ({k: v for k, v in self.__dict__.items() if k not in ("cancel", "results")}
+                | {"cancellable": self.status == "running"})
 
 
 class RunManager:
@@ -66,6 +68,7 @@ class RunManager:
                 run.todo = d["todo"]
             elif kind_ == "item":
                 run.processed += 1
+                run.results[d["source_ref"]] = (d["status"], d.get("error"))
                 run.counts[d["status"]] = run.counts.get(d["status"], 0) + 1
                 run.uploaded_bytes += d.get("uploaded_bytes") or 0
             elif kind_ == "message":

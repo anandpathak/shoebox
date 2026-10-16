@@ -33,6 +33,11 @@ class State:
         self.db = sqlite3.connect(path, timeout=10)
         self.db.row_factory = sqlite3.Row
         self.db.executescript(SCHEMA)
+        if "album" not in {r[1] for r in self.db.execute("PRAGMA table_info(items)")}:
+            # 1 = in the "Archived to S3" album (or nothing to do). Rows from before this column existed were
+            # marked at the end of their run already, so they start as done.
+            self.db.execute("ALTER TABLE items ADD COLUMN album INTEGER NOT NULL DEFAULT 1")
+            self.db.commit()
 
     def get(self, source_ref: str) -> sqlite3.Row | None:
         return self.db.execute("SELECT * FROM items WHERE source_ref = ?", (source_ref,)).fetchone()
@@ -49,6 +54,16 @@ class State:
             f"ON CONFLICT(source_ref) DO UPDATE SET {', '.join(f'{c}=excluded.{c}' for c in fields)}",
             [source_ref, *fields.values()],
         )
+        self.db.commit()
+
+    def album_pending(self, limit: int = 5000) -> list[str]:
+        """Apple Photos items archived but not yet added to the album (e.g. Photos was busy, or a restart)."""
+        return [r[0] for r in self.db.execute(
+            "SELECT source_ref FROM items WHERE album = 0 AND status IN ('done', 'no_derivative') "
+            "AND source_ref LIKE 'applephotos:%' ORDER BY updated_at LIMIT ?", (limit,))]
+
+    def album_done(self, refs: list[str]) -> None:
+        self.db.executemany("UPDATE items SET album = 1 WHERE source_ref = ?", [(r,) for r in refs])
         self.db.commit()
 
     def counts(self) -> dict[str, int]:

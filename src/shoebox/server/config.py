@@ -25,6 +25,7 @@ class Settings:
     hostnames: list[str] = field(default_factory=list)
     sync_interval: int = 60
     static_dir: Path | None = None
+    workers: int = 4             # files archived at the same time ([server] workers = 6 in config.toml)
     analysis: bool = True        # analyse new photos (labels, faces) in the background; SHOEBOX_ANALYSIS=0 turns it off
 
     @classmethod

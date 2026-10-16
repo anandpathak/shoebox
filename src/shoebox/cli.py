@@ -14,6 +14,7 @@ At the end of a run the local databases are backed up to s3://<bucket>/backups/<
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -450,6 +451,10 @@ def serve(port, host, library, bucket, profile, print_token, use_tailscale, setu
     if print_token:
         click.echo(get_or_create_token())
         return
+    # macOS memory-debugging variables inherited from some terminals make every helper process print
+    # "MallocStackLogging: can't turn off malloc stack logging…"; they do nothing useful here.
+    for k in [k for k in os.environ if k.startswith("MallocStackLogging")]:
+        os.environ.pop(k, None)
     if host not in ("127.0.0.1", "localhost", "::1"):
         raise click.UsageError("Use --lan to let phones on this Wi-Fi in (they have to be paired), "
                                "or `tailscale serve` to reach the Mac from anywhere.")
@@ -554,6 +559,21 @@ def _prepare_tailscale(settings, port: int, setup: bool) -> None:
     click.echo(f"\nOn your phones (with Tailscale on), open {net.url}\n")
     click.echo(qr(net.url))
     click.echo("iPhone: Safari → Share → Add to Home Screen.  Android: Chrome → ⋮ → Install app.\n")
+
+
+@main.command()
+def album():
+    """Add archived photos that aren't in the "Archived to S3" album yet (runs also do this by themselves)."""
+    from .archiver import flush_album
+    from .state import State
+
+    pending = State().album_pending()
+    if not pending:
+        click.echo("Every archived photo is already in the album.")
+        return
+    added = flush_album(State(), lambda kind, **d: click.echo(d.get("text", "")))
+    if added < len(pending):
+        raise click.ClickException(f"{len(pending) - added} still to add; is Photos open and allowed (Automation)?")
 
 
 # ---------------------------------------------------------------- viewer (phones without the Mac)

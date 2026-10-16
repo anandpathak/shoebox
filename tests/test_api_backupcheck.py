@@ -23,5 +23,6 @@ def test_uploads_waiting_in_the_inbox_count_as_in_progress(api):
     folder = paths.inbox_dir() / "PHONE"
     folder.mkdir(parents=True)
     (folder / "01ABC__x.jpg").write_bytes(b"queued bytes")
+    (folder / "01ABC.json").write_text('{"id": "01ABC", "filename": "x.jpg", "device_id": "PHONE", "created": 1}')
     h = hashlib.sha256(b"queued bytes").hexdigest()
     assert client.post("/api/backup/check", json={"hashes": [h]}).json()["in_progress"] == [h]
