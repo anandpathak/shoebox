@@ -162,6 +162,59 @@ public class PhotoBackupPlugin extends Plugin {
     @PluginMethod
     public void finishBackground(PluginCall call) { call.resolve(); }
 
+    private final java.util.Set<String> trusted = new java.util.HashSet<>();
+
+    /**
+     * Let the Mac's pages use the app's native features (backup, secure storage). Capacitor on Android only
+     * gives its bridge to the app's own pages; the web app is loaded from the Mac, so its exact origin
+     * (e.g. http://192.168.1.11:8765) gets the same bridge script, if the app may open it at all
+     * (allowNavigation: private Wi-Fi addresses, *.ts.net, this phone). Messages come back through the
+     * legacy bridge (android.useLegacyBridge in capacitor.config.json).
+     */
+    @PluginMethod
+    public void trustOrigin(PluginCall call) {
+        String origin = call.getString("origin");
+        android.net.Uri u = origin == null ? null : android.net.Uri.parse(origin);
+        if (u == null || u.getHost() == null || !("http".equals(u.getScheme()) || "https".equals(u.getScheme()))) {
+            call.reject("origin like http://192.168.1.11:8765 is required");
+            return;
+        }
+        com.getcapacitor.util.HostMask mask = getBridge().getAppAllowNavigationMask();
+        if (mask == null || !mask.matches(u.getHost())) {
+            call.reject("That address isn't one the app may open");
+            return;
+        }
+        String clean = u.getScheme() + "://" + u.getHost() + (u.getPort() > 0 ? ":" + u.getPort() : "");
+        if (trusted.contains(clean)) { call.resolve(); return; }
+        if (!androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.DOCUMENT_START_SCRIPT)) {
+            call.reject("This Android System WebView is too old; update it from the Play Store");
+            return;
+        }
+        try {
+            com.getcapacitor.Bridge b = getBridge();
+            java.util.List<com.getcapacitor.PluginHandle> handles = new java.util.ArrayList<>();
+            for (String id : new String[] { "PhotoBackup", "CapacitorCookies", "CapacitorHttp", "WebView", "SystemBars" }) {
+                com.getcapacitor.PluginHandle h = b.getPlugin(id);
+                if (h != null) handles.add(h);
+            }
+            String js = com.getcapacitor.JSExport.getGlobalJS(getContext(), b.getConfig().isLoggingEnabled(), b.isDevMode())
+                    + "\n\n" + com.getcapacitor.JSExport.getBridgeJS(getContext())
+                    + "\n\n" + com.getcapacitor.JSExport.getPluginJS(handles)
+                    + "\n\nwindow.WEBVIEW_SERVER_URL = '" + b.getLocalUrl() + "';";
+            getActivity().runOnUiThread(() -> {
+                try {
+                    androidx.webkit.WebViewCompat.addDocumentStartJavaScript(b.getWebView(), js, java.util.Collections.singleton(clean));
+                    trusted.add(clean);
+                    call.resolve();
+                } catch (Exception e) {
+                    call.reject("Couldn't connect the app to " + clean + ": " + e.getMessage());
+                }
+            });
+        } catch (Exception e) {
+            call.reject("Couldn't prepare the app bridge: " + e.getMessage());
+        }
+    }
+
     /** Is the Mac answering? Any HTTP reply counts (sign-in is the web app's job). Done natively because the
      *  start page is https and a web request from it to the Mac's plain http address is blocked. */
     @PluginMethod

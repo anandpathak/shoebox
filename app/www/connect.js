@@ -26,7 +26,12 @@ async function reachable(base) {
   } catch { return false } finally { clearTimeout(t) }
 }
 
-function open(base, pair) {
+async function open(base, pair) {
+  // Android: let the Mac's pages use the app's native features (backup, secure storage)
+  const native = globalThis.Capacitor?.Plugins?.PhotoBackup
+  if (native?.trustOrigin) {
+    try { await native.trustOrigin({ origin: base }) } catch (e) { console.warn('native features unavailable on the Mac pages', e) }
+  }
   location.replace(`${base}/${pair ? `?pair=${encodeURIComponent(pair)}` : ''}#/library`)
 }
 

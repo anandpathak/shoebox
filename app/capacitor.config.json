@@ -3,8 +3,22 @@
   "appName": "Shoebox",
   "webDir": "www",
   "server": {
-    "allowNavigation": ["*.ts.net", "*.local", "192.168.*.*", "10.*.*.*", "172.*.*.*", "127.0.0.1", "localhost"]
+    "allowNavigation": [
+      "*.ts.net",
+      "*.local",
+      "192.168.*.*",
+      "10.*.*.*",
+      "172.*.*.*",
+      "127.0.0.1",
+      "localhost"
+    ]
   },
-  "ios": { "contentInset": "never", "limitsNavigationsToAppBoundDomains": false },
-  "android": { "allowMixedContent": false }
+  "ios": {
+    "contentInset": "never",
+    "limitsNavigationsToAppBoundDomains": false
+  },
+  "android": {
+    "allowMixedContent": false,
+    "useLegacyBridge": true
+  }
 }
