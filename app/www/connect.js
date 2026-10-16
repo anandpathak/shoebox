@@ -10,6 +10,12 @@ const saved = localStorage.getItem(KEY)
 const changing = new URLSearchParams(location.search).has('change')
 
 async function reachable(base) {
+  // In the app, ask the native side: this page is https (Android) / capacitor:// (iPhone), and a web request
+  // from it to the Mac's plain http address on the Wi-Fi is blocked as mixed content before it leaves the phone.
+  const native = globalThis.Capacitor?.Plugins?.PhotoBackup
+  if (native?.ping) {
+    try { return (await native.ping({ url: `${base}/api/health` })).reachable === true } catch { return false }
+  }
   const ctl = new AbortController()
   const t = setTimeout(() => ctl.abort(), 6000)
   try {

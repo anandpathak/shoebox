@@ -156,6 +156,30 @@ public class PhotoBackupPlugin extends Plugin {
     @PluginMethod
     public void finishBackground(PluginCall call) { call.resolve(); }
 
+    /** Is the Mac answering? Any HTTP reply counts (sign-in is the web app's job). Done natively because the
+     *  start page is https and a web request from it to the Mac's plain http address is blocked. */
+    @PluginMethod
+    public void ping(PluginCall call) {
+        String url = call.getString("url");
+        if (url == null) { call.reject("url is required"); return; }
+        work.execute(() -> {
+            JSObject out = new JSObject();
+            try {
+                java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+                c.setConnectTimeout(5000);
+                c.setReadTimeout(5000);
+                c.setUseCaches(false);
+                out.put("status", c.getResponseCode());
+                out.put("reachable", true);
+                c.disconnect();
+            } catch (Exception e) {
+                out.put("reachable", false);
+                out.put("error", e.getClass().getSimpleName());
+            }
+            call.resolve(out);
+        });
+    }
+
     /** The read-only S3 key for browsing without the Mac (SecureStore: Android Keystore). */
     @PluginMethod
     public void setViewerAccess(PluginCall call) {

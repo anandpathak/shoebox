@@ -20,6 +20,7 @@ public class PhotoBackupPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "conditions", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "finishBackground", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "configure", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "ping", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setViewerAccess", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getViewerAccess", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "clearViewerAccess", returnType: CAPPluginReturnPromise),
@@ -77,6 +78,21 @@ public class PhotoBackupPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func finishBackground(_ call: CAPPluginCall) { call.resolve() }
+
+    /// Is the Mac answering? Any HTTP reply counts. Done natively: a web request from the app's own page to the
+    /// Mac's plain http address on the Wi-Fi is blocked as mixed content.
+    @objc func ping(_ call: CAPPluginCall) {
+        guard let s = call.getString("url"), let url = URL(string: s) else { return call.reject("url is required") }
+        var req = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 5)
+        req.httpMethod = "GET"
+        URLSession.shared.dataTask(with: req) { _, resp, error in
+            if let http = resp as? HTTPURLResponse {
+                call.resolve(["reachable": true, "status": http.statusCode])
+            } else {
+                call.resolve(["reachable": false, "error": error?.localizedDescription ?? "no answer"])
+            }
+        }.resume()
+    }
 
     // The read-only S3 key for browsing without the Mac (see SecureStore.swift).
     @objc func setViewerAccess(_ call: CAPPluginCall) {
