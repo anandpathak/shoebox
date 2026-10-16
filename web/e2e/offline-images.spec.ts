@@ -15,6 +15,7 @@ test('thumbnails for a year and saved photos show offline', async ({ page, conte
 
   const photo = (await (await page.request.get(`/api/search?type=photo&from=${year}-01-01&limit=1`)).json()).items[0].photo_id
   await page.goto(`/#/media/${photo}`)
+  await page.getByRole('button', { name: 'Details' }).click()
   await page.getByRole('button', { name: 'Save offline' }).click()
   await expect(page.getByRole('button', { name: 'Saved offline' })).toBeVisible()
 

@@ -32,6 +32,7 @@ test('captions show in the viewer, are searchable, and can be corrected', async 
   const hit = (await (await page.request.get('/api/search?q=lagoon')).json()).items
   expect(hit.length).toBeGreaterThan(0)
   await page.goto(`/#/media/${hit[0].photo_id}`)
+  await page.getByRole('button', { name: 'Details' }).click()
   await expect(page.getByTestId('caption')).toContainText('Palm trees by a quiet lagoon')
   await page.getByRole('button', { name: 'Edit caption' }).click()
   await page.getByLabel('Caption').fill('Our lagoon at Zephyrcove')

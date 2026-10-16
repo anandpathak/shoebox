@@ -31,6 +31,7 @@ test('in the viewer: who is in the photo, and "Not them" undoes a match', async 
   const before = (await (await page.request.get('/api/search?person=Meera%20Facetest&limit=500')).json()).items
   test.skip(before.length === 0, 'needs the group named in the previous test')
   await page.goto(`/#/media/${before[0].photo_id}`)
+  await page.getByRole('button', { name: 'Details' }).click()
   const face = page.getByTestId('photo-face').filter({ hasText: 'Meera Facetest' })
   await expect(face).toBeVisible()
   await face.getByRole('button', { name: 'Not Meera Facetest' }).click()

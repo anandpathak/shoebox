@@ -5,7 +5,6 @@ import { PhotoFaces } from '../components/PhotoFaces'
 import type { MediaPatch } from '../data/source'
 import { useApp } from '../lib/app'
 import { dateLabel } from '../lib/format'
-import { go } from '../lib/router'
 
 // Edits apply on screen straight away (optimistic) and roll back if the server says no.
 export function Editor({ item, onChanged }: { item: MediaDetail; onChanged: () => void }) {
@@ -15,11 +14,10 @@ export function Editor({ item, onChanged }: { item: MediaDetail; onChanged: () =
   const [desc, setDesc] = useState(item.description ?? '')
   const [newTag, setNewTag] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [deleted, setDeleted] = useState(false)
   // Only save what the user typed: if the item changes underneath (sync, reconnect), never write the old text back.
   const [dirty, setDirty] = useState<{ title?: boolean; desc?: boolean }>({})
   useEffect(() => {
-    setLocal(item); setTitle(item.title ?? ''); setDesc(item.description ?? ''); setDeleted(!!item.deleted); setDirty({})
+    setLocal(item); setTitle(item.title ?? ''); setDesc(item.description ?? ''); setDirty({})
   }, [item])
 
   async function run(optimistic: Partial<MediaDetail>, action: () => Promise<unknown>) {
@@ -38,18 +36,6 @@ export function Editor({ item, onChanged }: { item: MediaDetail; onChanged: () =
   const patch = (p: MediaPatch, opt: Partial<MediaDetail>) => run(opt, () => source.edit.patch(item.photo_id, p))
 
   if (!source.canEdit) return <><h2>{item.title || dateLabel(item.taken_at)}</h2>{item.caption && <p className="caption muted">{item.caption}</p>}</>
-  if (deleted) {
-    return (
-      <div className="editor card">
-        <strong>Removed from your library</strong>
-        <span className="muted small">The original stays safe in S3.</span>
-        <div className="row">
-          <button className="btn" onClick={() => run({}, async () => { await source.edit.restore(item.photo_id); setDeleted(false); onChanged() })}>Undo</button>
-          <button className="btn" onClick={() => go('library')}>Back to library</button>
-        </div>
-      </div>
-    )
-  }
   return (
     <div className="editor">
       <input className="title-input" type="text" value={title} placeholder={dateLabel(item.taken_at)} aria-label="Title"
@@ -67,16 +53,17 @@ export function Editor({ item, onChanged }: { item: MediaDetail; onChanged: () =
                 }} />
       <Caption text={local.caption ?? null} onSave={(c) => patch({ caption: c }, { caption: c })} />
       {local.text_in_image && <p className="muted small text-in-image" title={local.text_in_image}>Text in photo: {local.text_in_image}</p>}
-      <div className="row">
-        <button className="btn" aria-pressed={!!local.favorite} onClick={() => patch({ favorite: !local.favorite }, { favorite: local.favorite ? 0 : 1 })}>
-          <Icon name="heart" size={18} filled={!!local.favorite} />{local.favorite ? 'Favourite' : 'Add to favourites'}</button>
-        <button className="btn" aria-pressed={!!local.hidden} onClick={() => patch({ hidden: !local.hidden }, { hidden: local.hidden ? 0 : 1 })}>
-          <Icon name="eye" size={18} />{local.hidden ? 'Hidden' : 'Hide'}</button>
-        <button className="btn danger" onClick={() => run({}, async () => { await source.edit.remove(item.photo_id); setDeleted(true) })}>
-          <Icon name="trash" size={18} />Remove</button>
-      </div>
-      {local.people.length > 0 && <div className="row">{local.people.map((p) => <span key={p.person_id} className="tag person">{p.name}</span>)}</div>}
-      {source.kind === 'server' && <PhotoFaces photoId={item.photo_id} onChanged={onChanged} />}
+      <label className="check hide-toggle"><input type="checkbox" checked={!!local.hidden}
+        onChange={() => patch({ hidden: !local.hidden }, { hidden: local.hidden ? 0 : 1 })} />Hide from the library</label>
+      {(local.people.length > 0 || source.kind === 'server') && (
+        <section className="sheet-section" aria-label="People">
+          <h3>People</h3>
+          {local.people.length > 0 && <div className="row">{local.people.map((p) => <span key={p.person_id} className="tag person">{p.name}</span>)}</div>}
+          {source.kind === 'server' && <PhotoFaces photoId={item.photo_id} onChanged={onChanged} />}
+        </section>
+      )}
+      <section className="sheet-section">
+      <h3>Tags</h3>
       <div className="row tags" aria-label="Tags">
         {local.tags.map((t) => (
           <span key={t} className="tag">{t}
@@ -93,6 +80,7 @@ export function Editor({ item, onChanged }: { item: MediaDetail; onChanged: () =
           <input type="text" value={newTag} onChange={(e) => setNewTag(e.target.value)} placeholder="Add tag" aria-label="Add tag" className="tag-input" />
         </form>
       </div>
+      </section>
       {error && <div className="error" role="alert">{error}</div>}
     </div>
   )

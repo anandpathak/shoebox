@@ -12,8 +12,10 @@ test('edits made offline on the phone reach the Mac; a later Mac edit to the sam
   await page.goto(`/#/media/${target}`).catch(() => {})
   await expect(page.getByRole('status').first()).toContainText('on-device catalog', { timeout: 40_000 })
   const v = page.getByRole('dialog', { name: 'Photo viewer' })
+  await v.getByRole('button', { name: 'Details' }).click()
   await v.getByLabel('Title').fill('Edited offline')
   await v.getByLabel('Title').press('Enter')
+  await page.getByRole('button', { name: 'Close details' }).click()        // the action bar is under the sheet on phones
   await v.getByRole('button', { name: 'Add to favourites' }).click()
   await expect(page.getByRole('status').first()).toContainText('2 edits waiting')
   const offline = await localCall<{ title: string; favorite: number }>(page, 'media', 'library', target)

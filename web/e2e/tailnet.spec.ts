@@ -23,6 +23,7 @@ test('a phone on the tailnet names itself, registers, and its uploads are credit
   // the viewer says the phone's upload has no location
   const id = (await (await page.request.get(`/api/search?device=${me.device_id}`)).json()).items[0].photo_id
   await page.goto(`/#/media/${id}`)
+  await page.getByRole('button', { name: 'Details' }).click()
   await expect(page.getByRole('note').filter({ hasText: 'Metadata incomplete' })).toContainText('No location')
   // the device chip appears in the library filters
   await page.goto('/')

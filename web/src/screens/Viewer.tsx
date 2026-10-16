@@ -10,46 +10,80 @@ import { isSaved, saveOffline, unsaveOffline } from '../local/offline'
 import { Editor } from './ViewerEdit'
 
 export function Viewer({ route }: { route: Route }) {
-  const { source, version } = useApp()
+  const { source, version, changed } = useApp()
   const id = route.params[0]
   const listKey = route.query.toString() ? `?${route.query.toString()}` : ''
   const [item, setItem] = useState<MediaDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [chrome, setChrome] = useState(true)                 // top and bottom bars (tap the photo to hide)
+  const [details, setDetails] = useState(false)              // the details sheet; stays open while swiping
+  const [fav, setFav] = useState(false)
+  const [removed, setRemoved] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
   const { prev, next } = neighbours(listKey, id)
 
   const load = useCallback(() => {
-    source.media(id).then((m) => { setItem(m); setError(null) }).catch((e) => setError(e.message))
+    source.media(id).then((m) => { setItem(m); setFav(!!m.favorite); setRemoved(!!m.deleted); setError(null) })
+      .catch((e) => setError(e.message))
   }, [source, id])
   useEffect(load, [load, version])
+  useEffect(() => { setNotice(null) }, [id])
 
   const close = useCallback(() => go(`library${listKey}`), [listKey])
   const step = useCallback((to: string | null) => { if (to) go(`media/${to}${listKey}`, true) }, [listKey])
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.closest('input, textarea')) return
-      if (e.key === 'Escape') close()
+      if (e.key === 'Escape') { if (details) setDetails(false); else close() }
       if (e.key === 'ArrowLeft') step(prev)
       if (e.key === 'ArrowRight') step(next)
+      if (e.key === 'i') setDetails((d) => !d)
     }
     addEventListener('keydown', onKey)
     return () => removeEventListener('keydown', onKey)
-  }, [close, step, prev, next])
+  }, [close, step, prev, next, details])
 
-  // swipe left/right on the media
-  const start = useRef<{ x: number; y: number } | null>(null)
-  const onPointerDown = (e: React.PointerEvent) => { start.current = { x: e.clientX, y: e.clientY } }
+  // swipe left/right to move; a tap shows or hides the bars
+  const start = useRef<{ x: number; y: number; t: number } | null>(null)
+  const onPointerDown = (e: React.PointerEvent) => { start.current = { x: e.clientX, y: e.clientY, t: Date.now() } }
   const onPointerUp = (e: React.PointerEvent) => {
     const s = start.current
     start.current = null
     if (!s) return
-    const dx = e.clientX - s.x
-    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(e.clientY - s.y) * 1.5) step(dx < 0 ? next : prev)
+    const dx = e.clientX - s.x, dy = e.clientY - s.y
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) { step(dx < 0 ? next : prev); return }
+    const tap = Math.abs(dx) < 10 && Math.abs(dy) < 10 && Date.now() - s.t < 350
+    if (tap && item?.media_type !== 'video' && !(e.target as HTMLElement).closest('button')) setChrome((c) => !c)
   }
 
+  const toggleFav = async () => {
+    if (!item) return
+    const want = !fav
+    setFav(want)
+    try { await source.edit.patch(item.photo_id, { favorite: want }); changed() } catch (e) { setFav(!want); setNotice((e as Error).message) }
+  }
+  const remove = async () => {
+    if (!item) return
+    try { await source.edit.remove(item.photo_id); setRemoved(true); setDetails(false); changed() }
+    catch (e) { setNotice((e as Error).message) }
+  }
+  const undo = async () => {
+    if (!item) return
+    try { await source.edit.restore(item.photo_id); setRemoved(false); load(); changed() } catch (e) { setNotice((e as Error).message) }
+  }
+
+  const title = item ? (item.title || dateLabel(item.taken_at)) : ''
+  const where = item ? (item.place_name || place(item)) : ''
   return (
-    <div className="viewer" role="dialog" aria-modal="true" aria-label="Photo viewer">
+    <div className="viewer" role="dialog" aria-modal="true" aria-label="Photo viewer" data-chrome={chrome ? 'on' : 'off'}
+         data-details={details ? 'on' : 'off'}>
+      <header className="vtop">
+        <button className="vicon" onClick={close} aria-label="Close"><Icon name="back" /></button>
+        <div className="vtitle"><strong>{title}</strong>{where && <span>{where}</span>}</div>
+        <span className="vspacer" />
+      </header>
+
       <div className="viewer-media" onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
-        <button className="vbtn close" onClick={close} aria-label="Close"><Icon name="close" /></button>
         {prev && <button className="vbtn prev" onClick={() => step(prev)} aria-label="Previous"><Icon name="left" /></button>}
         {next && <button className="vbtn next" onClick={() => step(next)} aria-label="Next"><Icon name="right" /></button>}
         {error && <div className="error">{error}</div>}
@@ -58,9 +92,87 @@ export function Viewer({ route }: { route: Route }) {
                    controls playsInline preload="metadata" />
           : <img key={id} src={item.compressed_key ? source.compressedUrl(id) : source.thumbUrl(id)} alt={item.title ?? ''}
                  draggable={false} />)}
+        {removed && (
+          <div className="vtoast" role="status">
+            <strong>Removed from your library</strong>
+            <span>The original stays safe in S3.</span>
+            <div className="row">
+              <button className="btn" onClick={undo}>Undo</button>
+              <button className="btn" onClick={close}>Back to library</button>
+            </div>
+          </div>
+        )}
+        {notice && <div className="vtoast error" role="alert" onClick={() => setNotice(null)}>{notice}</div>}
       </div>
-      {item && <Details item={item} onChanged={load} />}
+
+      {item && (
+        <nav className="vbar" aria-label="Photo actions">
+          {source.canEdit && (
+            <button className="vaction" aria-pressed={fav} onClick={toggleFav} disabled={removed}
+                    aria-label={fav ? 'Favourite' : 'Add to favourites'}>
+              <Icon name="heart" filled={fav} /><span>Favourite</span></button>
+          )}
+          <button className="vaction" aria-pressed={details} onClick={() => setDetails((d) => !d)} aria-label="Details">
+            <Icon name="info" /><span>Details</span></button>
+          {item.compressed_key && (
+            <a className="vaction" href={source.compressedUrl(item.photo_id, true)} download
+               aria-label={`Download ${item.media_type === 'video' ? 'video' : 'photo'}`}>
+              <Icon name="download" /><span>Download</span></a>
+          )}
+          {canShare() && item.compressed_key && (
+            <button className="vaction" onClick={() => share(source.compressedUrl(item.photo_id), item).catch((e) => setNotice(e.message))}
+                    aria-label="Share"><Icon name="share" /><span>Share</span></button>
+          )}
+          {source.canEdit && !removed && (
+            <button className="vaction danger" onClick={remove} aria-label="Remove"><Icon name="trash" /><span>Remove</span></button>
+          )}
+        </nav>
+      )}
+
+      {item && <Sheet open={details} onClose={() => setDetails(false)}><Details item={item} onChanged={load} /></Sheet>}
     </div>
+  )
+}
+
+function canShare(): boolean {
+  return typeof navigator !== 'undefined' && typeof navigator.share === 'function'
+}
+
+/** The phone's own share sheet, with the picture itself when it can take files (else a link). */
+async function share(url: string, item: MediaDetail): Promise<void> {
+  const name = (item.orig_name ?? item.photo_id).replace(/\.[^.]+$/, '') + (item.media_type === 'video' ? '.mp4' : '.jpg')
+  try {
+    const blob = await (await fetch(url)).blob()
+    const file = new File([blob], name, { type: blob.type || (item.media_type === 'video' ? 'video/mp4' : 'image/jpeg') })
+    if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: item.title ?? undefined }); return }
+  } catch (e) {
+    if ((e as Error).name === 'AbortError') return            // the person closed the share sheet
+  }
+  await navigator.share({ url, title: item.title ?? undefined }).catch((e) => { if (e.name !== 'AbortError') throw e })
+}
+
+/** A sheet over the photo: slides up from the bottom on phones, in from the right on wide screens. Close with
+ * the ✕, a tap on the dimmed photo, Esc, or by dragging the handle down. */
+function Sheet({ open, onClose, children }: { open: boolean; onClose: () => void; children: React.ReactNode }) {
+  const [drag, setDrag] = useState(0)
+  const from = useRef<number | null>(null)
+  return (
+    <>
+      <div className="sheet-backdrop" data-open={open} onClick={onClose} aria-hidden="true" />
+      <section className="sheet" data-open={open} role="dialog" aria-label="Details" aria-hidden={!open}
+               style={drag ? { transform: `translateY(${drag}px)`, transition: 'none' } : undefined} inert={!open}>
+        <div className="sheet-head"
+             onPointerDown={(e) => { from.current = e.clientY; (e.target as HTMLElement).setPointerCapture?.(e.pointerId) }}
+             onPointerMove={(e) => { if (from.current != null) setDrag(Math.max(0, e.clientY - from.current)) }}
+             onPointerUp={() => { if (drag > 90) onClose(); from.current = null; setDrag(0) }}
+             onPointerCancel={() => { from.current = null; setDrag(0) }}>
+          <span className="grabber" aria-hidden="true" />
+          <h2>Details</h2>
+          <button className="vicon soft" onClick={onClose} aria-label="Close details"><Icon name="close" size={20} /></button>
+        </div>
+        <div className="sheet-body">{children}</div>
+      </section>
+    </>
   )
 }
 
@@ -70,10 +182,12 @@ function Details({ item, onChanged }: { item: MediaDetail; onChanged: () => void
     ? `https://www.openstreetmap.org/?mlat=${item.lat}&mlon=${item.lon}#map=15/${item.lat}/${item.lon}` : null
   const camera = [item.camera_make, item.camera_model].filter(Boolean).join(' ')
   return (
-    <aside className="viewer-info">
+    <div className="viewer-info">
       <Editor item={item} onChanged={onChanged} />
       <MetadataNote item={item} />
-      <dl className="facts">
+      <section className="sheet-section">
+      <h3>About this photo</h3>
+      <dl className="facts card-facts">
         <dt>Taken</dt><dd>{dateLabel(item.taken_at)}</dd>
         {(place(item) || map) && <><dt>Place</dt><dd data-testid="place">{item.place_name || place(item) || coords(item.lat!, item.lon!)}
           {map && <> · <a href={map} target="_blank" rel="noreferrer">Map</a></>}</dd></>}
@@ -84,14 +198,16 @@ function Details({ item, onChanged }: { item: MediaDetail; onChanged: () => void
         <dt>Sizes</dt><dd>{[item.bytes_compressed && `${bytes(item.bytes_compressed)} copy`, item.bytes_raw && `${bytes(item.bytes_raw)} original`].filter(Boolean).join(' · ')}</dd>
         <dt>File</dt><dd className="mono">{item.orig_name ?? '—'}</dd>
       </dl>
-      <div className="row">
-        {item.compressed_key && <a className="btn primary" href={source.compressedUrl(item.photo_id, true)} download>
-          <Icon name="download" size={18} />Download {item.media_type === 'video' ? 'video' : 'photo'}</a>}
-        {source.kind !== 'cloud' && <SaveOfflineButton id={item.photo_id} />}
-        {source.kind !== 'cloud' && <OriginalButton id={item.photo_id} />}
-      </div>
-      <p className="mono muted">{item.photo_id}</p>
-    </aside>
+      </section>
+      {source.kind !== 'cloud' && (
+        <div className="sheet-actions sheet-section">
+          <h3>Original and offline</h3>
+          <SaveOfflineButton id={item.photo_id} />
+          <OriginalButton id={item.photo_id} />
+        </div>
+      )}
+      <p className="mono muted small">{item.photo_id}</p>
+    </div>
   )
 }
 

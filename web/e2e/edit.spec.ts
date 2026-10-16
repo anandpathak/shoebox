@@ -9,15 +9,17 @@ test('edit title, tags and favourite; they persist', async ({ page }, info) => {
   const id = await tile.getAttribute('data-id')
   await tile.click()
   const v = page.getByRole('dialog', { name: 'Photo viewer' })
+  await page.getByRole('button', { name: 'Details' }).click()                 // the sheet with title, tags, info
   await v.getByLabel('Title').fill('Sunset at Kudle')
   await v.getByLabel('Title').press('Enter')
   await v.getByLabel('Add tag').fill('Golden hour')
   await v.getByLabel('Add tag').press('Enter')
   await expect(v.getByLabel('Tags')).toContainText('golden hour')
-  await v.getByRole('button', { name: /favourite/i }).click()
-  await expect(v.getByRole('button', { name: 'Favourite', exact: true })).toBeVisible()
+  await v.getByRole('button', { name: 'Add to favourites' }).click()            // in the action bar
+  await expect(v.getByRole('button', { name: 'Favourite', exact: true })).toHaveAttribute('aria-pressed', 'true')
 
   await page.reload()
+  await page.getByRole('button', { name: 'Details' }).click()                 // the sheet with title, tags, info
   await expect(v.getByLabel('Title')).toHaveValue('Sunset at Kudle')
   await expect(v.getByLabel('Tags')).toContainText('golden hour')
   await v.getByRole('button', { name: 'Remove tag golden hour' }).click()
@@ -41,6 +43,6 @@ test('remove, then undo', async ({ page }, info) => {
   await expect(v.getByText('Removed from your library')).toBeVisible()
   expect((await (await page.request.get(`/api/media/${id}`)).json()).deleted).toBe(1)
   await v.getByRole('button', { name: 'Undo' }).click()
-  await expect(v.getByLabel('Title')).toBeVisible()
+  await expect(v.getByRole('button', { name: 'Remove', exact: true })).toBeVisible()
   expect((await (await page.request.get(`/api/media/${id}`)).json()).deleted).toBe(0)
 })
