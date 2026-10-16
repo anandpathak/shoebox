@@ -56,3 +56,16 @@ export function startPageUrl(): string | null {
   if (!p) return null
   return `${p === 'ios' ? 'capacitor://localhost' : 'https://localhost'}/index.html?change=1`
 }
+
+/** Android: may the app read the location in photos? (Without it, Android strips GPS from what it hands over.) */
+export async function locationAllowed(): Promise<boolean> {
+  const p = plugin() as unknown as { access(): Promise<{ location?: boolean }> } | null
+  if (!p) return true
+  try { return (await p.access()).location !== false } catch { return true }
+}
+
+export async function askForLocation(): Promise<boolean> {
+  const p = plugin() as unknown as { requestAccess(): Promise<{ location?: boolean }> } | null
+  if (!p) return true
+  try { return (await p.requestAccess()).location !== false } catch { return false }
+}

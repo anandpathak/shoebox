@@ -121,6 +121,17 @@ uv run shoebox search --best "kids playing in the snow"
 - Both run on the Mac's GPU. Photo vectors stay in `~/.shoebox/embeddings.sqlite` on this Mac.
 - Different models: `[analysis] search_model = "…"` / `caption_model = "…"` in `config.toml` (Hugging Face ids).
 
+### Places (location)
+
+Photos keep their GPS coordinates from the file (or from Apple Photos). Where there's no place name (phone
+uploads, backups, photos Apple hasn't named), the Mac names the nearest town and city offline from
+[GeoNames](https://www.geonames.org/) (CC BY 4.0; ~11 MB downloaded once), so "Goa" or "London" finds them.
+New photos get names as they're archived; `uv run shoebox places` (or the server in the background) fills in
+existing ones. The viewer always shows the location, with a map link.
+
+Android removes the location from photos **picked by hand** (in any app or browser). The Shoebox app's
+**Back up this phone** keeps it, as long as Shoebox may read the location in photos; the app warns you if not.
+
 ### Database backups
 
 At the end of every archive run, `state.sqlite`, `catalog.sqlite`, `faces.sqlite`, `device.json` and `config.toml` are backed up to

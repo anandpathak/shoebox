@@ -48,6 +48,11 @@ class AnalysisWorker:
             self.state["running"] = True
             catalog = open_catalog(any_thread=True)
             try:
+                self.state["step"] = "place names"
+                from ..places import backfill
+                from .deps import app_bucket
+                backfill(catalog, self.app.state.settings.library, self.app.state.device.device_id,
+                         bucket=app_bucket(self.app), stop=self._stop)
                 self.state["step"] = "labels and faces"
                 while not self._stop.is_set():
                     counts = analyze_pending(catalog, self.app.state.settings.library, self.app.state.device.device_id,

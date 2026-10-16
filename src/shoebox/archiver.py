@@ -255,6 +255,8 @@ def process(item, opts: Options) -> Result:
         extra_meta = getattr(item, "extra_metadata", None)
         if extra_meta:
             record.update(extra_meta)
+        from .places import fill_place
+        fill_place(record)          # coordinates but no place name (phone uploads; photos Apple hasn't named)
         meta_path.parent.mkdir(parents=True, exist_ok=True)
         meta_path.write_text(json.dumps(record, indent=2, ensure_ascii=False))
         fields = {"photo_id": pid, "sha256": sha, "raw_key": raw_key, "compressed_key": record["keys"]["compressed"],

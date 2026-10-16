@@ -75,7 +75,8 @@ function Details({ item, onChanged }: { item: MediaDetail; onChanged: () => void
       <MetadataNote item={item} />
       <dl className="facts">
         <dt>Taken</dt><dd>{dateLabel(item.taken_at)}</dd>
-        {place(item) && <><dt>Place</dt><dd>{item.place_name || place(item)}{map && <> · <a href={map} target="_blank" rel="noreferrer">Map</a></>}</dd></>}
+        {(place(item) || map) && <><dt>Place</dt><dd data-testid="place">{item.place_name || place(item) || coords(item.lat!, item.lon!)}
+          {map && <> · <a href={map} target="_blank" rel="noreferrer">Map</a></>}</dd></>}
         {camera && <><dt>Camera</dt><dd>{camera}</dd></>}
         {item.media_type === 'video' && item.duration_s != null && <><dt>Length</dt><dd>{duration(item.duration_s)}</dd></>}
         {item.albums.length > 0 && <><dt>Albums</dt><dd>{item.albums.join(', ')}</dd></>}
@@ -129,11 +130,31 @@ function OriginalButton({ id }: { id: string }) {
   )
 }
 
-// Browsers and phone photo pickers can strip location (and sometimes the capture date) from uploads.
+export function coords(lat: number, lon: number): string {
+  return `${Math.abs(lat).toFixed(4)}° ${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lon).toFixed(4)}° ${lon >= 0 ? 'E' : 'W'}`
+}
+
+// Phones can strip location (and sometimes the capture date) from what they hand over; say why and how to fix it.
 export function metadataNotes(item: Pick<MediaDetail, 'sources' | 'lat' | 'taken_at_source'>): string[] {
-  if (!item.sources.some((s) => s.source_ref.startsWith('upload:'))) return []
+  const fromPhone = item.sources.filter((s) => /^(upload|ios|android):/.test(s.source_ref))
+  if (!fromPhone.length) return []
   const notes: string[] = []
-  if (item.lat == null) notes.push('No location: the phone’s photo picker removed it. On iPhone, turn on Options → Location when picking; the native app keeps it automatically.')
+  if (item.lat == null) {
+    const s = fromPhone[0]
+    const android = s.platform === 'android' || s.source_ref.startsWith('android:')
+    if (s.source_ref.startsWith('android:')) {
+      notes.push('No location: Shoebox may not have had the “location in photos” permission when this was backed up '
+        + '(Settings → Apps → Shoebox → Permissions → Photos and videos), or the camera had location off.')
+    } else if (s.source_ref.startsWith('ios:')) {
+      notes.push('No location: the camera had location off when this was taken.')
+    } else if (android) {
+      notes.push('No location: Android removes it from photos picked by hand. In the Shoebox app, use Sync → Back up this '
+        + 'phone instead; it keeps the location.')
+    } else {
+      notes.push('No location: the photo picker removed it. On iPhone, turn on Options → Location when picking; the Shoebox '
+        + 'app’s automatic backup keeps it.')
+    }
+  }
   if (item.taken_at_source === 'last_modified') notes.push('The capture date wasn’t in the file, so this uses when the file was last changed.')
   return notes
 }

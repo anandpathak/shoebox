@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { ago } from '../lib/format'
 import { loadSettings } from '../backup/store'
 import { available, backupNow, currentStatus, retryFailedNow, subscribe, updateSettings } from '../backup/runner'
-import { nativePlatform, startPageUrl } from '../backup/native'
+import { askForLocation, locationAllowed, nativePlatform, startPageUrl } from '../backup/native'
 import type { Settings, Status } from '../backup/types'
 
 const WAITING: Record<NonNullable<Status['waitingFor']>, string> = {
@@ -25,8 +25,10 @@ export function PhoneBackup() {
   const [status, setStatus] = useState<Status | null>(null)
   const [settings, setSettings] = useState<Settings | null>(null)
   const [busy, setBusy] = useState(false)
+  const [locationOk, setLocationOk] = useState(true)
   useEffect(() => {
     if (!available()) return
+    locationAllowed().then(setLocationOk).catch(() => {})
     loadSettings().then(setSettings).catch(() => {})
     currentStatus().then(setStatus).catch(() => {})
     return subscribe(setStatus)
@@ -60,6 +62,13 @@ export function PhoneBackup() {
           {status.enabled && (status.access === 'denied' || status.access === 'not-determined') && (
             <p className="warn small">Photo access is off for Shoebox. Turn it on in the phone's Settings.</p>)}
           {status.lastError && <p className="error small">{status.lastError}</p>}
+          {status.enabled && !locationOk && (
+            <div className="warn small" role="alert" data-testid="location-off">
+              Photos are being backed up <strong>without their location</strong>: Shoebox isn't allowed to read it.
+              <button className="btn" onClick={() => askForLocation().then(setLocationOk)}>Allow location</button>
+              <span className="muted"> If that does nothing: Settings → Apps → Shoebox → Permissions → Photos and videos →
+                allow access to media location.</span>
+            </div>)}
           {status.lastRun && <p className="muted small">Last checked {ago(new Date(status.lastRun).toISOString())}
             {status.skipped ? ` · ${status.skipped.toLocaleString()} left out by the settings below` : ''}</p>}
         </>

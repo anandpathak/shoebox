@@ -602,6 +602,26 @@ def viewer_publish(bucket, profile):
     click.echo(f"Published {head['items']} items ({head['bytes'] / 1e6:.1f} MB) for phones to browse.")
 
 
+@main.command()
+@click.option("--out", "library", type=click.Path(path_type=Path), default=Path("library"), show_default=True)
+@click.option("--bucket", envvar="SHOEBOX_BUCKET", help="Also update the sidecars in S3.")
+@click.option("--profile", envvar="AWS_PROFILE", default=None)
+def places(library, bucket, profile):
+    """Name the places of photos that have GPS coordinates but no place name (offline, GeoNames)."""
+    from .catalog import open_catalog
+    from .device import load_device
+    from .places import backfill
+
+    b = None
+    if bucket:
+        from .s3 import Bucket
+        b = Bucket(bucket, profile)
+    counts = backfill(open_catalog(), library, load_device().device_id, bucket=b)
+    if counts.get("unavailable"):
+        raise click.ClickException("Couldn't download the place names (GeoNames). Check the internet connection.")
+    click.echo(f"Named {counts['named']} places; skipped {counts['skipped']} (no local sidecar, or nowhere near a town).")
+
+
 # ---------------------------------------------------------------- analysis
 
 @main.command()

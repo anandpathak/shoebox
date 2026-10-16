@@ -277,7 +277,8 @@ def main() -> None:
     home = Path(args.home or tempfile.mkdtemp(prefix="shoebox-e2e-"))
     os.environ["SHOEBOX_HOME"] = str(home)
     os.environ["SHOEBOX_TOKEN_STORE"] = "file"
-    os.environ.setdefault("SHOEBOX_ANALYSIS", "0")   # seeded stand-in images: don't label them or fetch face models
+    os.environ.setdefault("SHOEBOX_ANALYSIS", "0")
+    os.environ.setdefault("SHOEBOX_PLACES", "0")      # seeded photos already have places; no GeoNames download   # seeded stand-in images: don't label them or fetch face models
     library = home / "library"
     fake_photos_library(home)  # never read the real Photos library from tests or demos
     fresh = not (home / "catalog.sqlite").exists()

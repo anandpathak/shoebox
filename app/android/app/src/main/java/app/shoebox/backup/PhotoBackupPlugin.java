@@ -59,7 +59,13 @@ public class PhotoBackupPlugin extends Plugin {
     }
 
     @PluginMethod
-    public void access(PluginCall call) { call.resolve(new JSObject().put("access", library.access())); }
+    public void access(PluginCall call) { call.resolve(accessResult()); }
+
+    /** Photo access, plus whether we may read the location in photos (without it Android strips GPS). */
+    private JSObject accessResult() {
+        boolean location = Build.VERSION.SDK_INT < 29 || getPermissionState("location") == PermissionState.GRANTED;
+        return new JSObject().put("access", library.access()).put("location", location);
+    }
 
     @PluginMethod
     public void requestAccess(PluginCall call) {
@@ -89,7 +95,7 @@ public class PhotoBackupPlugin extends Plugin {
     }
 
     @PermissionCallback
-    private void finishAccess(PluginCall call) { call.resolve(new JSObject().put("access", library.access())); }
+    private void finishAccess(PluginCall call) { call.resolve(accessResult()); }
 
     @PluginMethod
     public void changes(PluginCall call) {

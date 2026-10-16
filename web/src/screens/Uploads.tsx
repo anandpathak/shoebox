@@ -3,6 +3,7 @@ import { api, ApiError } from '../api/client'
 import { TopBar } from '../components/Shell'
 import { useApp } from '../lib/app'
 import { uploaderId } from '../components/RegisterDevice'
+import { detectPlatform } from '../lib/device'
 import { ago, bytes } from '../lib/format'
 import { sha256File } from '../lib/hash'
 import { enqueue, list, processQueue, subscribe, type Progress, type Queued } from '../lib/uploadQueue'
@@ -194,6 +195,9 @@ function DeviceUploads({ deviceId, onDone }: { deviceId: string; onDone: () => v
       <input ref={input} type="file" accept="image/*,video/*" multiple hidden onChange={(e) => { pick(e.target.files); e.target.value = '' }}
              aria-label="Choose photos and videos" />
       <div className="row"><button className="btn primary" onClick={() => input.current?.click()}>Choose photos and videos</button></div>
+      {detectPlatform() === 'android' && (
+        <p className="muted small" data-testid="android-location-tip">On Android, photos picked here arrive without their location
+          (an Android privacy rule). To keep it, use the Shoebox app's <strong>Sync → Back up this phone</strong>.</p>)}
       {checking && <p className="small" role="status">{checking}</p>}
       {rows.length > 0 && (
         <div className="list">
