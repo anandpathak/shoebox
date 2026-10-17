@@ -11,6 +11,7 @@ import { enqueue, list, processQueue, subscribe, type Progress, type Queued } fr
 interface RunInfo {
   run_id: string; kind?: string; label?: string; status: 'running' | 'done' | 'failed' | 'cancelled'
   todo: number | null; processed: number; counts: Record<string, number>; messages: string[]
+  matched?: number | null; skipped?: number
   started_at: string | null; ended_at?: string | null; error?: string | null; cancellable?: boolean
   failed?: { source_ref: string; status: string; error: string | null }[]
 }
@@ -39,6 +40,7 @@ export function Uploads() {
         {active && <LiveRun run={active} onUpdate={setActive} onFinished={() => { refresh(); changed() }} />}
         <DeviceUploads deviceId={uploaderId(health?.via, health?.device.device_id)} onDone={() => { refresh(); changed() }} />
         <InboxCard />
+        <AlbumCard />
         <History runs={history.filter((r) => r.run_id !== active?.run_id)} onRetry={(r) => setActive(r)} onError={setError} />
       </div>
     </>
@@ -105,7 +107,7 @@ function LiveRun({ run, onUpdate, onFinished }: { run: RunInfo; onUpdate: (r: Ru
         const next = { ...s }
         // every (re)connection replays the run from its first line: start counting afresh
         if (e.event === 'accepted') { next.processed = 0; next.counts = {}; next.messages = [] }
-        if (e.event === 'start') next.todo = e.todo
+        if (e.event === 'start') { next.todo = e.todo; next.matched = e.matched; next.skipped = e.skipped ?? 0 }
         if (e.event === 'item') {
           next.processed = (s.processed ?? 0) + 1
           next.counts = { ...s.counts, [e.status]: (s.counts?.[e.status] ?? 0) + 1 }
@@ -127,8 +129,7 @@ function LiveRun({ run, onUpdate, onFinished }: { run: RunInfo; onUpdate: (r: Ru
       <h2>{state.status === 'running' ? 'Archiving…' : state.status === 'cancelled' ? 'Cancelled' : 'Finished'}</h2>
       <p className="muted small">{state.label ?? 'Archive run'}{state.started_at ? ` · started ${ago(state.started_at)}` : ''}</p>
       <div className="progress" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${pct}%` }} /></div>
-      <p className="small">{state.todo == null ? 'Reading the Photos library…'
-        : `${state.processed} of ${state.todo} done${failed ? ` · ${failed} failed` : ''}`}</p>
+      <p className="small" data-testid="run-summary">{runSummary(state, failed)}</p>
       {state.messages?.map((m, i) => <p key={i} className="muted small">{m}</p>)}
       {state.status === 'running' && state.cancellable !== false && (
         <div className="row"><button className="btn" onClick={() => api(`/api/runs/${state.run_id}/cancel`, { method: 'POST' }).catch(() => {})}>
@@ -290,6 +291,62 @@ function InboxCard() {
       {(setAside.length > 0 || retrying.length > 0) && (
         <div className="row"><button className="btn" disabled={busy} onClick={retry}>Try again now</button></div>
       )}
+    </section>
+  )
+}
+
+/** "Nothing new: all 1,247 items here are already archived" rather than "0 of 0 done". */
+export function runSummary(s: Pick<RunInfo, 'todo' | 'processed' | 'matched' | 'skipped' | 'status'>, failed = 0): string {
+  if (s.todo == null) return 'Reading the Photos library…'
+  const n = (x: number) => x.toLocaleString()
+  const already = s.skipped ? ` · ${n(s.skipped)} already archived before` : ''
+  if (s.todo === 0) {
+    return s.matched ? `Nothing new: all ${n(s.matched)} items here are already archived.` : 'Nothing matched.'
+  }
+  return `${n(s.processed)} of ${n(s.todo)} new items done${failed ? ` · ${n(failed)} failed` : ''}${already}`
+}
+
+interface Album {
+  in_album: number; to_add: number; could_not_add: number; gone: number; running: boolean
+  problems: { uuid: string; error: string | null }[]
+  last: { added?: number; error?: string; messages?: string[] } | null
+}
+
+/** The "Archived to S3" album in Apple Photos: what's there, what still needs adding, and a way to catch up. */
+function AlbumCard() {
+  const [a, setA] = useState<Album | null>(null)
+  const load = useCallback(() => { api<Album>('/api/album').then(setA).catch(() => {}) }, [])
+  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    if (!a?.running) return
+    const t = setInterval(load, 2500)
+    return () => clearInterval(t)
+  }, [a?.running, load])
+  if (!a || a.in_album + a.to_add + a.could_not_add + a.gone === 0) return null
+  const sync = (retry = false) => api(`/api/album/sync${retry ? '?retry_problems=true' : ''}`, { method: 'POST' }).then(load)
+  const n = (x: number) => x.toLocaleString()
+  return (
+    <section className="card" aria-label="Archived to S3 album">
+      <h2>“Archived to S3” album in Photos</h2>
+      <p className="small" data-testid="album-summary">
+        {n(a.in_album)} in the album, ready to delete from Photos
+        {a.to_add ? ` · ${n(a.to_add)} still to add` : ''}
+        {a.could_not_add ? ` · ${n(a.could_not_add)} Photos couldn't find` : ''}
+        {a.gone ? ` · ${n(a.gone)} already deleted from Photos` : ''}
+      </p>
+      <p className="muted small">Everything in this album is safely in S3: in Photos, open the album, select all and delete
+        to free up space. Items are added after each archive run; this keeps it in step with what's archived.</p>
+      {a.last?.error && <p className="error small">{a.last.error}</p>}
+      {a.last?.messages?.filter(Boolean).slice(-3).map((m, i) => <p key={i} className="muted small">{m}</p>)}
+      {a.problems.length > 0 && (
+        <details className="small"><summary>{a.problems.length} Photos couldn't find</summary>
+          {a.problems.slice(0, 20).map((p) => <div key={p.uuid} className="mono muted">{p.uuid}: {p.error}</div>)}</details>
+      )}
+      <div className="row">
+        <button className="btn primary" disabled={a.running} onClick={() => sync(false)}>
+          {a.running ? 'Checking and adding…' : a.to_add ? `Add ${n(a.to_add)} now` : 'Check the album'}</button>
+        {a.could_not_add > 0 && <button className="btn" disabled={a.running} onClick={() => sync(true)}>Try the missing ones again</button>}
+      </div>
     </section>
   )
 }

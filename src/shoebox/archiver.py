@@ -165,34 +165,110 @@ def verify_existing(bucket, key: str, sha: str, size: int) -> None:
         raise RuntimeError(f"s3://{bucket.name}/{key} already exists with different content")
 
 
-def add_to_album(uuids: list[str], name: str = ARCHIVE_ALBUM) -> None:
-    import photoscript
+# One request to Photos per batch: items it can't find are skipped and reported, instead of one busy moment
+# making the whole batch fail (photoscript checked every item separately and gave up on the first miss).
+_ALBUM_SCRIPT = """
+on run argv
+    set albumName to item 1 of argv
+    set missing to {}
+    tell application "Photos"
+        if not (exists album albumName) then make new album named albumName
+        set theAlbum to album albumName
+        set theItems to {}
+        repeat with i from 2 to count of argv
+            set u to item i of argv
+            try
+                set end of theItems to media item id (u & "/L0/001")
+            on error
+                set end of missing to u
+            end try
+        end repeat
+        if (count of theItems) > 0 then add theItems to theAlbum
+    end tell
+    set AppleScript's text item delimiters to ","
+    return missing as text
+end run
+"""
 
-    lib = photoscript.PhotosLibrary()
-    album = lib.album(name) or lib.create_album(name)
-    for i in range(0, len(uuids), 200):
-        album.add([photoscript.Photo(u) for u in uuids[i:i + 200]])
+
+def add_to_album(uuids: list[str], name: str = ARCHIVE_ALBUM) -> list[str]:
+    """Add these Photos items to the album. Returns the ones Photos couldn't find. Raises if Photos can't be
+    reached at all (not running, or Automation permission for Photos not given)."""
+    import subprocess
+
+    if not uuids:
+        return []
+    r = subprocess.run(["osascript", "-", name, *uuids], input=_ALBUM_SCRIPT, capture_output=True, text=True,
+                       timeout=600)
+    if r.returncode != 0:
+        msg = (r.stderr or r.stdout).strip()
+        if "-1743" in msg or "not authorized" in msg.lower():
+            msg = "macOS hasn't allowed shoebox to control Photos (System Settings → Privacy & Security → Automation)"
+        raise RuntimeError(msg or "Photos didn't answer")
+    return [u for u in r.stdout.strip().split(",") if u]
 
 
-def flush_album(state: State, event=None) -> int:
+def flush_album(state: State, event=None, *, retry_wait: float = 5.0) -> int:
     """Add archived Apple Photos items to the "Archived to S3" album: this run's and any left over from
-    earlier runs (Photos busy, a crash, a restart). Recorded per item in state, so nothing is lost or done twice."""
+    earlier runs (Photos busy, a crash, a restart). Recorded per item in state, so nothing is lost or done
+    twice. Items Photos can't find are tried once more, then marked with the reason."""
+    import time
+
     say = event or (lambda kind, **d: None)
-    added = 0
+    added = could_not = 0
     pending = state.album_pending()
     for i in range(0, len(pending), 200):
         chunk = pending[i:i + 200]
+        uuid_of = {ref.split(":", 1)[1]: ref for ref in chunk}
         try:
-            add_to_album([ref.split(":", 1)[1] for ref in chunk])
-        except Exception as e:  # noqa: BLE001 — the archive itself is fine; try again after the next run
-            say("message", text=f"Couldn't update the Photos album ({e}); {len(pending) - added} items will be "
-                                f"added after the next run.")
+            missing = add_to_album(list(uuid_of)) or []
+            if missing:                      # Photos busy for a moment? one more go for those
+                time.sleep(retry_wait)
+                missing = add_to_album(missing) or []
+        except Exception as e:  # noqa: BLE001 — the archive itself is fine; try again later
+            say("message", text=f"Couldn't update the Photos album ({e}). {len(pending) - added - could_not} "
+                                "items will be added after the next run, or with 'Add them now'.")
             return added
-        state.album_done(chunk)
-        added += len(chunk)
+        missing_refs = [uuid_of[u] for u in missing if u in uuid_of]
+        done = [r for r in chunk if r not in set(missing_refs)]
+        state.set_album(done, 1)
+        state.set_album(missing_refs, 2, "Photos couldn't find it (deleted, or still syncing with iCloud?)")
+        added += len(done)
+        could_not += len(missing_refs)
     if added:
         say("message", text=f'Added {added} items to the "{ARCHIVE_ALBUM}" album in Photos.')
+    if could_not:
+        say("message", text=f"Photos couldn't find {could_not} archived items to add to the album; "
+                            "they're listed on the Uploads screen.")
     return added
+
+
+def reconcile_album(state: State, db=None) -> dict:
+    """Compare the archive with the real album in Photos (read-only): mark each archived item as in the
+    album, still to add, or already deleted from Photos. Fixes records that drifted (failed adds, a restart,
+    an older version that assumed success)."""
+    import osxphotos
+
+    db = db or osxphotos.PhotosDB()
+    in_album: set[str] = set()
+    for a in db.album_info:
+        if a.title == ARCHIVE_ALBUM:
+            in_album |= {p.uuid for p in a.photos}
+    changes = {"in_album": [], "to_add": [], "gone": []}
+    for row in state.apple_archived():
+        uuid = row["source_ref"].split(":", 1)[1]
+        p = db.get_photo(uuid)
+        if p is None or p.intrash:
+            want = 3                         # already deleted from Photos: that was the point
+        elif uuid in in_album:
+            want = 1
+        else:
+            want = 0
+        if want != row["album"] and not (want == 0 and row["album"] == 2):
+            changes[{0: "to_add", 1: "in_album", 3: "gone"}[want]].append(row["source_ref"])
+    for key, value in (("in_album", 1), ("to_add", 0), ("gone", 3)):
+        state.set_album(changes[key], value)
+    return {k: len(v) for k, v in changes.items()}
 
 
 def process(item, opts: Options) -> Result:
@@ -350,6 +426,8 @@ def run_archive(items: Iterable | None, opts: Options, *, selection: Selection |
                   skipped=summary.skipped, todo=len(todo), dry_run=opts.dry_run, local_only=opts.local_only)
             if not todo:
                 event("end", counts={}, uploaded_bytes=0, cancelled=False)
+                if opts.mark_album and record_state:
+                    flush_album(state, event)    # nothing new, but earlier items may still need the album
                 return summary
             if opts.bucket is not None and record_state:
                 opts.bucket.client.head_bucket(Bucket=opts.bucket.name)  # fail fast on auth/bucket problems

@@ -14,7 +14,7 @@ def authed(api, tmp_path, monkeypatch):
     client.headers["Authorization"] = f"Bearer {token}"
     items = photos(tmp_path, 6)
     monkeypatch.setattr(archiver, "select_photos", lambda sel: items)
-    monkeypatch.setattr(archiver, "add_to_album", lambda *a, **k: None)
+    monkeypatch.setattr(archiver, "add_to_album", lambda *a, **k: [])
     return client, app, monkeypatch
 
 

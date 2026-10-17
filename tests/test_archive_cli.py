@@ -31,7 +31,7 @@ def photos(tmp_path, monkeypatch):
              for i in range(1, 4)]
     from shoebox import archiver
     monkeypatch.setattr(archiver, "select_photos", lambda *a, **k: items)
-    monkeypatch.setattr(archiver, "add_to_album", lambda *a, **k: None)
+    monkeypatch.setattr(archiver, "add_to_album", lambda *a, **k: [])
     return items
 
 

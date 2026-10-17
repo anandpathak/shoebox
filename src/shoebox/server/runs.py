@@ -25,6 +25,8 @@ class Run:
     started_at: str = field(default_factory=_now)
     status: str = "running"            # running | done | failed | cancelled
     todo: int | None = None
+    matched: int | None = None         # items the selection found
+    skipped: int = 0                   # of those, already archived before
     processed: int = 0
     counts: dict = field(default_factory=dict)
     uploaded_bytes: int = 0
@@ -66,6 +68,7 @@ class RunManager:
                 return
             if kind_ == "start":
                 run.todo = d["todo"]
+                run.matched, run.skipped = d.get("matched"), d.get("skipped", 0)
             elif kind_ == "item":
                 run.processed += 1
                 run.results[d["source_ref"]] = (d["status"], d.get("error"))

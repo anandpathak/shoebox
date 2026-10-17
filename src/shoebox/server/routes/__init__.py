@@ -5,41 +5,34 @@ from __future__ import annotations
 from fastapi import FastAPI
 
 
-def _album_catch_up() -> None:
-    """Photos archived before a crash/restart but not yet in the "Archived to S3" album: add them now
-    (in the background; only if there are any, since it talks to the Photos app)."""
-    import threading
-
+def _album_catch_up(app) -> None:
+    """At start: compare the archive with the real "Archived to S3" album and add what's missing (after a
+    crash, a restart, or a Photos hiccup). Only if anything from Apple Photos was archived on this Mac."""
     from ...state import State
 
     try:
-        if not State().album_pending(limit=1):
+        if not State().apple_archived():
             return
     except Exception:  # noqa: BLE001
         return
-
-    def work():
-        from ...archiver import flush_album
-        try:
-            flush_album(State())
-        except Exception:  # noqa: BLE001 — retried after the next run
-            pass
-    threading.Thread(target=work, name="album-catch-up", daemon=True).start()
+    app.state.album.start()
 
 
 def register(app: FastAPI) -> None:
-    from . import backupcheck, backups, catalogs, faces, native, viewer, edit, library, originals, proxy, push, runs, sync, tus
+    from . import album, backupcheck, backups, catalogs, faces, native, viewer, edit, library, originals, proxy, push, runs, sync, tus
     from ..runs import RunManager
 
     app.state.runs = RunManager()
     app.state.inbox = tus.InboxProcessor(app)
+    app.state.album = album.AlbumJob()
     from ..analysis import AnalysisWorker
     app.state.analysis = AnalysisWorker(app)
     app.state.runs.on_finished.append(app.state.analysis.kick)     # new photos → labels and faces
 
     def start_inbox():
         tus.tidy_inbox()
-        _album_catch_up()
+        if app.state.settings.album_catch_up:
+            _album_catch_up(app)
         if app.state.settings.bucket:
             app.state.inbox.requeue_local()
         if app.state.inbox.pending():
@@ -65,6 +58,7 @@ def register(app: FastAPI) -> None:
     app.include_router(native.router)
     app.include_router(faces.router)
     app.include_router(viewer.router)
+    app.include_router(album.router)
     from .. import pairing
     app.include_router(pairing.router)
     sync.install_background_sync(app)

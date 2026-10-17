@@ -126,6 +126,6 @@ def test_album_marking_is_retried_after_a_failure(monkeypatch, tmp_path):
     monkeypatch.setattr(archiver, "add_to_album", lambda uuids: (_ for _ in ()).throw(RuntimeError("Photos busy")))
     assert archiver.flush_album(st) == 0
     assert sorted(st.album_pending()) == ["applephotos:U1", "applephotos:U2"]
-    monkeypatch.setattr(archiver, "add_to_album", lambda uuids: added.extend(uuids))
+    monkeypatch.setattr(archiver, "add_to_album", lambda uuids: added.extend(uuids) or [])
     assert archiver.flush_album(st) == 2 and sorted(added) == ["U1", "U2"]
     assert st.album_pending() == []

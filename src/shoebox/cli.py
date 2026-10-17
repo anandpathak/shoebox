@@ -562,18 +562,30 @@ def _prepare_tailscale(settings, port: int, setup: bool) -> None:
 
 
 @main.command()
-def album():
-    """Add archived photos that aren't in the "Archived to S3" album yet (runs also do this by themselves)."""
-    from .archiver import flush_album
+@click.option("--retry-problems", is_flag=True, help="Also try again with items Photos couldn't find last time.")
+def album(retry_problems):
+    """Make the "Archived to S3" album match the archive: checks the real album in Photos (read-only), then
+    adds every archived item that isn't in it yet. Runs and the server do this by themselves too."""
+    from .archiver import ARCHIVE_ALBUM, flush_album, reconcile_album
     from .state import State
 
-    pending = State().album_pending()
-    if not pending:
-        click.echo("Every archived photo is already in the album.")
-        return
-    added = flush_album(State(), lambda kind, **d: click.echo(d.get("text", "")))
-    if added < len(pending):
-        raise click.ClickException(f"{len(pending) - added} still to add; is Photos open and allowed (Automation)?")
+    state = State()
+    if retry_problems:
+        state.db.execute("UPDATE items SET album = 0, album_error = NULL WHERE album = 2")
+        state.db.commit()
+    try:
+        changed = reconcile_album(state)
+        click.echo(f"Checked against Photos: {changed['to_add']} to add, {changed['in_album']} already there, "
+                   f"{changed['gone']} already deleted from Photos.")
+    except Exception as e:  # noqa: BLE001
+        click.echo(f"Couldn't read the Photos library ({e}); adding what's recorded as missing.")
+    flush_album(state, lambda kind, **d: click.echo(d.get("text", "")))
+    s = state.album_summary()
+    click.echo(f'"{ARCHIVE_ALBUM}": {s["in_album"]} in the album · {s["to_add"]} still to add · '
+               f'{s["could_not_add"]} Photos couldn\'t find · {s["gone"]} already deleted from Photos')
+    if s["to_add"]:
+        raise click.ClickException("Some items couldn't be added yet: is Photos open, and is shoebox allowed to "
+                                   "control it (System Settings → Privacy & Security → Automation)?")
 
 
 # ---------------------------------------------------------------- viewer (phones without the Mac)

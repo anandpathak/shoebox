@@ -194,7 +194,7 @@ def fake_photos_library(home: Path, n: int = 8) -> None:
                                      ismovie=False, has_raw=False, path_raw=None, live_photo=False, path_live_photo=None,
                                      intrash=False, hidden=False, json=lambda a=apple: a))
     archiver.select_photos = lambda sel: items
-    archiver.add_to_album = lambda *a, **k: None
+    archiver.add_to_album = lambda *a, **k: []
     real = archiver.process
     delay = float(os.environ.get("E2E_ITEM_DELAY", "0.4"))   # slow enough for tests to see a run in progress
 
@@ -278,7 +278,8 @@ def main() -> None:
     os.environ["SHOEBOX_HOME"] = str(home)
     os.environ["SHOEBOX_TOKEN_STORE"] = "file"
     os.environ.setdefault("SHOEBOX_ANALYSIS", "0")
-    os.environ.setdefault("SHOEBOX_PLACES", "0")      # seeded photos already have places; no GeoNames download   # seeded stand-in images: don't label them or fetch face models
+    os.environ.setdefault("SHOEBOX_PLACES", "0")
+    os.environ.setdefault("SHOEBOX_ALBUM_CATCH_UP", "0")   # the fake library isn't in the real Photos app      # seeded photos already have places; no GeoNames download   # seeded stand-in images: don't label them or fetch face models
     library = home / "library"
     fake_photos_library(home)  # never read the real Photos library from tests or demos
     fresh = not (home / "catalog.sqlite").exists()

@@ -45,7 +45,8 @@ def shoebox_home(tmp_path, monkeypatch):
     monkeypatch.setenv("SHOEBOX_HOME", str(home))
     monkeypatch.setenv("SHOEBOX_TOKEN_STORE", "file")   # never touch the real Keychain in tests
     monkeypatch.setenv("SHOEBOX_ANALYSIS", "0")         # no background analysis (or model downloads) unless a test asks
-    monkeypatch.setenv("SHOEBOX_PLACES", "0")           # no GeoNames download; tests that need places set an index
+    monkeypatch.setenv("SHOEBOX_PLACES", "0")
+    monkeypatch.setenv("SHOEBOX_ALBUM_CATCH_UP", "0")   # never talk to the real Photos app from tests           # no GeoNames download; tests that need places set an index
     from shoebox import places
     places.use_index(None)
     return home

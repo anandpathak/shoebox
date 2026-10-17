@@ -26,6 +26,7 @@ class Settings:
     sync_interval: int = 60
     static_dir: Path | None = None
     workers: int = 4             # files archived at the same time ([server] workers = 6 in config.toml)
+    album_catch_up: bool = True  # at start, add archived Apple Photos items missing from "Archived to S3"
     analysis: bool = True        # analyse new photos (labels, faces) in the background; SHOEBOX_ANALYSIS=0 turns it off
 
     @classmethod
@@ -37,6 +38,8 @@ class Settings:
         known = {k: v for k, v in data.items() if k in cls.__dataclass_fields__}
         known.update({k: v for k, v in overrides.items() if v is not None})
         s = cls(**known)
+        if os.environ.get("SHOEBOX_ALBUM_CATCH_UP") == "0":
+            s.album_catch_up = False
         if os.environ.get("SHOEBOX_ANALYSIS") == "0":
             s.analysis = False
         s.library = Path(s.library)

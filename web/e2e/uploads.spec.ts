@@ -9,12 +9,12 @@ test('dry run, then archive from (fake) Apple Photos with live progress', async 
   await page.getByLabel(/Dry run/).check()
   await page.getByRole('button', { name: 'Count photos' }).click()
   await expect(page.getByRole('heading', { name: 'Finished' })).toBeVisible({ timeout: 30_000 })
-  await expect(page.getByText(/8 of 8 done/)).toBeVisible()
+  await expect(page.getByText(/8 of 8 new items done/)).toBeVisible()
 
   await page.getByLabel(/Dry run/).uncheck()
   await page.getByRole('button', { name: 'Start archive' }).click()
   await expect(page.getByRole('heading', { name: 'Finished' })).toBeVisible({ timeout: 60_000 })
-  await expect(page.getByText(/8 of 8 done/)).toBeVisible()
+  await expect(page.getByText(/8 of 8 new items done/)).toBeVisible()
   await expect(page.getByText(/Backed up databases/)).toBeVisible({ timeout: 30_000 })
   // history refreshes when the live stream closes, a few seconds after the run ends
   await expect(page.getByRole('heading', { name: 'Recent runs' })).toBeVisible({ timeout: 15_000 })

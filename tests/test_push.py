@@ -56,7 +56,7 @@ def test_run_end_sends_a_notification(authed, monkeypatch, tmp_path):
     got = []
     monkeypatch.setattr(pywebpush, "webpush", lambda sub, data, **kw: got.append(data))
     monkeypatch.setattr(archiver, "select_photos", lambda sel: photos(tmp_path, 2))
-    monkeypatch.setattr(archiver, "add_to_album", lambda *a, **k: None)
+    monkeypatch.setattr(archiver, "add_to_album", lambda *a, **k: [])
     client.post("/api/push/subscribe", json={"subscription": SUB})
     run = client.post("/api/uploads/apple-photos", json={"mode": "all"}).json()
     end = time.time() + 15
