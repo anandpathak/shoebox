@@ -6,7 +6,8 @@
   "scripts": {
     "sync": "cap sync",
     "test": "vitest run",
-    "bundle": "npm --prefix ../web run build && node scripts/bundle-viewer.mjs && cap sync"
+    "bundle": "npm --prefix ../web run build && node scripts/bundle-viewer.mjs && cap sync",
+    "ios:signing": "node scripts/ios-signing.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^7.6.9",

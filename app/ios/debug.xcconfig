@@ -1,1 +1,6 @@
 CAPACITOR_DEBUG = true
+PRODUCT_BUNDLE_IDENTIFIER = app.shoebox
+
+// Your Apple team and your own bundle id live in local-signing.xcconfig (git-ignored), not in the
+// project: `npm run ios:signing` moves them there after you pick your team in Xcode.
+#include? "local-signing.xcconfig"

@@ -42,6 +42,13 @@ if [ -n "$mails" ]; then
   fail=1
 fi
 
+# 5b. Apple team ids belong in app/ios/local-signing.xcconfig (git-ignored), not the Xcode project.
+team=$(git diff --cached -U0 -- '*.pbxproj' | grep -E '^\+' | grep -E 'DEVELOPMENT_TEAM = "?[A-Z0-9]{10}' )
+if [ -n "$team" ]; then
+  echo "pre-commit: your Apple team id is in the Xcode project. Run: (cd app && npm run ios:signing)" >&2
+  fail=1
+fi
+
 # 5. The commit itself would carry the author's email: it must not be a personal address.
 author=$(git config user.email)
 if printf '%s' "$author" | grep -E -q '@(gmail|googlemail|yahoo|outlook|hotmail|live|icloud|me|proton|protonmail)\.'; then

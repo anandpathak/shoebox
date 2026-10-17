@@ -28,6 +28,27 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk    # phone with USB deb
 
 Needs Android 8.0 or newer (the QR scanner's minimum).
 
+iPhone (needs Xcode from the Mac App Store and a free Apple ID; iOS 16 or newer):
+
+```sh
+cd app && npm run bundle && npx cap open ios
+```
+
+1. Xcode → Settings → Accounts → add your Apple ID.
+2. App target → Signing & Capabilities: tick *Automatically manage signing*, pick your **Team**, and change the
+   **Bundle Identifier** to something of your own (e.g. `app.shoebox.<you>`; a free account can't use one
+   someone else registered).
+3. Back in Terminal: `npm run ios:signing`. It moves your team and bundle id into `ios/local-signing.xcconfig`
+   (git-ignored), so they never end up in the public repo; the commit hook refuses them in the project file.
+4. Plug in the iPhone, trust the Mac, turn on Settings → Privacy & Security → **Developer Mode**, pick the
+   iPhone at the top of Xcode and press **Run**. The first time: Settings → General → VPN & Device
+   Management → trust your Apple ID, then Run again.
+5. In the app, allow **Local Network** when asked (needed to reach the Mac on Wi-Fi) and **Photos** → *Allow
+   Full Access* when you turn on backup.
+
+With a free Apple ID the app stops opening after 7 days; press Run in Xcode again. A paid developer account
+(USD 99/year) makes it last a year and allows TestFlight for family phones.
+
 The iOS project uses Swift Package Manager (no CocoaPods). App id: `app.shoebox` on both platforms.
 
 Notes
