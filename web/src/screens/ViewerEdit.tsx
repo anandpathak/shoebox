@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { MediaDetail } from '../api/types'
 import { Icon } from '../components/Icon'
 import { PhotoFaces } from '../components/PhotoFaces'
@@ -16,8 +16,19 @@ export function Editor({ item, onChanged }: { item: MediaDetail; onChanged: () =
   const [error, setError] = useState<string | null>(null)
   // Only save what the user typed: if the item changes underneath (sync, reconnect), never write the old text back.
   const [dirty, setDirty] = useState<{ title?: boolean; desc?: boolean }>({})
+  const dirtyNow = useRef(dirty)
+  dirtyNow.current = dirty
+  const shownId = useRef(item.photo_id)
   useEffect(() => {
-    setLocal(item); setTitle(item.title ?? ''); setDesc(item.description ?? ''); setDirty({})
+    setLocal(item)
+    if (shownId.current !== item.photo_id) {          // another photo: start fresh
+      shownId.current = item.photo_id
+      setTitle(item.title ?? ''); setDesc(item.description ?? ''); setDirty({})
+      return
+    }
+    // the same photo refreshed (a sync, a reconnect): never overwrite what is being typed
+    if (!dirtyNow.current.title) setTitle(item.title ?? '')
+    if (!dirtyNow.current.desc) setDesc(item.description ?? '')
   }, [item])
 
   async function run(optimistic: Partial<MediaDetail>, action: () => Promise<unknown>) {

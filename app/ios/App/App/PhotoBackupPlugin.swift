@@ -3,6 +3,8 @@
 
 import BackgroundTasks
 import Capacitor
+import Photos
+import PhotosUI
 import UIKit
 
 @objc(PhotoBackupPlugin)
@@ -21,6 +23,7 @@ public class PhotoBackupPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "finishBackground", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "configure", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "ping", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "pick", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setViewerAccess", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getViewerAccess", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "clearViewerAccess", returnType: CAPPluginReturnPromise),
@@ -79,6 +82,32 @@ public class PhotoBackupPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func finishBackground(_ call: CAPPluginCall) { call.resolve() }
 
+    private var pickCall: CAPPluginCall?
+
+    /// iOS's own photo picker, any number of items (a web page's file input may allow only one in the app).
+    /// Returns the chosen items' library ids, which upload through the same path as automatic backup.
+    @objc func pick(_ call: CAPPluginCall) {
+        let limit = call.getInt("limit") ?? 0
+        let present = { [weak self] in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                var config = PHPickerConfiguration(photoLibrary: .shared())
+                config.selectionLimit = limit
+                config.filter = .any(of: [.images, .videos])
+                config.preferredAssetRepresentationMode = .current
+                let picker = PHPickerViewController(configuration: config)
+                picker.delegate = self
+                self.pickCall = call
+                self.bridge?.viewController?.present(picker, animated: true)
+            }
+        }
+        if PHPhotoLibrary.authorizationStatus(for: .readWrite) == .notDetermined {
+            PHPhotoLibrary.requestAuthorization(for: .readWrite) { _ in present() }
+        } else {
+            present()
+        }
+    }
+
     /// Is the Mac answering? Any HTTP reply counts. Done natively: a web request from the app's own page to the
     /// Mac's plain http address on the Wi-Fi is blocked as mixed content.
     @objc func ping(_ call: CAPPluginCall) {
@@ -123,6 +152,24 @@ public class PhotoBackupPlugin: CAPPlugin, CAPBridgedPlugin {
             self.core.configure(c)
             call.resolve()
         }
+    }
+}
+
+extension PhotoBackupPlugin: PHPickerViewControllerDelegate {
+    public func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        picker.dismiss(animated: true)
+        guard let call = pickCall else { return }
+        pickCall = nil
+        let ids = results.compactMap { $0.assetIdentifier }
+        var assets: [[String: Any]] = []
+        PHAsset.fetchAssets(withLocalIdentifiers: ids, options: nil).enumerateObjects { a, _, _ in
+            let resources = PHAssetResource.assetResources(for: a)
+            let main = resources.first { $0.type == .photo || $0.type == .video } ?? resources.first
+            assets.append(["id": a.localIdentifier, "kind": a.mediaType == .video ? "video" : "photo",
+                           "filename": main?.originalFilename ?? "\(a.localIdentifier).jpg"])
+        }
+        // With "Limited" photo access, picked items outside the allowed set can't be read.
+        call.resolve(["assets": assets, "unavailable": ids.count - assets.count])
     }
 }
 

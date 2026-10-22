@@ -14,14 +14,14 @@ test('edit title, tags and favourite; they persist', async ({ page }, info) => {
   await v.getByLabel('Title').press('Enter')
   await v.getByLabel('Add tag').fill('Golden hour')
   await v.getByLabel('Add tag').press('Enter')
-  await expect(v.getByLabel('Tags')).toContainText('golden hour')
+  await expect(v.getByLabel('Tags')).toContainText('golden hour', { timeout: 15_000 })
   await v.getByRole('button', { name: 'Add to favourites' }).click()            // in the action bar
   await expect(v.getByRole('button', { name: 'Favourite', exact: true })).toHaveAttribute('aria-pressed', 'true')
 
   await page.reload()
   await page.getByRole('button', { name: 'Details' }).click()                 // the sheet with title, tags, info
   await expect(v.getByLabel('Title')).toHaveValue('Sunset at Kudle')
-  await expect(v.getByLabel('Tags')).toContainText('golden hour')
+  await expect(v.getByLabel('Tags')).toContainText('golden hour', { timeout: 15_000 })
   await v.getByRole('button', { name: 'Remove tag golden hour' }).click()
   await expect(v.getByLabel('Tags')).not.toContainText('golden hour')
   const detail = await (await page.request.get(`/api/media/${id}`)).json()

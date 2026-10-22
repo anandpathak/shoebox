@@ -3,8 +3,12 @@ import { expect, test } from '@playwright/test'
 // Serial and ordered: cancelling needs photos that aren't archived yet.
 test.describe.configure({ mode: 'serial' })
 
+// On a phone, the Mac's Apple Photos controls are folded under "Archive on your Mac".
+const openMac = (page: import('@playwright/test').Page) => page.getByTestId('mac-section').locator('summary').click()
+
 test('cancel from the phone stops after the items in progress', async ({ page }) => {
   await page.goto('/#/uploads')
+  await openMac(page)
   await page.getByLabel('What to archive').selectOption('all')
   await page.getByLabel(/Dry run/).check()
   await page.getByRole('button', { name: 'Count photos' }).click()
@@ -18,18 +22,20 @@ test('start an archive on the Mac from a phone, reattach after a reload, second 
   await page.goto('/#/uploads')
   const dialog = page.getByRole('dialog', { name: 'Name this device' })
   if (await dialog.isVisible()) { await dialog.getByRole('button', { name: 'Save' }).click() }
+  await openMac(page)
   await page.getByLabel('What to archive').selectOption('all')
   await page.getByRole('button', { name: 'Start archive' }).click()
   await expect(page.getByRole('heading', { name: 'Archiving…' })).toBeVisible()
 
   // the phone locks / the tab reloads: the page reattaches to the run in progress
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Archiving…' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Archiving…' })).toBeVisible()          // live progress stays in view
 
   // a second phone opens Uploads at the same time
   const other = await browser.newContext({ extraHTTPHeaders: { 'Tailscale-User-Login': 'phone-user@example.com' } })
   const p2 = await other.newPage()
   await p2.goto('/#/uploads')
+  await openMac(p2)
   await expect(p2.getByRole('button', { name: 'A run is in progress' })).toBeDisabled()
 
   await expect(page.getByRole('heading', { name: 'Finished' })).toBeVisible({ timeout: 60_000 })

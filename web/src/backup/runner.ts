@@ -1,5 +1,6 @@
 // Runs backup passes one at a time: on app open, on pull-to-refresh / sync, when the OS wakes the app
 // (iOS BGTask, Android WorkManager) and when an upload finishes.
+import { api } from '../api/client'
 import { getDevice } from '../lib/device'
 import { pairToken } from '../lib/pairing'
 import { runBackup } from './engine'
@@ -9,6 +10,7 @@ import { loadLedger, loadSettings, saveLedger, saveSettings } from './store'
 import type { Settings, Status } from './types'
 
 let current: Promise<Status> | null = null
+let registered = false
 let again = false
 const listeners = new Set<(s: Status) => void>()
 
@@ -36,6 +38,10 @@ export function backupNow(): Promise<Status | null> {
         again = false
         const device = getDevice()
         const settings = await loadSettings()
+        if (settings.enabled && !registered) {      // the Mac only accepts uploads from a registered device
+          await api('/api/devices/register', { method: 'POST', json: { device_id: device.device_id, name: device.name, platform: device.platform } })
+            .then(() => { registered = true }).catch(() => {})
+        }
         // Background passes (app closed) need the same origin, device and settings.
         await p.configure({ origin: location.origin, deviceId: device.device_id, auth: pairToken(), ...settings }).catch(() => {})
         s = await runBackup({

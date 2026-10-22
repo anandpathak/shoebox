@@ -7,6 +7,7 @@ import { detectPlatform } from '../lib/device'
 import { ago, bytes } from '../lib/format'
 import { sha256File } from '../lib/hash'
 import { enqueue, list, processQueue, subscribe, type Progress, type Queued } from '../lib/uploadQueue'
+import { archivedCount, canPickNatively, pickAndUpload, type PickProgress } from '../backup/pick'
 
 interface RunInfo {
   run_id: string; kind?: string; label?: string; status: 'running' | 'done' | 'failed' | 'cancelled'
@@ -20,6 +21,11 @@ type Mode = 'selected' | 'album' | 'range' | 'all'
 
 export function Uploads() {
   const { health, changed } = useApp()
+  const platform = detectPlatform()
+  const phone = platform === 'ios' || platform === 'android'
+  const onMac = !phone && (health?.via === 'cookie' || health?.via === 'token')   // a browser on the Mac itself
+  const here = platform === 'ios' ? 'iPhone' : platform === 'android' ? 'phone' : onMac ? 'Mac' : 'computer'
+  const macName = health?.device.name ?? 'your Mac'
   const [active, setActive] = useState<RunInfo | null>(null)
   const [history, setHistory] = useState<RunInfo[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -35,12 +41,34 @@ export function Uploads() {
       <TopBar title="Uploads" />
       <div className="stack">
         {error && <div className="error">{error}</div>}
-        <AppleCard mac={health?.device.name ?? 'your Mac'} busy={active?.status === 'running'}
-                   onStarted={(r) => { setActive(r); setError(null) }} onError={setError} />
-        {active && <LiveRun run={active} onUpdate={setActive} onFinished={() => { refresh(); changed() }} />}
-        <DeviceUploads deviceId={uploaderId(health?.via, health?.device.device_id)} onDone={() => { refresh(); changed() }} />
-        <InboxCard />
-        <AlbumCard />
+        {onMac ? (
+          <>
+            {/* On the Mac: its Apple Photos library first, files from this Mac second */}
+            <AppleCard mac={macName} busy={active?.status === 'running'}
+                       onStarted={(r) => { setActive(r); setError(null) }} onError={setError} />
+            {active && <LiveRun run={active} onUpdate={setActive} onFinished={() => { refresh(); changed() }} />}
+            <DeviceUploads here={here} deviceId={uploaderId(health?.via, health?.device.device_id)} onDone={() => { refresh(); changed() }} />
+            <InboxCard />
+            <AlbumCard />
+          </>
+        ) : (
+          <>
+            {/* On a phone (or another computer): this device first; the Mac's library is one tap away */}
+            {canPickNatively()
+              ? <NativePickCard here={here} onDone={() => { refresh(); changed() }} />
+              : <DeviceUploads here={here} deviceId={uploaderId(health?.via, health?.device.device_id)} onDone={() => { refresh(); changed() }} />}
+            <InboxCard />
+            {active && <LiveRun run={active} onUpdate={setActive} onFinished={() => { refresh(); changed() }} />}
+            <details className="card mac-section" data-testid="mac-section">
+              <summary><strong>Archive on your Mac</strong> <span className="muted small">({macName}'s Apple Photos library)</span></summary>
+              <div className="stack">
+                <AppleCard mac={macName} busy={active?.status === 'running'}
+                           onStarted={(r) => { setActive(r); setError(null) }} onError={setError} />
+                <AlbumCard />
+              </div>
+            </details>
+          </>
+        )}
         <History runs={history.filter((r) => r.run_id !== active?.run_id)} onRetry={(r) => setActive(r)} onError={setError} />
       </div>
     </>
@@ -139,7 +167,7 @@ function LiveRun({ run, onUpdate, onFinished }: { run: RunInfo; onUpdate: (r: Ru
   )
 }
 
-function DeviceUploads({ deviceId, onDone }: { deviceId: string; onDone: () => void }) {
+function DeviceUploads({ here, deviceId, onDone }: { here: string; deviceId: string; onDone: () => void }) {
   const { online } = useApp()
   const [queued, setQueued] = useState<Queued[]>([])
   const [progress, setProgress] = useState<Progress>({})
@@ -190,8 +218,8 @@ function DeviceUploads({ deviceId, onDone }: { deviceId: string; onDone: () => v
   for (const q of queued) doneNames.set(q.id, q.name)
   return (
     <section className="card">
-      <h2>Upload from this device</h2>
-      <p className="muted small">Pick photos and videos. Large files upload in 8 MB pieces and carry on after a dropped connection.
+      <h2>From this {here}</h2>
+      <p className="muted small">Pick photos and videos (you can choose several). Large files upload in 8 MB pieces and carry on after a dropped connection.
         If your Mac can't be reached they wait here and upload by themselves later.
         Some phones remove the location from shared photos; those are flagged so you know.</p>
       <input ref={input} type="file" accept="image/*,video/*" multiple hidden onChange={(e) => { pick(e.target.files); e.target.value = '' }}
@@ -347,6 +375,45 @@ function AlbumCard() {
           {a.running ? 'Checking and adding…' : a.to_add ? `Add ${n(a.to_add)} now` : 'Check the album'}</button>
         {a.could_not_add > 0 && <button className="btn" disabled={a.running} onClick={() => sync(true)}>Try the missing ones again</button>}
       </div>
+    </section>
+  )
+}
+
+/** In the iPhone app: iOS's own picker (any number of items), sent like automatic backup (full metadata,
+ * keeps going in the background). Progress comes from the Mac, so it's right even after switching apps. */
+function NativePickCard({ here, onDone }: { here: string; onDone: () => void }) {
+  const [p, setP] = useState<PickProgress | null>(null)
+  const [archived, setArchived] = useState(0)
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    if (p?.phase !== 'done' || !p.hashes.length || archived >= p.hashes.length) return
+    const t = setInterval(() => { archivedCount(p.hashes).then((n) => { setArchived(n); if (n >= p.hashes.length) onDone() }).catch(() => {}) }, 3000)
+    return () => clearInterval(t)
+  }, [p, archived, onDone])
+  const choose = async () => {
+    setBusy(true); setError(null); setArchived(0)
+    try { const r = await pickAndUpload(setP); if (!r) setP(null) } catch (e) { setError((e as Error).message) } finally { setBusy(false) }
+  }
+  const n = (x: number) => x.toLocaleString()
+  return (
+    <section className="card" aria-label={`From this ${here}`}>
+      <h2>From this {here}</h2>
+      <p className="muted small">Choose any number of photos and videos. They're sent with everything the {here} knows about them
+        (date, place, camera) and keep uploading if you switch apps. Ones already in your archive are skipped.</p>
+      <div className="row"><button className="btn primary" disabled={busy} onClick={choose}>Choose photos and videos</button></div>
+      {p && (
+        <p className="small" role="status" data-testid="pick-status">
+          {p.phase === 'reading' ? `Reading ${n(p.read)} of ${n(p.total)}…`
+            : p.phase === 'checking' ? 'Checking which ones your archive already has…'
+            : p.phase === 'sending' ? `Sending ${n(p.sent)}…`
+            : `${n(p.sent)} sent${p.already ? ` · ${n(p.already)} already in your archive` : ''} · ${n(Math.min(archived, p.hashes.length))} of ${n(p.hashes.length)} archived`}
+        </p>
+      )}
+      {p && p.unavailable > 0 && <p className="warn small">{n(p.unavailable)} chosen items couldn't be read: Shoebox only has
+        access to some photos. Settings → Shoebox → Photos → Full Access.</p>}
+      {error && <p className="error small">{error}</p>}
+      <p className="muted small">Back up everything automatically instead: Sync → <strong>Back up this phone</strong>.</p>
     </section>
   )
 }

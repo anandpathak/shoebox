@@ -52,7 +52,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let alive = true
     const check = () => api<Health>('/api/health')
-      .then((h) => { if (alive) { setHealth(h); setOnline(true); setAuthError(null); setNeedsPairing(false) } })
+      .then((h) => {
+        // an answer to a request sent just before the network dropped can arrive afterwards: don't let it
+        // say "online" when the device has no connection
+        if (!alive || !navigator.onLine) return
+        setHealth(h); setOnline(true); setAuthError(null); setNeedsPairing(false)
+      })
       .catch((e) => {
         if (!alive) return
         if (e.status === 401 && canPair()) setNeedsPairing(true)
@@ -62,7 +67,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     check()
     refreshSync()
     const t = setInterval(() => { check(); refreshSync() }, 30_000)
-    const on = () => { setOnline(navigator.onLine); check() }
+    const on = () => { setOnline(navigator.onLine); if (navigator.onLine) check() }
     addEventListener('online', on)
     addEventListener('offline', on)
     return () => { alive = false; clearInterval(t); removeEventListener('online', on); removeEventListener('offline', on) }
